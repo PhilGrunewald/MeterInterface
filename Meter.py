@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # revision history
 # 22 May 15:	PG added print by date
+# IMPORTANT - remove passwords before commiting to GitHub
 
 import os
 import csv
