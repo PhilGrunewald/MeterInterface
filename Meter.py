@@ -10,13 +10,14 @@ import datetime			# needed to read TIME from SQL
 
 from subprocess import call
 import subprocess
-from sys import stdin
-import glob # for reading files in directory
-from xml.etree import ElementTree as et # to modify the sting xml file for android
+# from sys import stdin
+import glob				# for reading files in directory
+# to modify the sting xml file for android
+from xml.etree import ElementTree as et
 import npyscreen
 
 
-filePath='/Users/pg1008/Documents/Data/METER/'
+filePath = '/Users/pg1008/Documents/Data/METER/'
 
 dbHost = 'localhost'
 dbUser = 'root'
@@ -32,22 +33,26 @@ dataType = 'E'
 dateSelection = '2015-02-27'
 
 
-dbConnection = MySQLdb.connect(host= dbHost, user= dbUser, db=dbName)
-dbConnectionCEGADS = MySQLdb.connect(host= dbHostCEGADS, user= dbUserCEGADS,passwd=dbPassCEGADS, db=dbNameCEGADS)
+dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
+dbConnectionCEGADS = MySQLdb.connect(host=dbHostCEGADS, user=dbUserCEGADS,
+					passwd=dbPassCEGADS, db=dbNameCEGADS)
 
 CEGADSdb = dbConnectionCEGADS.cursor()
 cursor = dbConnection.cursor()
+
 
 def getMetaData(MetaFile, ItemName):
 	# extract content from meta file (or any other file)
 	content = ""
 	for line in open(MetaFile):
 		if ItemName in line:
-			content = line.split(ItemName + ": ",1)[1] 
+			content = line.split(ItemName + ": ",1)[1]
 	return content.strip()
+
 
 def backup_database():
 	call('mysqldump -u ' + dbUser + ' --databases ' + dbName +' > ~/Documents/Data/SQL/'+dbName+'.sql', shell=True)
+
 
 def data_plot():
 	# get readings for a given contact and data type
@@ -57,11 +62,9 @@ def data_plot():
 	gnuPath = filePath + 'plots/'
 	gnufile_E	 = '/Users/pg1008/Documents/Software/gnuplot/meter_E.gp'
 	gnufile_E_PV = '/Users/pg1008/Documents/Software/gnuplot/meter_E_PV.gp'
-
 	sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
 	cursor.execute(sqlq)
 	householdID = ("%s" % cursor.fetchone())
-
 	sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '" + str(householdID) +"' AND DataType = '" + dataType +"'"
 	cursor.execute(sqlq)
 	###metaID = ("%s" % cursor.fetchone())
@@ -90,7 +93,7 @@ def data_plot():
 
 		if result is None:					# there is no PV -> just do this record
 			# Write data to temp file
-			sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = " + str(metaID) 
+			sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = " + str(metaID)
 			cursor.execute(sqlq)
 			data = cursor.fetchall()
 			data_file = open(gnuPath + "temp_data.csv", "w+")
@@ -136,7 +139,7 @@ def data_upload():
 	MetaFile = fileList[0]
 	DataFile, void = MetaFile.split('.meta')
 	DataFile = DataFile + '.csv'
-	#print DataFile 
+	#print DataFile
 	#print MetaFile
 
 	# read Meta file information
@@ -145,9 +148,9 @@ def data_upload():
 		deviceSN = getMetaData(MetaFile, "Device ID")
 		contactID = getMetaData(MetaFile, "Contact ID")
 		dataType = getMetaData(MetaFile, "Data type")
-		offset = getMetaData(MetaFile, "Offset")
+		# offset = getMetaData(MetaFile, "Offset")
 		collectionDate = getMetaData(MetaFile, "Date")
-	
+
 	############### CONTACT CHECK
 	#-----------------------------
 	# does the contact specified in the meta file exist?
@@ -161,7 +164,7 @@ def data_upload():
 		sqlq = "INSERT INTO Contact(idContact) VALUES ('"+contactID+"')"
 		cursor.execute(sqlq)
 		dbConnection.commit()
-	
+
 	############### HOUSEHOLD CHECK
 	#-----------------------------
 	# does a household record for this contact exist yet?
@@ -177,7 +180,7 @@ def data_upload():
 		# XXX the above '1's are placeholders for unknown foreign keys!!
 		cursor.execute(sqlq)
 		householdID = cursor.lastrowid
-	
+
 	############### META CHECK
 	#-----------------------------
 	# does a meta record for this data and this household exist yet?
@@ -199,7 +202,7 @@ def data_upload():
 			cursor.execute(sqlq)
 		dbConnection.commit()
 		upload_10min_readings(MetaID)
-	
+
 	#close the connection to the database.
 	#-------------------------------------
 	dbConnection.commit()
@@ -250,7 +253,7 @@ def upload_10min_readings(idMeta=20):
 
 def uploadFile(fileName):  ## SUPERSEEDED???
 	# set up file names
-	filePath='/Users/pg1008/Documents/Data/METER/'
+	# filePath='/Users/pg1008/Documents/Data/METER/'
 	ArchivePath='/Users/pg1008/Documents/Data/METER_Archive/'
 
 	MetaFile = fileName + '.meta'
@@ -262,9 +265,9 @@ def uploadFile(fileName):  ## SUPERSEEDED???
 		deviceSN = getMetaData(MetaFile, "Device ID")
 		contactID = getMetaData(MetaFile, "Contact ID")
 		dataType = getMetaData(MetaFile, "Data type")
-		offset = getMetaData(MetaFile, "Offset")
+		# offset = getMetaData(MetaFile, "Offset")
 		collectionDate = getMetaData(MetaFile, "Date")
-	
+
 	############### CONTACT CHECK
 	#-----------------------------
 	# does the contact specified in the meta file exist?
@@ -278,7 +281,7 @@ def uploadFile(fileName):  ## SUPERSEEDED???
 		sqlq = "INSERT INTO Contact(idContact) VALUES ('"+contactID+"')"
 		cursor.execute(sqlq)
 		dbConnection.commit()
-	
+
 	############### HOUSEHOLD CHECK
 	#-----------------------------
 	# does a household record for this contact exist yet?
@@ -305,7 +308,7 @@ def uploadFile(fileName):  ## SUPERSEEDED???
 
 	if MetaID is None:
 		# create a new meta entry
-		sqlq = "INSERT INTO meta(CollectionDate , DataType , SerialNumber , Household_idHousehold) VALUES ('" + collectionDate + "', '" + dataType + "', '" + deviceSN + "', '"+ str(int(householdID)) +"');" # WATCH THIS: removed [0] from householdID (this was to make a case work where the household was newly created!	
+		sqlq = "INSERT INTO meta(CollectionDate , DataType , SerialNumber , Household_idHousehold) VALUES ('" + collectionDate + "', '" + dataType + "', '" + deviceSN + "', '"+ str(int(householdID)) +"');" # WATCH THIS: removed [0] from householdID (this was to make a case work where the household was newly created!
 		#	the str(int(x[0]) term is to turn the tuple of a 'long integer' i.e. '123L,' in to a simple integer and then string
 
 		cursor.execute(sqlq)
@@ -319,7 +322,7 @@ def uploadFile(fileName):  ## SUPERSEEDED???
 		for row in csv_data:
 			sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) VALUES('" + row[0] + "', '" + row[1] + "', '"+ str(MetaID) +"')"
 			cursor.execute(sqlq)
-	
+
 	#close the connection to the database.
 	#-------------------------------------
 	dbConnection.commit()
@@ -329,15 +332,17 @@ def uploadFile(fileName):  ## SUPERSEEDED???
 	cmd_moveToArchive='mv ' + MetaFile + ' ' + ArchivePath
 	call(cmd_moveToArchive , shell=True)
 
+
 def data_download_upload(self):
 	data_download()
 	data_upload()
 
+
 def phone_setup():
 	# collect the contact ID and sensor type and write complied data to phone
-	#print "\n[+] Please enter Contact ID:" 
+	#print "\n[+] Please enter Contact ID:"
 	#contactID = '78' #stdin.readline()
-	#print "\n[+] Please select data type: [E]lectricity, [P]V, [T]ime-use" 
+	#print "\n[+] Please select data type: [E]lectricity, [P]V, [T]ime-use"
 	#dataType = 'E' #stdin.readline()
 
 
@@ -355,6 +360,7 @@ def phone_setup():
 	call('adb uninstall com.Phil.DEMon', shell=True)
 	call('adb install ~/Documents/Software/Android/DMon/bin/MainActivity-debug.apk', shell=True)
 	call('adb install ~/Documents/Software/Android/AutoStart_2.1.apk', shell=True)
+
 
 def email_graph():
 	# attach graph to a personalised email
@@ -445,7 +451,7 @@ def print_address_label(void):
 	myFile.close()
 	call('pandoc -V geometry:margin=1.2in ' + filePath + "temp_letter.md -o" + letterFile + "pdf ", shell= True)
 
-	
+
 #-------------------------------------------------------------------------------
 #---------------------------FORMS-----------------------------------------------
 #-------------------------------------------------------------------------------
@@ -460,27 +466,27 @@ class ActionControllerData(npyscreen.MultiLineAction):
 			'p' : self.phone_setup,
 			'A' : print_address_label,
 			'd' : self.data_download,
-		 	"u" : self.data_upload,
-		 	"D" : data_download_upload,
+			"u" : self.data_upload,
+			"D" : data_download_upload,
 
-		 	"t" : self.show_DataTypes,
-		 	"c" : self.show_Contact,
-		 	"a" : self.show_NewContact,
+			"t" : self.show_DataTypes,
+			"c" : self.show_Contact,
+			"a" : self.show_NewContact,
 			'T' : self.show_Tables,
 
-		 	"m" : self.show_MetaForm,
-		 	"g" : self.show_Plot,
-		 	"e" : email_graph,
+			"m" : self.show_MetaForm,
+			"g" : self.show_Plot,
+			"e" : email_graph,
 
-		 	"B" : self.backup_database,
-		 	"s" : self.show_MainMenu,
+			"B" : self.backup_database,
+			"s" : self.show_MainMenu,
 
-		 	"M" : self.show_MainMenu,
-		 	"X" : self.parent.exit_application,
+			"M" : self.show_MainMenu,
+			"X" : self.parent.exit_application,
 		}
 		self.add_handlers(MenuActionKeys)
 
-	
+
 	def actionHighlighted(self, selectedLine, keypress):
 		#choose action based on the display status and selected line
 		if (self.parent.myStatus == 'Main'):
@@ -555,7 +561,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
 	def formated_word(self, vl):
 		return "%s" % (vl[0])
-	
+
 class ActionControllerSearch(npyscreen.ActionControllerSimple):
 	def create(self):
 		self.add_action('^/.*', self.set_search, True)
@@ -607,7 +613,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 		if self.first_time:
 			self.initialise()
 			self.first_time = False
-	
+
 	def initialise(self):
 		global dataType
 				#self.m1 = self.add_menu(name="Data handling", shortcut="D")
@@ -622,7 +628,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 				#	("Set up new phone", phone_setup, "p"),
 				#	("Set sensor type (currently " + str(dataType) +")", self.change_data_type, "s"),
 				#])
-			
+
 				#self.m2 = self.add_menu(name="Database management", shortcut="m")
 				#self.m2.addItemsFromList([
 				#	("Add new contact", self.add_contact, "p"),
@@ -653,7 +659,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 		self.wMain.values = self.value.get()
 
 	def display_selected_data(self,displayModus):
-		# pull SQL data and display 
+		# pull SQL data and display
 		self.myStatus=displayModus
 		self.wStatus1.value = "METER " + self.myStatus + " selection"
 		self.wStatus2.value = "Select " + self.myStatus + " from selection"
@@ -677,7 +683,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 				displayList.append(self.formated_any(items))
 
 		self.value.set_values(displayList)
-		self.wMain.values = self.value.get()  # XXX testj 
+		self.wMain.values = self.value.get()  # XXX testj
 		self.wMain.display()
 
 	def formated_contact(self, vl):
@@ -694,7 +700,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
 	def display_tables(self):
 		self.myStatus='Tables'
-		self.wStatus1.value = "METER " + self.myStatus 
+		self.wStatus1.value = "METER " + self.myStatus
 		#sqlq = "SELECT * FROM Contact"
 		sqlq = "SHOW TABLES"
 		cursor.execute(sqlq)
@@ -702,10 +708,10 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 		displayList=[]
 		for items in result:
 			displayList.append(self.formated_any(items))
-		
+
 		# self.wMain.values = displayList
 		self.value.set_values(displayList)
-		self.wMain.values = self.value.get()  # XXX testj 
+		self.wMain.values = self.value.get()  # XXX testj
 		self.wMain.display()
 		#self.wMain.values = self.formated_word(result)
 		# return result
@@ -768,7 +774,7 @@ class metaFileInformation(npyscreen.Form):
 	def create(self):
 		# set up file names
 		filePath='/Users/pg1008/Documents/Data/METER/'
-		allMetafiles= filePath + '*.meta'
+		# allMetafiles= filePath + '*.meta'
 		allCSVfiles= filePath + '*.csv'
 		#self.fileList = glob.glob(allMetafiles)
 		CSVfileList = glob.glob(allCSVfiles)
