@@ -9,7 +9,7 @@ import datetime            # needed to read TIME from SQL
 
 from subprocess import call
 import subprocess
-# from sys import stdin
+from sys import stdin
 import glob                 # for reading files in directory
 from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen
@@ -909,12 +909,7 @@ class metaFileInformation(npyscreen.Form):
                                       value=selectIndex,
                                       name="Which files should be uploaded?",
                                       values=displayString, scroll_exit=True)
-        self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15,
-                                      value=reject_Index,
-                                      name="These files will be deleted \
-                                      (uncheck to save them)?",
-                                      values=reject_displayString,
-                                      scroll_exit=True)
+        self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15, value=reject_Index, name="These files will be deleted (uncheck to save them)?", values=reject_displayString, scroll_exit=True)
 
 
 class MeterForms(npyscreen.NPSAppManaged):
