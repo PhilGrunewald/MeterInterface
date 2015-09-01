@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # revision history
 # 22 May 15:    PG added print by date
+# 29 Jul 15: revisions now done with git
 
 import os
 import csv
