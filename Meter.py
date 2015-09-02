@@ -1,7 +1,9 @@
 #!/usr/bin/python
 # revision history
+# originally called uploadData.py
 # 22 May 15:    PG added print by date
 # 29 Jul 15: revisions now done with git
+# 2 Sep 15: about to create new branch for time-use-entry function
 
 import os
 import csv
@@ -534,6 +536,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
             "u": self.data_upload,
             "D": data_download_upload,
 
+            "C": self.show_TimeUse,
             "t": self.show_DataTypes,
             "c": self.show_Contact,
             "a": self.show_NewContact,
@@ -571,7 +574,13 @@ class ActionControllerData(npyscreen.MultiLineAction):
         elif (self.parent.myStatus == 'Tables'):
             self.parent.wMain.values = ['Table ', selectedLine, 'was selected!']
             self.parent.wMain.display()
+            self.parent.wStatus2.values = ['Hey, Table ', selectedLine, 'was selected!']
+            self.parent.wStatus2.display()
             self.parent.display_selected_data(selectedLine)
+        elif (self.parent.myStatus == 'TimeUseCode'):
+            self.parent.wStatus2.values = ['TUC ', selectedLine, ' has been added']
+            self.parent.wStatus2.display()
+            # self.parent.display_selected_data(selectedLine)
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
             dataTypeArray = selectedLine.split(',')
@@ -600,6 +609,10 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def data_upload(self, *args, **keywords):
         data_upload()
+
+    def show_TimeUse(self, *args, **keywords):
+        self.parent.myStatus = 'TimeUseCode'
+        self.parent.display_selected_data("TimeUseCode")
 
     def show_DataTypes(self, *args, **keywords):
         self.parent.myStatus = 'DataTypes'
@@ -730,7 +743,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         # pull SQL data and display
         self.myStatus = displayModus
         self.wStatus1.value = "METER " + self.myStatus + " selection"
-        self.wStatus2.value = "Select " + self.myStatus + " from selection"
+        self.wStatus2.value = "Now Phil, Select " + self.myStatus + " from selection"
         if (displayModus == "Contact"):
             sqlq = "SELECT * FROM Contact"
             CEGADSdb.execute(sqlq)
@@ -753,6 +766,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.value.set_values(displayList)
         self.wMain.values = self.value.get()  # XXX testj
         self.wMain.display()
+        self.wStatus1.display()
+        self.wStatus2.display()
 
     def formated_contact(self, vl):
         return "%s, %s %s" % (vl[0], vl[1], vl[2])
@@ -919,6 +934,7 @@ class MeterForms(npyscreen.NPSAppManaged):
         self.addForm('MAIN', MeterMain, lines=36)
         self.addForm('NewContact', newContactForm, name='New Contact')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
+        # self.addForm('TimeUse', timeUseForm, name='Time Use Entry')
 
 if __name__ == "__main__":
     MeterApp = MeterForms()
