@@ -29,6 +29,7 @@ dbUserCEGADS = 'phil'
 dbPassCEGADS = 'SSartori12'
 dbNameCEGADS = 'EnergyLocal'
 
+timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '78'
 dataType = 'E'
 dateSelection = '2015-02-27'
@@ -233,13 +234,23 @@ def data_upload():
     cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
     call(cmd_moveToArchive, shell=True)
 
+def add_time_use(idMeta, idTimeUseCode, TimePeriod):
+    # idMeta may need to be invented - if new entry
+    # Time in 1-144 for 10 minute interval
+    sqlq = "INSERT INTO TimeUse(Meta_idMeta, TimeUseCode_idTimeUseCode, TimePeriod)\
+            VALUES ('" + idMeta + "', '" + idTimeUseCode + "', '" + TimePeriod + "');"
+    cursor.execute(sqlq)
+    dbConnection.commit()
 
 def get_time_period(timestr):
     # convert into one of 144 10minute periods of the day
     factors = [6, 0.1, 0.00167]
     return sum([a*b for a, b in zip(factors, map(int, timestr.split(':')))])
 
-
+def next_period(thisTime):
+    # advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00'
+    return thisTime + datetime.timedelta(minutes = 10)
+    
 def time_in_seconds(timestr):
     # '00:01:01' -> 61
     factors = [3600, 60, 1]
@@ -578,9 +589,15 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.display_selected_data(selectedLine)
         elif (self.parent.myStatus == 'TimeUseCode'):
-            self.parent.wStatus2.values = ['TUC ', selectedLine, ' has been added']
+            timeUseArray = selectedLine.split('\t')
+            idTimeUseCode = str(timeUseArray[0])
+            print idTimeUseCode 
+            global timePeriod
+            add_time_use("999", idTimeUseCode, str(timePeriod.time()))
+            timePeriod = next_period(timePeriod)
+            self.parent.wStatus2.values = str(timePeriod) + ': ' + str(timeUseArray[2]) + ' added'
             self.parent.wStatus2.display()
-            # self.parent.display_selected_data(selectedLine)
+            self.parent.wMain.display()
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
             dataTypeArray = selectedLine.split(',')
@@ -742,8 +759,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
     def display_selected_data(self, displayModus):
         # pull SQL data and display
         self.myStatus = displayModus
-        self.wStatus1.value = "METER " + self.myStatus + " selection"
-        self.wStatus2.value = "Now Phil, Select " + self.myStatus + " from selection"
+        # self.wStatus1.value = "METER " + self.myStatus + " selection"
+        # self.wStatus2.value = "Now Phil, Select " + self.myStatus + " from selection"
         if (displayModus == "Contact"):
             sqlq = "SELECT * FROM Contact"
             CEGADSdb.execute(sqlq)
@@ -767,7 +784,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.wMain.values = self.value.get()  # XXX testj
         self.wMain.display()
         self.wStatus1.display()
-        self.wStatus2.display()
+        # self.wStatus2.display()
 
     def formated_contact(self, vl):
         return "%s, %s %s" % (vl[0], vl[1], vl[2])
