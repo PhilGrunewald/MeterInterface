@@ -5,6 +5,8 @@
 # 29 Jul 15: revisions now done with git
 # 2 Sep 15: about to create new branch for time-use-entry function
 
+# ADD -- SELECT individual
+
 import os
 import csv
 import MySQLdb
@@ -30,17 +32,18 @@ dbPassCEGADS = 'SSartori12'
 dbNameCEGADS = 'EnergyLocal'
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
-contactID = '78'
+contactID = '80'
 dataType = 'E'
 dateSelection = '2015-02-27'
-
+individual = '5'
 
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
-dbConnectionCEGADS = MySQLdb.connect(
-    host=dbHostCEGADS, user=dbUserCEGADS, passwd=dbPassCEGADS, db=dbNameCEGADS)
-
-CEGADSdb = dbConnectionCEGADS.cursor()
 cursor = dbConnection.cursor()
+
+if (1==2):
+    dbConnectionCEGADS = MySQLdb.connect(
+        host=dbHostCEGADS, user=dbUserCEGADS, passwd=dbPassCEGADS, db=dbNameCEGADS)
+    CEGADSdb = dbConnectionCEGADS.cursor()
 
 
 def getMetaData(MetaFile, ItemName):
@@ -148,14 +151,11 @@ def data_upload():
     global filePath
     ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
     allMetafiles = filePath + '*.meta'
-    # print glob.glob(allMetafiles)
     fileList = glob.glob(allMetafiles)
     # XXX do as list iteration...
     MetaFile = fileList[0]
     DataFile, void = MetaFile.split('.meta')
     DataFile = DataFile + '.csv'
-    # print DataFile
-    # print MetaFile
 
     # read Meta file information
     # ---------------------------
@@ -234,11 +234,11 @@ def data_upload():
     cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
     call(cmd_moveToArchive, shell=True)
 
-def add_time_use(idMeta, idTimeUseCode, TimePeriod):
+def add_time_use(idIndividual, idTimeUseCode, TimePeriod):
     # idMeta may need to be invented - if new entry
     # Time in 1-144 for 10 minute interval
-    sqlq = "INSERT INTO TimeUse(Meta_idMeta, TimeUseCode_idTimeUseCode, TimePeriod)\
-            VALUES ('" + idMeta + "', '" + idTimeUseCode + "', '" + TimePeriod + "');"
+    sqlq = "INSERT INTO TimeUse(Individual_idIndividual, TimeUseCode_idTimeUseCode, TimePeriod)\
+            VALUES ('" + idIndividual + "', '" + idTimeUseCode + "', '" + TimePeriod + "');"
     cursor.execute(sqlq)
     dbConnection.commit()
 
@@ -368,7 +368,6 @@ def uploadFile(fileName):  # SUPERSEEDED???
         # XXX add DataType PV/E/TU...
         # get the id of the entry just made
         MetaID = cursor.lastrowid
-        # print 'Created meta entry number' + str(MetaID)
         # ###################### Enter data
         # insert electricity DataFile into database
         csv_data = csv.reader(file(DataFile))
@@ -394,11 +393,6 @@ def data_download_upload(self):
 
 def phone_setup():
     # collect the contact ID and sensor type and write complied data to phone
-    # print "\n[+] Please enter Contact ID:"
-    # contactID = '78' #stdin.readline()
-    # print "\n[+] Please select data type: [E]lectricity, [P]V, [T]ime-use"
-    # dataType = 'E' #stdin.readline()
-
     # set up device
     xmlFile = \
         '/Users/pg1008/Documents/Software/Android/DMon/res/values/strings.xml'
@@ -425,8 +419,8 @@ def email_graph():
     if os.path.exists(plotFile):
         sqlq = "SELECT Name,Email FROM Contact WHERE idContact = '" +\
             contactID + "'"
-        CEGADSdb.execute(sqlq)
-        result = CEGADSdb.fetchone()
+        cursor.execute(sqlq)
+        result = cursor.fetchone()
         thisName = ("%s" % (result[0]))
         thisEmail = ("%s" % (result[1]))
         dateArray = dateSelection.split('-')
@@ -461,8 +455,8 @@ def print_address_label(void):
     # produces postage label and personal letter
     sqlq = "SELECT Name,Address,Postcode,Town FROM Contact WHERE idContact = '"\
         + contactID + "'"
-    CEGADSdb.execute(sqlq)
-    result = CEGADSdb.fetchone()
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
     # addressDetails = ""
     # for item in result:
     #    addressDetails += "%s \n\n" % (item)
@@ -535,12 +529,11 @@ def print_address_label(void):
 # ------------------------------------------------------------------------------
 
 class ActionControllerData(npyscreen.MultiLineAction):
-
     def __init__(self, *args, **keywords):
         super(ActionControllerData, self).__init__(*args, **keywords)
         global MenuActionKeys
         MenuActionKeys = {
-            '1': self.phone_setup,
+            # '1': self.phone_setup,
             'p': self.phone_setup,
             'A': print_address_label,
             'd': self.data_download,
@@ -551,6 +544,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
             "t": self.show_DataTypes,
             "c": self.show_Contact,
             "a": self.show_NewContact,
+            "i": self.show_NewIndividual,
+            "I": self.show_Individual,
             'T': self.show_Tables,
 
             "m": self.show_MetaForm,
@@ -562,7 +557,15 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
             "M": self.show_MainMenu,
             "X": self.parent.exit_application,
+            '5': self.add_nTimeUse ,
         }
+        global TimeUseActionKeys
+        TimeUseActionKeys = {
+            "C": self.tested,
+            'v': self.show_TimeUse,     # TODO for review purposes
+            "M": self.show_MainMenu,
+            "X": self.parent.exit_application,
+                }
         self.add_handlers(MenuActionKeys)
 
     def actionHighlighted(self, selectedLine, keypress):
@@ -583,21 +586,17 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
         elif (self.parent.myStatus == 'Tables'):
-            self.parent.wMain.values = ['Table ', selectedLine, 'was selected!']
-            self.parent.wMain.display()
-            self.parent.wStatus2.values = ['Hey, Table ', selectedLine, 'was selected!']
+            self.parent.wStatus2.values = ['Table ', selectedLine, 'was selected!']
             self.parent.wStatus2.display()
             self.parent.display_selected_data(selectedLine)
         elif (self.parent.myStatus == 'TimeUseCode'):
-            timeUseArray = selectedLine.split('\t')
+            timeUseArray = selectedLine.split('\t')         # the time use code is left of the two tabs and acts as ID
+            global idTimeUseCode
             idTimeUseCode = str(timeUseArray[0])
-            print idTimeUseCode 
-            global timePeriod
-            add_time_use("999", idTimeUseCode, str(timePeriod.time()))
-            timePeriod = next_period(timePeriod)
-            self.parent.wStatus2.values = str(timePeriod) + ': ' + str(timeUseArray[2]) + ' added'
-            self.parent.wStatus2.display()
-            self.parent.wMain.display()
+            global TimeUseActivity
+            TimeUseActivity = str(timeUseArray[2])
+            self.add_TimeUse()
+
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
             dataTypeArray = selectedLine.split(',')
@@ -606,6 +605,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Data type changed to " + str(dataTypeArray[1])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
+
+    def tested(self, *args, **keywords):
+        print "have been tested"
 
     def backup_database(self, *args, **keywords):
         self.parent.myStatus = 'Backing up...'
@@ -628,8 +630,39 @@ class ActionControllerData(npyscreen.MultiLineAction):
         data_upload()
 
     def show_TimeUse(self, *args, **keywords):
+        # self.parent.parentApp.switchForm('TimeUse')
+        print "changing"
+        global TimeUseActionKeys
+        TimeUseActionKeys = {
+            "6": self.add_nTimeUse,
+            "C": self.tested,
+            'v': self.show_TimeUse,     # TODO for review purposes
+                }
+        self.add_handlers(TimeUseActionKeys)
         self.parent.myStatus = 'TimeUseCode'
         self.parent.display_selected_data("TimeUseCode")
+        self.parent.wStatus2.value =\
+            "select code for " + str(timePeriod.time())
+        self.parent.wStatus2.display()
+
+    def add_TimeUse(self, *args, **keywords):
+        # need to pass relevant parameters (or use globals ?!)
+        global idTimeUseCode 
+        global timePeriod
+        global timeUseActivity
+        add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
+        timePeriod = next_period(timePeriod)
+        self.parent.wStatus2.value =\
+            str(timePeriod.time()) + ' ' + TimeUseActivity +  ' set'
+        self.parent.wStatus2.display()
+
+    def add_nTimeUse(self, *args, **keywords):
+        # try to pass number of entries as parameter
+        global idTimeUseCode 
+        global timePeriod
+        for i in range(6):
+            add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
+            timePeriod = next_period(timePeriod)
 
     def show_DataTypes(self, *args, **keywords):
         self.parent.myStatus = 'DataTypes'
@@ -639,11 +672,18 @@ class ActionControllerData(npyscreen.MultiLineAction):
         self.parent.myStatus = 'Contact'
         self.parent.display_selected_data("Contact")
 
+    def show_Individual(self, *args, **keywords):
+        self.parent.myStatus = 'Individual'
+        self.parent.display_selected_data("Individual")
+
     def show_MetaForm(self, *args, **keywords):
         self.parent.parentApp.switchForm('MetaForm')
 
     def show_NewContact(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewContact')
+
+    def show_NewIndividual(self, *args, **keywords):
+        self.parent.parentApp.switchForm('NewIndividual')
 
     def show_Plot(self, *args, **keywords):
         self.parent.myStatus = 'Plotting'
@@ -662,11 +702,18 @@ class ActionControllerData(npyscreen.MultiLineAction):
 class ActionControllerSearch(npyscreen.ActionControllerSimple):
     def create(self):
         self.add_action('^/.*', self.set_search, True)
+        self.add_action('^:\d.*', self.speak, True)
 
     def set_search(self, command_line, widget_proxy, live):
         self.parent.value.set_filter(command_line[1:])
         self.parent.wMain.values = self.parent.value.get()
         self.parent.wMain.display()
+
+    def speak(self, command_line, widget_proxy, live): # just for testing
+        self.parent.value.set_filter("travel")
+        self.parent.wMain.values = self.parent.value.get()
+        self.parent.wMain.display()
+
 
     # NEEDED???
     def setMainMenu(self, command_line, widget_proxy, live):
@@ -691,6 +738,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         MenuText.append("\n")
         MenuText.append("\n")
         MenuText.append("Contact:  \t" + str(contactID))
+        MenuText.append("Individual:  \t" + str(individual))
         MenuText.append("Data type:\t" + str(dataType))
         MenuText.append("Date:\t" + str(dateSelection))
 
@@ -752,19 +800,31 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
     def update_list(self):
         self.wStatus1.value = "METER " + self.myStatus
-        self.wStatus2.value = "Command line"
+        # self.wStatus2.value = "Select and option"
         # self.wMain.add(npyscreen.TitleText, name = "Entrypoint")
         self.wMain.values = self.value.get()
 
     def display_selected_data(self, displayModus):
         # pull SQL data and display
         self.myStatus = displayModus
-        # self.wStatus1.value = "METER " + self.myStatus + " selection"
+        self.wStatus1.value = "METER " + self.myStatus + " selection"
         # self.wStatus2.value = "Now Phil, Select " + self.myStatus + " from selection"
         if (displayModus == "Contact"):
             sqlq = "SELECT * FROM Contact"
-            CEGADSdb.execute(sqlq)
-            result = CEGADSdb.fetchall()
+            cursor.execute(sqlq)
+            result = cursor.fetchall()
+        elif (displayModus == "Individual"):
+            # list all individuals associated with the current contact
+            # via the household ID for that contact. I.e. find all individuals where the household ID matched the household ID of the contact person
+            # sqlq = "SELECT idIndividual FROM \
+            sqlq = "SELECT * FROM \
+	            (SELECT idHousehold FROM Meter.Household \
+                    WHERE Contact_idContact = " + contactID + " ) a\
+                    LEFT JOIN \
+                    (SELECT * FROM Meter.Individual) b\
+                    ON a.idHousehold = b.Household_idHousehold;"
+            cursor.execute(sqlq)
+            result = cursor.fetchall()
         else:
             sqlq = "SELECT * FROM " + self.myStatus
             cursor.execute(sqlq)
@@ -824,6 +884,34 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.parentApp.switchFormNow()
 
 
+
+
+# class TimeUseForm(npyscreen.FormMuttActiveTraditional):
+     #     ACTION_CONTROLLER = ActionControllerSearch
+     #     MAIN_WIDGET_CLASS = ActionControllerData
+     #     myStatus = "TimeUseCode"
+     # 
+     #     def beforeEditing(self):
+     #         self.initialise()
+     # 
+     #     def initialise(self):
+     #         # self.myStatus = 'TimeUseCode'
+     #         sqlq = "SELECT * FROM " + self.myStatus
+     #         cursor.execute(sqlq)
+     #         result = cursor.fetchall()
+     #         displayList = []
+     #         for items in result:
+     #             displayList.append(self.formated_two(items))
+     #         self.value.set_values(displayList)
+     #         self.wMain.values = self.value.get()  # XXX testj
+     #         self.wMain.display()
+     # 
+     #         self.wStatus1.value = "HEY PHIL XXX METER " + self.myStatus
+     #         self.wStatus1.display()
+     # 
+     #     def formated_two(self, vl):
+     #         return "%s, %s" % (vl[0], vl[1])
+ 
 class newContactForm(npyscreen.Form):
     # gets fields from database, collects new entries
     def create(self):
@@ -857,6 +945,45 @@ class newContactForm(npyscreen.Form):
         global cursor
         cursor.execute(sqlq)
         dbConnection.commit()
+        self.parentApp.setNextFormPrevious()
+
+
+
+class newIndividualForm(npyscreen.Form):
+    # gets fields from database, collects new entries
+    def create(self):
+        # get fields
+        self.ColumnName = []
+        self.ColumnEntry = []
+        sqlq = "SHOW columns from Individual;"
+        global cursor
+        cursor.execute(sqlq)
+        tabledata = cursor.fetchall()
+        for field in tabledata:
+            self.ColumnName.append(field[0])
+        self.ColumnName.pop(0)   # to leave out the ID column
+        for item in range(0, len(self.ColumnName)):
+            self.ColumnEntry.append(self.add(npyscreen.TitleText,
+                                    name=self.ColumnName[item]))
+        # cursor.close()
+
+    def afterEditing(self):
+        # combine all column names into comma separated string with ``
+        sqlColumnString = "`"+self.ColumnName[0]+"`"
+        for item in self.ColumnName[1:]:
+            sqlColumnString = sqlColumnString + (",`"+item+"`")
+
+        sqlEntryString = "'"+self.ColumnEntry[0].value+"'"
+        for item in self.ColumnEntry[1:]:
+            sqlEntryString = sqlEntryString + (",'"+item.value+"'")
+
+        sqlq = "INSERT INTO `Individual`(" + sqlColumnString + ") \
+            VALUES ("+sqlEntryString+")"
+        global cursor
+        cursor.execute(sqlq)
+        dbConnection.commit()
+        global individual
+        individual = str(cursor.lastrowid)
         self.parentApp.setNextFormPrevious()
 
 
@@ -949,9 +1076,11 @@ class MeterForms(npyscreen.NPSAppManaged):
     def onStart(self):
         # npyscreen.setTheme(npyscreen.Themes.ColorfulTheme)
         self.addForm('MAIN', MeterMain, lines=36)
+        # self.addForm('MAIN', TimeUseForm, name='Time Use Entry', lines=15)
         self.addForm('NewContact', newContactForm, name='New Contact')
+        self.addForm('NewIndividual', newIndividualForm, name='New Individual')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
-        # self.addForm('TimeUse', timeUseForm, name='Time Use Entry')
+        # self.addForm('TimeUse', TimeUseForm, name='Time Use Entry')
 
 if __name__ == "__main__":
     MeterApp = MeterForms()
