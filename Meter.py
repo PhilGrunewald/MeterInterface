@@ -19,31 +19,21 @@ import glob                 # for reading files in directory
 from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen
 
-
-filePath = '/Users/pg1008/Documents/Data/METER/'
-
-dbHost = 'localhost'
-dbUser = 'root'
-dbName = 'Meter'
-
-dbHostCEGADS = '109.74.196.205'
-dbUserCEGADS = 'phil'
-dbPassCEGADS = 'SSartori12'
-dbNameCEGADS = 'EnergyLocal'
+from meter_ini import *     # reads the database and file path information from ./meter_ini.py
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
-contactID = '80'
+contactID = '999'
+individual = '999'
 dataType = 'E'
 dateSelection = '2015-02-27'
-individual = '5'
 
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
 cursor = dbConnection.cursor()
 
-if (1==2):
-    dbConnectionCEGADS = MySQLdb.connect(
-        host=dbHostCEGADS, user=dbUserCEGADS, passwd=dbPassCEGADS, db=dbNameCEGADS)
-    CEGADSdb = dbConnectionCEGADS.cursor()
+#     dbConnectionCEGADS = MySQLdb.connect(
+#         host=dbHostCEGADS, user=dbUserCEGADS, passwd=dbPassCEGADS, db=dbNameCEGADS)
+#     CEGADSdb = dbConnectionCEGADS.cursor()
+
 
 
 def getMetaData(MetaFile, ItemName):
@@ -74,8 +64,10 @@ def data_plot():
     cursor.execute(sqlq)
     householdID = ("%s" % cursor.fetchone())
 
+    # sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '"\
+    #     + str(householdID) + "' AND DataType = '" + dataType + "'"
     sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '"\
-        + str(householdID) + "' AND DataType = '" + dataType + "'"
+        + str(householdID) + "'"
     cursor.execute(sqlq)
     # metaID = ("%s" % cursor.fetchone())
     metaIDall = cursor.fetchall()
@@ -95,9 +87,11 @@ def data_plot():
 
         # Check if this is 'E', weather there are other records for this day
         # XXX add "if dataType=E"
+        # sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '" +\
+        #     str(householdID) + "' AND DataType = 'PV' AND CollectionDate = '" +\
+        #     CollectionDate + "'"
         sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '" +\
-            str(householdID) + "' AND DataType = 'PV' AND CollectionDate = '" +\
-            CollectionDate + "'"
+            str(householdID) + "' AND DataType = 'PV'"
         cursor.execute(sqlq)
         # XXX ERROR HERE !!! not piccking up PV....
         result = cursor.fetchone()
@@ -234,9 +228,18 @@ def data_upload():
     cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
     call(cmd_moveToArchive, shell=True)
 
-def add_time_use(idIndividual, idTimeUseCode, TimePeriod):
+def add_time_use(idIndividual, idTimeUseCode, TimePeriod, timeUseActivity):
+# def add_time_use(idIndividual, idTimeUseCode, TimePeriod):
     # idMeta may need to be invented - if new entry
     # Time in 1-144 for 10 minute interval
+
+    # write to a buffer file first
+    tuc_file = open(tucFilePath, "a")
+    tuc_file.write(idTimeUseCode + ', ' + TimePeriod[0:5] +', ' + timeUseActivity + '\n')
+    # for row in data:
+    #     data_file.write("%s,%s\n" % (row[0], row[1]))
+    tuc_file.close()
+
     sqlq = "INSERT INTO TimeUse(Individual_idIndividual, TimeUseCode_idTimeUseCode, TimePeriod)\
             VALUES ('" + idIndividual + "', '" + idTimeUseCode + "', '" + TimePeriod + "');"
     cursor.execute(sqlq)
@@ -258,6 +261,7 @@ def time_in_seconds(timestr):
 
 
 def upload_10min_readings(idMeta=20):
+    # calc the average for each 10 min period and write to database
     sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = '" +\
         str(idMeta) + "' ORDER BY Time"
     cursor.execute(sqlq)
@@ -387,6 +391,7 @@ def uploadFile(fileName):  # SUPERSEEDED???
 
 
 def data_download_upload(self):
+    # call upload and download
     data_download()
     data_upload()
 
@@ -453,7 +458,7 @@ def email_graph():
 
 def print_address_label(void):
     # produces postage label and personal letter
-    sqlq = "SELECT Name,Address,Postcode,Town FROM Contact WHERE idContact = '"\
+    sqlq = "SELECT Name,Address1,Postcode,Address2 FROM Contact WHERE idContact = '"\
         + contactID + "'"
     cursor.execute(sqlq)
     result = cursor.fetchone()
@@ -465,17 +470,9 @@ def print_address_label(void):
         (result)
     addressBlock = "\ \n\n %s\n\n %s\n\n%s %s" % (result)
 
-    returnAddress = "_Please return for free to_ \n\n\ \n\n\
-                     \ \ \ Dr Philipp Grunewald \n\n\
-                     \ \ \ University of Oxford \n\n\
-                     \ \ \ OUCE, South Parks Road \n\n\
-                     \ \ \ **OX1 3QY** Oxford\n\n\ "
-    fromAddress = "\n\n\ \n\n\
-        _Dr Grunewald, University of Oxford, OX1 3QY Oxford_    \n\n"
-    fromLetter = "\n\n\ \n\n\
-        _Dr Philipp Grunewald, Deputy Director of Energy Research,\
-        University of Oxford_\n\n\
-        _01865 275864, philipp.grunewald@ouce.ox.ac.uk_\n\n"
+    returnAddress = "_Please return for free to_ \n\n\ \n\n\ \ \ \ Dr Philipp Grunewald \n\n\ \ \ \ University of Oxford \n\n\ \ \ \ OUCE, South Parks Road \n\n\ \ \ \ **OX1 3QY** Oxford\n\n\ "
+    fromAddress = "\n\n\ \n\n\ _Dr Grunewald, University of Oxford, OX1 3QY Oxford_    \n\n"
+    fromLetter = "\n\n\ \n\n\ _Dr Philipp Grunewald_ \n\n\ _Environmental Change Institute_ \n\n\ _University of Oxford_\n\n"
     letterPath = filePath + "letters/"
     myFile = open(letterPath + "address.md", "a")
     myFile.write(fromAddress)
@@ -495,7 +492,7 @@ def print_address_label(void):
     templateFile = open(letterTemplate, "r")
     templateText = templateFile.read()
     templateFile.close()
-    templateText = templateText.replace("[date]", "**Monday**, 4 May")
+    templateText = templateText.replace("[date]", "**Monday**, 21 September 2015")
     if (dataType == 'PV'):
         templateText = templateText.replace("[s]", "s")
         templateText = templateText.replace("[is are]", "are")
@@ -512,13 +509,14 @@ def print_address_label(void):
 
     myFile = open(filePath + "temp_letter.md", "w+")
     myFile.write("\pagenumbering{gobble}")
+    myFile.write('![](/Users/pg1008/Documents/Oxford/Meter/Illustrations/Logos/meter_banner.pdf)')
     myFile.write(fromLetter)
     myFile.write(addressBlock)
     myFile.write("\n\n\ \n\n\ \n\n Dear " + thisName + ",\n\n")
-    myFile.write("\n\n\ \n\n **Subject: Energy Local Electricity Recorder for\
-        Monday, 4 May 2015**\n\n\ \n\n")
+    myFile.write("\n\n\ \n\n **Subject: Monday, 21 Sep: Your diary and electricity collection day **\n\n\ \n\n")
     myFile.write(templateText)
-    myFile.write("\n\n\ \n\n\ \n\n")
+    # myFile.write('![](/Users/pg1008/Pictures/Signatures/Signature_PG.png =50x50)')
+    #  myFile.write("\n\n\ \n\n\ \n\n")
     myFile.close()
     call('pandoc -V geometry:margin=1.2in ' + filePath + "temp_letter.md -o" +
          letterFile + "pdf ", shell=True)
@@ -559,13 +557,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             "X": self.parent.exit_application,
             '5': self.add_nTimeUse ,
         }
-        global TimeUseActionKeys
-        TimeUseActionKeys = {
-            "C": self.tested,
-            'v': self.show_TimeUse,     # TODO for review purposes
-            "M": self.show_MainMenu,
-            "X": self.parent.exit_application,
-                }
         self.add_handlers(MenuActionKeys)
 
     def actionHighlighted(self, selectedLine, keypress):
@@ -585,6 +576,14 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Contact changed to " + str(dataArray[1])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
+        elif (self.parent.myStatus == 'Individual'):
+            global individual 
+            dataArray = selectedLine.split('\t')
+            individual  = str(dataArray[0])
+            self.parent.wStatus2.value =\
+                "Individual changed to " + str(dataArray[2]) + " from household " + str(dataArray[0])
+            self.parent.wStatus2.display()
+            self.parent.setMainMenu()
         elif (self.parent.myStatus == 'Tables'):
             self.parent.wStatus2.values = ['Table ', selectedLine, 'was selected!']
             self.parent.wStatus2.display()
@@ -593,21 +592,20 @@ class ActionControllerData(npyscreen.MultiLineAction):
             timeUseArray = selectedLine.split('\t')         # the time use code is left of the two tabs and acts as ID
             global idTimeUseCode
             idTimeUseCode = str(timeUseArray[0])
-            global TimeUseActivity
-            TimeUseActivity = str(timeUseArray[2])
+            global timeUseActivity
+            timeUseActivity = str(timeUseArray[2])
             self.add_TimeUse()
+            self.parent.display_selected_data('TimeUseCode')
 
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
-            dataTypeArray = selectedLine.split(',')
+            dataTypeArray = selectedLine.split('\t')
             dataType = str(dataTypeArray[0])
             self.parent.wStatus2.value =\
-                "Data type changed to " + str(dataTypeArray[1])
+                "Data type changed to " + str(dataTypeArray[2])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
-    def tested(self, *args, **keywords):
-        print "have been tested"
 
     def backup_database(self, *args, **keywords):
         self.parent.myStatus = 'Backing up...'
@@ -631,11 +629,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def show_TimeUse(self, *args, **keywords):
         # self.parent.parentApp.switchForm('TimeUse')
-        print "changing"
         global TimeUseActionKeys
         TimeUseActionKeys = {
             "6": self.add_nTimeUse,
-            "C": self.tested,
             'v': self.show_TimeUse,     # TODO for review purposes
                 }
         self.add_handlers(TimeUseActionKeys)
@@ -650,10 +646,11 @@ class ActionControllerData(npyscreen.MultiLineAction):
         global idTimeUseCode 
         global timePeriod
         global timeUseActivity
-        add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
+        # add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
+        add_time_use(individual, idTimeUseCode, str(timePeriod.time()), timeUseActivity)
         timePeriod = next_period(timePeriod)
         self.parent.wStatus2.value =\
-            str(timePeriod.time()) + ' ' + TimeUseActivity +  ' set'
+            str(timePeriod.time()) + ' ' + timeUseActivity +  ' set'
         self.parent.wStatus2.display()
 
     def add_nTimeUse(self, *args, **keywords):
@@ -813,6 +810,14 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             sqlq = "SELECT * FROM Contact"
             cursor.execute(sqlq)
             result = cursor.fetchall()
+        elif (displayModus == "TimeUseCode"):
+            with open(tucFilePath) as inputFile:
+                tucTuple = [tuple(line.split(',')) for line in inputFile.readlines()]
+            sqlq = "SELECT * FROM " + self.myStatus
+            cursor.execute(sqlq)
+            result = tucTuple[-5:] + ['----------'] + list(cursor.fetchall())
+            # XXX
+
         elif (displayModus == "Individual"):
             # list all individuals associated with the current contact
             # via the household ID for that contact. I.e. find all individuals where the household ID matched the household ID of the contact person
@@ -829,17 +834,19 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             sqlq = "SELECT * FROM " + self.myStatus
             cursor.execute(sqlq)
             result = cursor.fetchall()
+
+        # result is populated, now display result
         displayList = []
         if (displayModus == "Contact"):
             for items in result:
                 displayList.append(self.formated_contact(items))
-        elif (displayModus == "DataTypes"):
+        elif (displayModus == "DataType"):
             for items in result:
                 displayList.append(self.formated_two(items))
         else:
             for items in result:
                 displayList.append(self.formated_any(items))
-
+        # update display
         self.value.set_values(displayList)
         self.wMain.values = self.value.get()  # XXX testj
         self.wMain.display()
@@ -962,10 +969,10 @@ class newIndividualForm(npyscreen.Form):
         for field in tabledata:
             self.ColumnName.append(field[0])
         self.ColumnName.pop(0)   # to leave out the ID column
+#         self.ColumnName.pop(0)   # to leave out the idHousehold column
         for item in range(0, len(self.ColumnName)):
             self.ColumnEntry.append(self.add(npyscreen.TitleText,
                                     name=self.ColumnName[item]))
-        # cursor.close()
 
     def afterEditing(self):
         # combine all column names into comma separated string with ``
