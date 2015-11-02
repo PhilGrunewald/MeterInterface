@@ -19,13 +19,26 @@ import glob                 # for reading files in directory
 from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen
 
-from meter_ini import *     # reads the database and file path information from ./meter_ini.py
+from meter_ini import *     # reads the database and file path information from meter_ini.py
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
-contactID = '999'
+contactID = '80'
+metaID = ''
 individual = '999'
 dataType = 'E'
 dateSelection = '2015-02-27'
+
+
+SerialNumbers   = []
+Dishwasher      = [0]*144
+WashingMashine  = [0]*144
+TumbleDryer     = [0]*144
+OvenMicrowave   = [0]*144
+Home            = [0]*144
+
+
+tucList = []        # keeps a temporary list of time codes for editing before uploading
+
 
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
 cursor = dbConnection.cursor()
@@ -47,7 +60,7 @@ def getMetaData(MetaFile, ItemName):
 
 def backup_database():
     call('mysqldump -u ' + dbUser + ' --databases ' + dbName +
-         ' > ~/Documents/Data/SQL/'+dbName+'.sql', shell=True)
+         ' > ' + filePath + 'database/' + dbName + '.sql', shell=True)
 
 
 def data_plot():
@@ -228,7 +241,7 @@ def data_upload():
     cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
     call(cmd_moveToArchive, shell=True)
 
-def add_time_use(idIndividual, idTimeUseCode, TimePeriod, timeUseActivity):
+def add_time_use_to_file(idIndividual, idTimeUseCode, TimePeriod, timeUseActivity):
 # def add_time_use(idIndividual, idTimeUseCode, TimePeriod):
     # idMeta may need to be invented - if new entry
     # Time in 1-144 for 10 minute interval
@@ -240,15 +253,51 @@ def add_time_use(idIndividual, idTimeUseCode, TimePeriod, timeUseActivity):
     #     data_file.write("%s,%s\n" % (row[0], row[1]))
     tuc_file.close()
 
-    sqlq = "INSERT INTO TimeUse(Individual_idIndividual, TimeUseCode_idTimeUseCode, TimePeriod)\
-            VALUES ('" + idIndividual + "', '" + idTimeUseCode + "', '" + TimePeriod + "');"
+def identifyIndividual():
+    # 1) get Household ID from Contact ID (1:1 relationship)
+    # 2) get all Meta IDs for Time use diaries for this household (these should have been created when sending out the diaries
+    # 3) if more than one individual in household, show individuals for selection
+    # return to ActionControllerData where the selection form is called
+    # the calls upload_time_use_data
+
+    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" +\
+        contactID + "'"
     cursor.execute(sqlq)
+    # householdID = str(cursor.fetchone())
+    householdID = ("%s" % cursor.fetchone())
+   
+    sqlq = "SELECT SerialNumber FROM Meta where Household_idHousehold ='" + str(householdID) + "' and DataType = 'T'"
+    # sqlq = "SELECT SerialNumber FROM Meta where Household_idHousehold ='75' and DataType = 'T'"
+    cursor.execute(sqlq)
+    global SerialNumbers
+    SerialNumbers = list(cursor.fetchall())
+
+def upload_time_use_file():
+    # what came before:
+    # MetaID for these entries has been identified
+    # now the text file is read into the data base
+    tuc_file = open(tucFilePath, "r")
+    period = 1
+    for row in tuc_file:
+         col = row.split(',')
+         sqlq = "INSERT INTO TimeUse(TimePeriod, TimeUseCode_idTimeUseCode,Meta_idMeta,Dishwasher)\
+                 VALUES ('" + col[1] + "', '" + col[0] + "', '" + MetaID + "', '" + str(Dishwasher[period]) + "');"
+         cursor.execute(sqlq)
+         period += 1
+
     dbConnection.commit()
+    tuc_file.close()
+
+
 
 def get_time_period(timestr):
     # convert into one of 144 10minute periods of the day
     factors = [6, 0.1, 0.00167]
     return sum([a*b for a, b in zip(factors, map(int, timestr.split(':')))])
+
+def period_hhmm(intPeriod):
+    dateTimeValue = datetime.datetime(1,1,1,4,0,0) + datetime.timedelta(minutes = (intPeriod-1) * 10)
+    return str(dateTimeValue.time())[0:5]
 
 def next_period(thisTime):
     # advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00'
@@ -556,8 +605,10 @@ class ActionControllerData(npyscreen.MultiLineAction):
             "M": self.show_MainMenu,
             "X": self.parent.exit_application,
             '5': self.add_nTimeUse ,
+            '0': self.upload_time_use_file,
         }
         self.add_handlers(MenuActionKeys)
+
 
     def actionHighlighted(self, selectedLine, keypress):
         # choose action based on the display status and selected line
@@ -627,12 +678,40 @@ class ActionControllerData(npyscreen.MultiLineAction):
     def data_upload(self, *args, **keywords):
         data_upload()
 
+    def upload_time_use_file(self, *args, **keywords):
+        identifyIndividual()
+        self.parent.parentApp.switchForm('SelectionForm')
+        # @@@@@@@@@@@@@@ test only
+        global individual
+        # individual = self.parent.parentApp.Form.SelectionForm.getResult()
+
+        individual = MeterApp._Forms['SelectionForm'].SelectionOptions.value
+        # identifyMetaID(
+        # upload_time_use_file()
+
+    def edit_TimeUse(self, *args, **keywords):
+        subprocess.call(['vim', tucFilePath])   
+
+    def enter_Other(self, *args, **keywords):
+        self.parent.myStatus = 'TimeUseCodeOther'
+        self.parent.display_selected_data("TimeUseCodeOther")
+        self.parent.wStatus2.value = "d: dishwasher, W.ashing machine | T.umble dryer | H.ome"
+        self.parent.wStatus2.display()
+
+    def add_Dishwasher(self, *args, **keywords):
+        # XXX 
+        pass
+
     def show_TimeUse(self, *args, **keywords):
         # self.parent.parentApp.switchForm('TimeUse')
         global TimeUseActionKeys
         TimeUseActionKeys = {
             "6": self.add_nTimeUse,
-            'v': self.show_TimeUse,     # TODO for review purposes
+            'e': self.edit_TimeUse,     # open vim
+            'a': self.enter_Other,     # show list of times for appliances, location and 'others'
+            'd': self.add_Dishwasher,     # add Dishwasher use for current period
+           #  'c': self.commit_TimeUse,     # upload to database
+
                 }
         self.add_handlers(TimeUseActionKeys)
         self.parent.myStatus = 'TimeUseCode'
@@ -643,11 +722,17 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def add_TimeUse(self, *args, **keywords):
         # need to pass relevant parameters (or use globals ?!)
+        global tucList
         global idTimeUseCode 
         global timePeriod
         global timeUseActivity
-        # add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
-        add_time_use(individual, idTimeUseCode, str(timePeriod.time()), timeUseActivity)
+
+        # *** Major change!!
+        # *** Add the meta line
+        # *** Upload the FILE in one go
+        tucList.append(idTimeUseCode)
+
+        add_time_use_to_file(individual, idTimeUseCode, str(timePeriod.time()), timeUseActivity)
         timePeriod = next_period(timePeriod)
         self.parent.wStatus2.value =\
             str(timePeriod.time()) + ' ' + timeUseActivity +  ' set'
@@ -658,7 +743,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
         global idTimeUseCode 
         global timePeriod
         for i in range(6):
-            add_time_use(individual, idTimeUseCode, str(timePeriod.time()))
+            add_time_use_to_file(individual, idTimeUseCode, str(timePeriod.time()))
             timePeriod = next_period(timePeriod)
 
     def show_DataTypes(self, *args, **keywords):
@@ -797,8 +882,6 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
     def update_list(self):
         self.wStatus1.value = "METER " + self.myStatus
-        # self.wStatus2.value = "Select and option"
-        # self.wMain.add(npyscreen.TitleText, name = "Entrypoint")
         self.wMain.values = self.value.get()
 
     def display_selected_data(self, displayModus):
@@ -817,6 +900,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             cursor.execute(sqlq)
             result = tucTuple[-5:] + ['----------'] + list(cursor.fetchall())
             # XXX
+
+        elif (displayModus == "TimeUseCodeOther"):
+            result = [{'P\thh:mm\td\tw\tt\to\thome'}]
+            for p in range(1,145):
+                result = result + [{str(p) + '\t' + period_hhmm(p)}]
 
         elif (displayModus == "Individual"):
             # list all individuals associated with the current contact
@@ -994,26 +1082,40 @@ class newIndividualForm(npyscreen.Form):
         self.parentApp.setNextFormPrevious()
 
 
+
+
+
+
+
+
+
 class metaFileInformation(npyscreen.Form):
     # display all .meta files in /METER/
     fileList = []
     reject_fileList = []
 
-    def afterEditing(self):
-        for FileIndex in self.FileSelection.value:
-            uploadFile(self.fileList[FileIndex])
-
-        for FileIndex in self.FileRejection.value:
-            call('mv ' + self.reject_fileList[FileIndex] +
-                 '.meta ~/.Trash/', shell=True)
-            call('mv ' + self.reject_fileList[FileIndex] +
-                 '.csv ~/.Trash/', shell=True)
-
-        self.parentApp.setNextFormPrevious()
 
     def create(self):
+        selectIndex = []
+        displayString = ['nothing']
+        reject_Index = []
+        reject_displayString = []
+        self.FileSelection = self.add(npyscreen.TitleMultiSelect, max_height=9,
+                                      value=selectIndex,
+                                      name="Which files should be uploaded?",
+                                      values=displayString,
+                                      scroll_exit=True)
+        self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15,
+                                      value=reject_Index,
+                                      name="These files will be deleted (uncheck to save them)?",
+                                      values=reject_displayString, scroll_exit=True)
+
+
+    def beforeEditing(self):
         # set up file names
-        filePath = '/Users/pg1008/Documents/Data/METER/'
+        global filePath
+        # filePath = '/Users/pg1008/Documents/Data/METER/'
+
         # allMetafiles = filePath + '*.meta'
         allCSVfiles = filePath + '*.csv'
         # self.fileList = glob.glob(allMetafiles)
@@ -1071,12 +1173,62 @@ class metaFileInformation(npyscreen.Form):
                                             ' for ' + str(reject_duration[-1]) +
                                             ' hours')
                 reject_Counter += 1
+        self.FileSelection.values = displayString
+        self.FileRejection.values = reject_displayString
 
-        self.FileSelection = self.add(npyscreen.TitleMultiSelect, max_height=9,
+
+    def afterEditing(self):
+        for FileIndex in self.FileSelection.value:
+            uploadFile(self.fileList[FileIndex])
+
+        for FileIndex in self.FileRejection.value:
+            call('mv ' + self.reject_fileList[FileIndex] +
+                 '.meta ~/.Trash/', shell=True)
+            call('mv ' + self.reject_fileList[FileIndex] +
+                 '.csv ~/.Trash/', shell=True)
+        self.parentApp.setNextFormPrevious()
+
+
+
+
+
+
+
+
+
+
+
+
+
+class selectionForm(npyscreen.Form):
+# show all Serial Numbers that emerged from the search in Meta for a given household
+    # in time this could be a more generic form....
+    def create(self):
+        selectIndex = []
+        displayString = ['nothing']
+        reject_Index = []
+        reject_displayString = []
+        self.SelectionOptions = self.add(npyscreen.TitleSelectOne, max_height=9,
                                       value=selectIndex,
-                                      name="Which files should be uploaded?",
-                                      values=displayString, scroll_exit=True)
-        self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15, value=reject_Index, name="These files will be deleted (uncheck to save them)?", values=reject_displayString, scroll_exit=True)
+                                      name="Which Number should be used?",
+                                      values=displayString,
+                                      scroll_exit=True)
+
+    def beforeEditing(self):
+        global SerialNumbers
+        self.SelectionOptions.values = SerialNumbers
+
+    def getResult():
+        return self.SelectionOptions.value
+
+    def afterEditing(self):
+        global MetaID
+        MetaID = self.SelectionOptions.value
+        self.parentApp.setNextFormPrevious()
+
+
+
+
 
 
 class MeterForms(npyscreen.NPSAppManaged):
@@ -1087,6 +1239,7 @@ class MeterForms(npyscreen.NPSAppManaged):
         self.addForm('NewContact', newContactForm, name='New Contact')
         self.addForm('NewIndividual', newIndividualForm, name='New Individual')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
+        self.addForm('SelectionForm', selectionForm, name='Selection Form')
         # self.addForm('TimeUse', TimeUseForm, name='Time Use Entry')
 
 if __name__ == "__main__":
