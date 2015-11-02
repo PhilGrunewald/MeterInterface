@@ -254,7 +254,7 @@ def add_time_use_to_file(idIndividual, idTimeUseCode, TimePeriod, timeUseActivit
     tuc_file.close()
 
 def identifyIndividual():
-    # 1) get Household ID from Contact ID (1:1 relationship)
+    # 1) get Household ID from Contact ID (assume 1:1 relationship)
     # 2) get all Meta IDs for Time use diaries for this household (these should have been created when sending out the diaries
     # 3) if more than one individual in household, show individuals for selection
     # return to ActionControllerData where the selection form is called
@@ -444,6 +444,46 @@ def data_download_upload(self):
     data_download()
     data_upload()
 
+def diary_setup():
+    # 2 Nov 15 - create a meta file entry and generate ID
+    global MetaID
+    # 1) get household ID (assuming a 1:1 relationship!)
+    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
+        + contactID + "'"
+    cursor.execute(sqlq)
+    householdID = ("%s" % cursor.fetchone())
+
+    sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
+           VALUES ('T', '" + householdID + "')"
+    cursor.execute(sqlq)
+    dbConnection.commit()
+    MetaID = cursor.lastrowid
+    npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
+
+
+def phone_id_setup():
+    # 2 Nov 15 - assumes that the apps are already installed
+    global MetaID
+    # 1) get household ID (assuming a 1:1 relationship!)
+    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
+        + contactID + "'"
+    cursor.execute(sqlq)
+    householdID = ("%s" % cursor.fetchone())
+
+    # 2) create a meta id entry for an 'eMeter'
+    sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
+           VALUES ('E', '" + householdID + "')"
+    cursor.execute(sqlq)
+    dbConnection.commit()
+    MetaID = cursor.lastrowid
+    
+    idFile = open(idFilePath, 'w+')
+    idFile.write(str(MetaID))
+    idFile.close()
+
+    call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
+    
+    npyscreen.notify_confirm('Diary ID ' + str(MetaID) + ' has been created on phone')
 
 def phone_setup():
     # collect the contact ID and sensor type and write complied data to phone
@@ -581,7 +621,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
         global MenuActionKeys
         MenuActionKeys = {
             # '1': self.phone_setup,
-            'p': self.phone_setup,
+            #   'p': self.phone_setup,
             'A': print_address_label,
             'd': self.data_download,
             "u": self.data_upload,
@@ -627,6 +667,15 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Contact changed to " + str(dataArray[1])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
+        elif (self.parent.myStatus == 'Diaries'):
+            global TimeUse_idMeta
+            dataArray = selectedLine.split('\t')
+            TimeUse_idMeta = str(dataArray[0])
+            self.parent.wStatus2.value =\
+                "Diary ID " + str(dataArray[0]) + " for Household " + str(dataArray[2]) + " selected"
+            self.parent.wStatus2.display()
+            # self.parent.setMainMenu()
+            self.parent.show_TimeUseEntryScreen()
         elif (self.parent.myStatus == 'Individual'):
             global individual 
             dataArray = selectedLine.split('\t')
@@ -711,14 +760,18 @@ class ActionControllerData(npyscreen.MultiLineAction):
             'a': self.enter_Other,     # show list of times for appliances, location and 'others'
             'd': self.add_Dishwasher,     # add Dishwasher use for current period
            #  'c': self.commit_TimeUse,     # upload to database
-
                 }
+
         self.add_handlers(TimeUseActionKeys)
-        self.parent.myStatus = 'TimeUseCode'
-        self.parent.display_selected_data("TimeUseCode")
+
+        self.parent.myStatus = 'Diaries'
+        self.parent.display_selected_data("Diaries")
         self.parent.wStatus2.value =\
             "select code for " + str(timePeriod.time())
         self.parent.wStatus2.display()
+
+
+
 
     def add_TimeUse(self, *args, **keywords):
         # need to pass relevant parameters (or use globals ?!)
@@ -843,30 +896,31 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
     def initialise(self):
         global dataType
-        # self.m1 = self.add_menu(name="Data handling", shortcut="D")
-        # self.m1.addItemsFromList([
-        #     ("Download from phone",    data_download, "d"),
-        #     ("Upload to database",    data_upload, "u"),
-        #     ("Download and upload",    data_download_upload, "D"),
-        # ])
-        # # The menus are created here.
-        # self.m2 = self.add_menu(name="Phone setup", shortcut="p")
-        # self.m2.addItemsFromList([
-        #     ("Set up new phone", phone_setup, "p"),
-        #     ("Set sensor type (currently " + str(dataType) +")",\
-        #       self.change_data_type, "s"),
-        # ])
+        self.m1 = self.add_menu(name="Data handling", shortcut="D")
+        self.m1.addItemsFromList([
+            ("Download from phone", data_download, "d"),
+            ("Upload to database",  data_upload, "u"),
+            ("Download and upload", data_download_upload, "D"),
+        ])
+        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
+        self.m2.addItemsFromList([
+            ("Set up phone with ID", phone_id_setup, "i"),
+            ("Set up new phone", phone_setup, "p"),
+            ("Set up new diary", diary_setup, "d"),
+            ("Set sensor type (currently " + str(dataType) +")",\
+              self.change_data_type, "s"),
+        ])
 
-        # self.m2 = self.add_menu(name="Database management", shortcut="m")
-        # self.m2.addItemsFromList([
-        #     ("Add new contact", self.add_contact, "p"),
-        #     ("Display table",    self.display_data, "s"),
-        #     #("Display Contact",   self.display_table_data, "c"),
-        #     ("Display Contact",   self.XXdisplay_selected_data, "c"),
-        #     ("Backup database",   backup_database, "c"),
-        # ])
-        # self.m3 = self.add_menu(name="Exit", shortcut="X")
-        # self.m3.addItem(text="Exit", onSelect = self.exit_application)
+        self.m2 = self.add_menu(name="Database management", shortcut="m")
+        self.m2.addItemsFromList([
+            ("Add new contact", self.add_contact, "p"),
+#             ("Display table",    self.display_data, "s"),
+            #("Display Contact",   self.display_table_data, "c"),
+#             ("Display Contact",   self.XXdisplay_selected_data, "c"),
+            ("Backup database",   backup_database, "c"),
+        ])
+        self.m3 = self.add_menu(name="Exit", shortcut="X")
+        self.m3.addItem(text="Exit", onSelect = self.exit_application)
 
     def add_contact(self):
         if self.editing:
@@ -905,6 +959,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             result = [{'P\thh:mm\td\tw\tt\to\thome'}]
             for p in range(1,145):
                 result = result + [{str(p) + '\t' + period_hhmm(p)}]
+
+        elif (displayModus == "Diaries"):
+            sqlq = "SELECT idMeta, Household_idHousehold FROM Meta WHERE DataType = 'T' "
+            cursor.execute(sqlq)
+            result = cursor.fetchall()
 
         elif (displayModus == "Individual"):
             # list all individuals associated with the current contact
@@ -970,6 +1029,15 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.wMain.display()
         # self.wMain.values = self.formated_word(result)
         # return result
+
+    def show_TimeUseEntryScreen(self, *args, **keywords):
+         global TimeUse_idMeta
+         self.myStatus = 'TimeUseCode'
+         self.display_selected_data("TimeUseCode")
+         self.wStatus2.value =\
+             "Diary ID " + str(TimeUse_idMeta) + " time " + str(timePeriod.time())
+         self.wStatus2.display()
+
 
     def exit_application(self, command_line=None, widget_proxy=None, live=None):
         global cursor
