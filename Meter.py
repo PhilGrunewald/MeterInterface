@@ -25,19 +25,12 @@ timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '80'
 metaID = ''
 individual = '999'
+householdID = '0'
 dataType = 'E'
 dateSelection = '2015-02-27'
 
 
 SerialNumbers   = []
-Dishwasher      = [0]*144
-WashingMashine  = [0]*144
-TumbleDryer     = [0]*144
-OvenMicrowave   = [0]*144
-Home            = [0]*144
-
-
-tucList = []        # keeps a temporary list of time codes for editing before uploading
 
 
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
@@ -616,6 +609,7 @@ def print_address_label(void):
 # ------------------------------------------------------------------------------
 
 class ActionControllerData(npyscreen.MultiLineAction):
+    # action key shortcuts
     def __init__(self, *args, **keywords):
         super(ActionControllerData, self).__init__(*args, **keywords)
         global MenuActionKeys
@@ -665,17 +659,42 @@ class ActionControllerData(npyscreen.MultiLineAction):
             contactID = str(dataArray[0])
             self.parent.wStatus2.value =\
                 "Contact changed to " + str(dataArray[1])
-            self.parent.wStatus2.display()
-            self.parent.setMainMenu()
+            self.parent.identifyHousehold()
+            # self.parent.wStatus2.display()
+            # self.parent.setMainMenu()
+
+
         elif (self.parent.myStatus == 'Diaries'):
-            global TimeUse_idMeta
+            global metaID
             dataArray = selectedLine.split('\t')
-            TimeUse_idMeta = str(dataArray[0])
+            metaID = str(dataArray[0])
+            self.parent.wStatus2.value =\
+                "Diary ID " + metaID + " ready for entry"
+            self.parent.wStatus2.display()
+            # self.parent.setMainMenu()
+            self.parent.show_TimeUseEntryScreen()
+
+
+        elif (self.parent.myStatus == 'XXXDiaries'):
+            dataArray = selectedLine.split('\t')
+            metaID = str(dataArray[0])
             self.parent.wStatus2.value =\
                 "Diary ID " + str(dataArray[0]) + " for Household " + str(dataArray[2]) + " selected"
             self.parent.wStatus2.display()
             # self.parent.setMainMenu()
             self.parent.show_TimeUseEntryScreen()
+
+
+        elif (self.parent.myStatus == 'Household'):
+            global householdID 
+            dataArray = selectedLine.split('\t')
+            householdID  = str(dataArray[0])
+            self.parent.wStatus2.value =\
+                "Household changed to " + str(dataArray[0])
+            self.parent.wStatus2.display()
+            self.parent.setMainMenu()
+
+
         elif (self.parent.myStatus == 'Individual'):
             global individual 
             dataArray = selectedLine.split('\t')
@@ -684,10 +703,15 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Individual changed to " + str(dataArray[2]) + " from household " + str(dataArray[0])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
+
+
         elif (self.parent.myStatus == 'Tables'):
             self.parent.wStatus2.values = ['Table ', selectedLine, 'was selected!']
             self.parent.wStatus2.display()
             self.parent.display_selected_data(selectedLine)
+
+
+
         elif (self.parent.myStatus == 'TimeUseCode'):
             timeUseArray = selectedLine.split('\t')         # the time use code is left of the two tabs and acts as ID
             global idTimeUseCode
@@ -696,6 +720,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
             timeUseActivity = str(timeUseArray[2])
             self.add_TimeUse()
             self.parent.display_selected_data('TimeUseCode')
+
+
 
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
@@ -748,10 +774,13 @@ class ActionControllerData(npyscreen.MultiLineAction):
         self.parent.wStatus2.display()
 
     def add_Dishwasher(self, *args, **keywords):
-        # XXX 
-        pass
+        # set Dishwasher to '1' for current period
+        global timeIndex 
+        Dishwasher[timeIndex] = 1
+        npyscreen.notify_confirm('Dishwasher is go for period ' + str(timeIndex))
 
     def show_TimeUse(self, *args, **keywords):
+        # time use action keys
         # self.parent.parentApp.switchForm('TimeUse')
         global TimeUseActionKeys
         TimeUseActionKeys = {
@@ -775,18 +804,20 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def add_TimeUse(self, *args, **keywords):
         # need to pass relevant parameters (or use globals ?!)
-        global tucList
+        global Activity1
         global idTimeUseCode 
         global timePeriod
+        global timeIndex
         global timeUseActivity
 
         # *** Major change!!
         # *** Add the meta line
         # *** Upload the FILE in one go
-        tucList.append(idTimeUseCode)
+        Activity1.append(idTimeUseCode)
 
         add_time_use_to_file(individual, idTimeUseCode, str(timePeriod.time()), timeUseActivity)
         timePeriod = next_period(timePeriod)
+        timeIndex += 1
         self.parent.wStatus2.value =\
             str(timePeriod.time()) + ' ' + timeUseActivity +  ' set'
         self.parent.wStatus2.display()
@@ -874,6 +905,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         MenuText.append("\n")
         MenuText.append("Contact:  \t" + str(contactID))
         MenuText.append("Individual:  \t" + str(individual))
+        MenuText.append("Household:  \t" + str(householdID))
         MenuText.append("Data type:\t" + str(dataType))
         MenuText.append("Date:\t" + str(dateSelection))
 
@@ -895,6 +927,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             self.first_time = False
 
     def initialise(self):
+        # menu and sub-menues
         global dataType
         self.m1 = self.add_menu(name="Data handling", shortcut="D")
         self.m1.addItemsFromList([
@@ -910,6 +943,13 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             ("Set sensor type (currently " + str(dataType) +")",\
               self.change_data_type, "s"),
         ])
+        self.m2 = self.add_menu(name="Input returned data", shortcut="i")
+        self.m2.addItemsFromList([
+            ("Process eMeter phone", self.IgnoreForNow, "i"),
+            ("Find household", self.identifyHousehold, "h"),
+            # ("Add a diary", self.addDiary, "h"),
+            ("Input a diary", self.diary_input, "d"),
+        ])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItemsFromList([
@@ -921,6 +961,41 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         ])
         self.m3 = self.add_menu(name="Exit", shortcut="X")
         self.m3.addItem(text="Exit", onSelect = self.exit_application)
+
+    def IgnoreForNow(self):
+        pass
+
+    def diary_input(self):
+        self.parentApp.switchForm('TimeUse')
+        # MeterApp._Forms['MAIN'].display_selected_data("OpenDiaries")
+        # MAIN_WIDGET_CLASS.show_TimeUse
+
+    def toggleDishwasher(self):
+        Dishwasher[timeIndex] = 1
+        npyscreen.notify_confirm('Dishwasher toggle is go for period ' + str(timeIndex))
+
+    def identifyHousehold(self):
+        sqlq = "SELECT COUNT(*) FROM Household WHERE Contact_idContact = '" + contactID + "'"
+        cursor.execute(sqlq)
+        result = cursor.fetchone()
+        # returns a tuple with format 'nL,' - extract value 'n':
+        count = int(result[0])
+        if (count == 0):
+            # need to create household
+            pass
+        elif (count == 1):
+            # set to the only option
+            sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
+            cursor.execute(sqlq)
+            result = cursor.fetchone()
+            global householdID 
+            householdID = str(int(result[0]))
+            self.wStatus2.value =\
+                "Household changed directly to " + householdID
+            self.wStatus2.display()
+            self.setMainMenu()
+        else:
+            MeterApp._Forms['MAIN'].display_selected_data("Household")
 
     def add_contact(self):
         if self.editing:
@@ -961,7 +1036,13 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
                 result = result + [{str(p) + '\t' + period_hhmm(p)}]
 
         elif (displayModus == "Diaries"):
-            sqlq = "SELECT idMeta, Household_idHousehold FROM Meta WHERE DataType = 'T' "
+            sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'T' and SerialNumber is NULL"
+            cursor.execute(sqlq)
+            result = cursor.fetchall()
+
+
+        elif (displayModus == "Household"):
+            sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
             cursor.execute(sqlq)
             result = cursor.fetchall()
 
@@ -970,10 +1051,10 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             # via the household ID for that contact. I.e. find all individuals where the household ID matched the household ID of the contact person
             # sqlq = "SELECT idIndividual FROM \
             sqlq = "SELECT * FROM \
-	            (SELECT idHousehold FROM Meter.Household \
+	            (SELECT idHousehold FROM Household \
                     WHERE Contact_idContact = " + contactID + " ) a\
                     LEFT JOIN \
-                    (SELECT * FROM Meter.Individual) b\
+                    (SELECT * FROM Individual) b\
                     ON a.idHousehold = b.Household_idHousehold;"
             cursor.execute(sqlq)
             result = cursor.fetchall()
@@ -1031,11 +1112,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         # return result
 
     def show_TimeUseEntryScreen(self, *args, **keywords):
-         global TimeUse_idMeta
+         global metaID
          self.myStatus = 'TimeUseCode'
          self.display_selected_data("TimeUseCode")
          self.wStatus2.value =\
-             "Diary ID " + str(TimeUse_idMeta) + " time " + str(timePeriod.time())
+             "Diary ID " + str(metaID) + " time " + str(timePeriod.time())
          self.wStatus2.display()
 
 
@@ -1047,34 +1128,283 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.parentApp.switchFormNow()
 
 
+#---------------------------------------- 
+#---------------------------------------- 
+#---------------------------------------- 
+#                   Diary Entry  
+#---------------------------------------- 
+#---------------------------------------- 
+#---------------------------------------- 
 
 
-# class TimeUseForm(npyscreen.FormMuttActiveTraditional):
-     #     ACTION_CONTROLLER = ActionControllerSearch
-     #     MAIN_WIDGET_CLASS = ActionControllerData
-     #     myStatus = "TimeUseCode"
-     # 
-     #     def beforeEditing(self):
-     #         self.initialise()
-     # 
-     #     def initialise(self):
-     #         # self.myStatus = 'TimeUseCode'
-     #         sqlq = "SELECT * FROM " + self.myStatus
-     #         cursor.execute(sqlq)
-     #         result = cursor.fetchall()
-     #         displayList = []
-     #         for items in result:
-     #             displayList.append(self.formated_two(items))
-     #         self.value.set_values(displayList)
-     #         self.wMain.values = self.value.get()  # XXX testj
-     #         self.wMain.display()
-     # 
-     #         self.wStatus1.value = "HEY PHIL XXX METER " + self.myStatus
-     #         self.wStatus1.display()
-     # 
-     #     def formated_two(self, vl):
-     #         return "%s, %s" % (vl[0], vl[1])
+class ActionControllerTimeUse(npyscreen.MultiLineAction):
+    # action key shortcuts
+    def __init__(self, *args, **keywords):
+        super(ActionControllerTimeUse, self).__init__(*args, **keywords)
+        global MenuActionKeys
+        MenuActionKeys = {
+            # 'd': self.toggleDevice(self.parent.Dishwasher),
+            'd': self.toggleDishwasher,
+            'w': self.toggleWashingMachine,
+            'c': self.toggleOvenMicrowave,
+            't': self.toggleTumbleDryer,
+            'l': self.toggleLocation,
+            'o': self.toggleOthers,
+        }
+        self.add_handlers(MenuActionKeys)
+
+
+    def actionHighlighted(self, selectedLine, keypress):
+        # choose action based on the display status and selected line
+        timeUseArray = selectedLine.split('\t')         # the time use code is left of the two tabs and acts as ID
+        global idTimeUseCode
+        idTimeUseCode = str(timeUseArray[0])
+        global timeUseActivity
+        timeUseActivity = str(timeUseArray[2])
+
+
+        self.parent.Activity1[self.parent.timeIndex] = idTimeUseCode
+        # copy from above - unless toggled
+#         if (self.parent.Dishwasher[self.parent.timeIndex] == -1):
+#             self.parent.Dishwasher[self.parent.timeIndex] = 0       # has been switched off 
+#         elif (self.parent.Dishwasher[self.parent.timeIndex] == 2):
+#             self.parent.Dishwasher[self.parent.timeIndex] = 1       # has been switched on
+#         else:
+#             if (self.parent.timeIndex > 1):
+#                 # remains unchanged
+#                 self.parent.Dishwasher[self.parent.timeIndex] = self.parent.Dishwasher[self.parent.timeIndex-1]
+
+        # copy from above - unless toggled
+        t = self.parent.timeIndex
+        if (t == 1):
+            t0 = t    # if we are on the first item copy from self
+        else:
+            t0 = t-1
+
+        self.parent.Dishwasher[t]     = self.carryOver(self.parent.Dishwasher[t],     self.parent.Dishwasher[t0])
+        self.parent.WashingMachine[t] = self.carryOver(self.parent.WashingMachine[t], self.parent.WashingMachine[t0])
+        self.parent.TumbleDryer[t]    = self.carryOver(self.parent.TumbleDryer[t],    self.parent.TumbleDryer[t0])
+        self.parent.OvenMicrowave[t]  = self.carryOver(self.parent.OvenMicrowave[t],  self.parent.OvenMicrowave[t0])
+        # self.parent.Dishwasher[t]     = self.carryOver(self.parent.Dishwasher[t],     self.parent.Dishwasher[t0])
+        # self.carryOver(self.parent.Dishwasher[t],     self.parent.Dishwasher[t0])
+
+        self.parent.Activity1[self.parent.timeIndex] = idTimeUseCode
+        # add_time_use_to_file(individual, idTimeUseCode, str(timePeriod.time()), timeUseActivity)
+
+        self.parent.timePeriod = next_period(self.parent.timePeriod)
+        self.parent.timeIndex += 1
+
+        # XXX adopt previos location and Others
+
+
+        self.parent.wStatus2.value =\
+            str(self.parent.timePeriod.time()) + ' ' + timeUseActivity +  ' set'
+        self.parent.wStatus2.display()
+        self.parent.updateScreen()
+
+    def carryOver(self, a, a0):
+        # -1 toggled off #  0 off #  1 on #  2 toggled on
+        if (a == -1):
+            a = 0       # has been switched off 
+        elif (a == 2):
+            a = 1       # has been switched on
+        else:
+            a = a0      # remains unchanged
+        return a
+
+    def toggleDevice(self, device):
+        a = device[self.parent.timeIndex]
+        if (self.parent.timeIndex > 1):
+            a0 = device[self.parent.timeIndex-1]
+            # npyscreen.notify_confirm('check ' + str(a) + ' and ' + str(a0))
+            if (a0 < 1):     # off / switched off
+                a = 2       # switched on 
+            else:
+                a = -1      # switched off
+        else:
+            a = 2       # switched on (on the assumption that device was initialised as 'off'
+        return a
+
+        
+
+    def toggleDishwasher(self, void):
+        self.parent.Dishwasher[self.parent.timeIndex] = self.toggleDevice(self.parent.Dishwasher)
+        self.parent.updateScreen()
+        # if (self.parent.timeIndex > 1):
+        #     if (self.parent.Dishwasher[self.parent.timeIndex-1] < 1):     # off / switched off
+        #         self.parent.Dishwasher[self.parent.timeIndex] = 2       # switched on 
+        #     else:
+        #         self.parent.Dishwasher[self.parent.timeIndex] = -1      # switched off
+        # else:
+        #     self.parent.Dishwasher[self.parent.timeIndex] = 2       # switched on 
+        # self.parent.updateScreen()
+
+    def toggleWashingMachine(self, void):
+        if (self.parent.timeIndex > 1):
+            if (self.parent.WashingMachine[self.parent.timeIndex-1] < 1):     # off / switched off
+                self.parent.WashingMachine[self.parent.timeIndex] = 2       # switched on 
+            else:
+                self.parent.WashingMachine[self.parent.timeIndex] = -1      # switched off
+        else:
+            self.parent.WashingMachine[self.parent.timeIndex] = 2       # switched on 
+        self.parent.updateScreen()
+
+    def toggleTumbleDryer(self, void):
+        if (self.parent.timeIndex > 1):
+            if (self.parent.TumbleDryer[self.parent.timeIndex-1] < 1):     # off / switched off
+                self.parent.TumbleDryer[self.parent.timeIndex] = 2       # switched on 
+            else:
+                self.parent.TumbleDryer[self.parent.timeIndex] = -1      # switched off
+        else:
+            self.parent.TumbleDryer[self.parent.timeIndex] = 2       # switched on 
+        self.parent.updateScreen()
+
+    def toggleOvenMicrowave(self, void):
+        if (self.parent.timeIndex > 1):
+            if (self.parent.OvenMicrowave[self.parent.timeIndex-1] < 1):     # off / switched off
+                self.parent.OvenMicrowave[self.parent.timeIndex] = 2       # switched on 
+            else:
+                self.parent.OvenMicrowave[self.parent.timeIndex] = -1      # switched off
+        else:
+            self.parent.OvenMicrowave[self.parent.timeIndex] = 2       # switched on 
+        self.parent.updateScreen()
+
+    def toggleLocation(self, void):
+        if (self.parent.timeIndex > 1):
+           self.parent.Location[self.parent.timeIndex] += 1       # next location
+        if (self.parent.Location[self.parent.timeIndex] > 3):
+            self.parent.Location[self.parent.timeIndex] == 0      # start over
+        self.parent.updateScreen()
+
+    def toggleOthers(self, void):
+        if (self.parent.timeIndex > 1):
+           self.parent.Others[self.parent.timeIndex] += 1       # next location
+        if (self.parent.Others[self.parent.timeIndex] > 5):
+            self.parent.Others[self.parent.timeIndex] == 0      # start over
+        self.parent.updateScreen()
+
+
+
+class TimeUseForm(npyscreen.FormMuttActiveTraditional):
+     ACTION_CONTROLLER = ActionControllerSearch
+     MAIN_WIDGET_CLASS = ActionControllerTimeUse
+
+     # Time use arrays
+     timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
+     timeIndex = 1  # counts in parallel to timePeriod from 1 (=4am) to 144 (=3:50am)
+     Activity1       = [-1]*144        # keeps time codes for editing before uploading
+     Activity2       = [-1]*144        # secondary activities
+     Dishwasher      = [0]*144       # 0= not in use, 1= in use
+     WashingMachine  = [0]*144
+     TumbleDryer     = [0]*144
+     OvenMicrowave   = [0]*144
+     Location        = [0]*144       # 1= home, 2= travel, 3=away, 0= unspecified
+     Others          = [0]*144       # how many people were with you?
  
+     tucDisplay = []
+
+     def beforeEditing(self):
+        self.initialise()
+ 
+     def initialise(self):
+        sqlq = "SELECT * FROM TimeUseCode"
+        cursor.execute(sqlq)
+        result = [' - codes - '] + list(cursor.fetchall())
+        for items in result:
+            self.tucDisplay.append(self.formated_any(items))
+
+        # update display
+        self.value.set_values(self.tucDisplay)
+        # self.value.set_values(displayList)
+        self.wMain.values = self.value.get()  # XXX testj
+        self.wMain.display()
+        self.wStatus1.display()
+
+     def updateScreen(self):
+        diaryDisplay = []
+        if (self.timeIndex < 15):
+            lowerBound = 1
+            upperBound = 15
+        else:
+            lowerBound = self.timeIndex-14
+            upperBound = self.timeIndex+1
+        for i in range(lowerBound, upperBound):
+            dw = '    '
+            wm = '    '
+            td = '    '
+            om = '    '
+            lc = '      '
+            os = '   '
+            if (self.Dishwasher[i] == -1):
+                dw = ' vv '
+            if (self.Dishwasher[i] == 0):
+                dw = '    '
+            if (self.Dishwasher[i] == 1):
+                dw = ' dw '
+            if (self.Dishwasher[i] == 2):
+                dw = ' ^^ '
+
+            if (self.WashingMachine[i] == -1):
+                wm = ' vv '                     # end
+            if (self.WashingMachine[i] == 0):   # off
+                wm = '    '
+            if (self.WashingMachine[i] == 1):   # on
+                wm = ' wm '
+            if (self.WashingMachine[i] == 2):   # start
+                wm = ' ^^ '
+
+            if (self.TumbleDryer[i] == -1):
+                td = ' vv '
+            if (self.TumbleDryer[i] == 0):
+                td = '    '
+            if (self.TumbleDryer[i] == 1):
+                td = ' td '
+            if (self.TumbleDryer[i] == 2):
+                td = ' ^^ '
+
+            if (self.OvenMicrowave[i] == -1):
+                om = ' vv '
+            if (self.OvenMicrowave[i] == 0):
+                om = '    '
+            if (self.OvenMicrowave[i] == 1):
+                om = ' om '
+            if (self.OvenMicrowave[i] == 2):
+                om = ' ^^ '
+
+            if (self.Location[i] == 1):
+                lc = ' home '
+            elif (self.Location[i] == 2):
+                lc = ' trvl '
+            elif (self.Location[i] == 3):
+                lc = ' away '
+
+
+            diaryDisplay.append(str(self.Activity1[i]) + ' ' +  str(self.Activity2[i]) + dw + wm + td + om + lc + str(self.Others[i]))
+        for item in self.tucDisplay:
+            diaryDisplay.append(item)
+
+        # update display
+        self.value.set_values(diaryDisplay)
+        self.wMain.values = self.value.get()  # XXX testj
+        self.wMain.display()
+        self.wStatus1.display()
+
+     def formated_any(self, tupelItems):
+        returnString = ""
+        for item in tupelItems:
+            returnString += "%s \t\t" % (item)
+        return returnString
+ 
+
+
+
+
+
+
+
+
+
+
 class newContactForm(npyscreen.Form):
     # gets fields from database, collects new entries
     def create(self):
@@ -1303,12 +1633,12 @@ class MeterForms(npyscreen.NPSAppManaged):
     def onStart(self):
         # npyscreen.setTheme(npyscreen.Themes.ColorfulTheme)
         self.addForm('MAIN', MeterMain, lines=36)
-        # self.addForm('MAIN', TimeUseForm, name='Time Use Entry', lines=15)
+        # self.addForm('MAIN', TimeUseForm, name='Time Use Entry', lines=36)
         self.addForm('NewContact', newContactForm, name='New Contact')
         self.addForm('NewIndividual', newIndividualForm, name='New Individual')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
         self.addForm('SelectionForm', selectionForm, name='Selection Form')
-        # self.addForm('TimeUse', TimeUseForm, name='Time Use Entry')
+        self.addForm('TimeUse', TimeUseForm, name='Time Use Entry')
 
 if __name__ == "__main__":
     MeterApp = MeterForms()
