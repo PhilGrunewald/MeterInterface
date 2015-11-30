@@ -37,11 +37,6 @@ SerialNumbers   = []
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
 cursor = dbConnection.cursor()
 
-#     dbConnectionCEGADS = MySQLdb.connect(
-#         host=dbHostCEGADS, user=dbUserCEGADS, passwd=dbPassCEGADS, db=dbNameCEGADS)
-#     CEGADSdb = dbConnectionCEGADS.cursor()
-
-
 
 def getMetaData(MetaFile, ItemName):
     # extract content from meta file (or any other file)
