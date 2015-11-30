@@ -337,8 +337,8 @@ def upload_10min_readings(idMeta=20):
         str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
     cursor.execute(sqlq)
 
-
-def uploadFile(fileName):  # SUPERSEEDED???
+def uploadFile_old(fileName):  
+    # called from MetaForm - after editing - for each file
     # set up file names
     # filePath='/Users/pg1008/Documents/Data/METER/'
     ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
@@ -421,6 +421,63 @@ def uploadFile(fileName):  # SUPERSEEDED???
             sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
             VALUES('" + row[0] + "', '" + row[1] + "', '" + str(MetaID) + "')"
             cursor.execute(sqlq)
+
+    # close the connection to the database.
+    # -------------------------------------
+    dbConnection.commit()
+    # cursor.close()
+    cmd_moveToArchive = 'mv ' + DataFile + ' ' + ArchivePath
+    call(cmd_moveToArchive, shell=True)
+    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
+    call(cmd_moveToArchive, shell=True)
+
+def uploadFile(fileName):  
+    # called from MetaForm - after editing - for each file
+    # set up file names
+    # filePath='/Users/pg1008/Documents/Data/METER/'
+    ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
+
+    MetaFile = fileName + '.meta'
+    DataFile = fileName + '.csv'
+
+    # read Meta file information
+    # ---------------------------
+    if os.path.exists(MetaFile):
+        deviceSN = getMetaData(MetaFile, "Device ID")
+        metaID = getMetaData(MetaFile, "Contact ID")  # 17 Nov 15 phones are now set up with the prepared entry ID in the meta file
+        dataType = getMetaData(MetaFile, "Data type")
+        #    offset = getMetaData(MetaFile, "Offset")
+        collectionDate = getMetaData(MetaFile, "Date")
+
+    # ############## MetaID CHECK
+    # -----------------------------
+    # Was a meta entry made when this phone was set up?
+    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '" + metaID + "'"
+    global cursor
+    cursor.execute(sqlq)
+    householdID = cursor.fetchone()
+    if householdID is None:
+        npyscreen.notify_confirm('This phone was not properly registered in the database. It is now listed as ' + str(metaID))
+        # create a new meta entry
+        sqlq = "INSERT INTO meta(CollectionDate, DataType, SerialNumber,\
+            Household_idHousehold) VALUES \
+            ('" + collectionDate + "', '" + dataType + "', '" + deviceSN +\
+            "', '" + str(int(householdID)) + "');"
+        # WATCH THIS: removed [0] from householdID (this was to make a case
+        # work where the household was newly created!
+        # the str(int(x[0]) term is to turn the tuple of a 'long integer'
+        # i.e. '123L,' in to a simple integer and then string
+        cursor.execute(sqlq)
+        # get the id of the entry just made
+        metaID = cursor.lastrowid
+
+    # ###################### Enter data
+    # insert electricity DataFile into database
+    csv_data = csv.reader(file(DataFile))
+    for row in csv_data:
+        sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
+        VALUES('" + row[0] + "', '" + row[1] + "', '" + str(MetaID) + "')"
+        cursor.execute(sqlq)
 
     # close the connection to the database.
     # -------------------------------------
