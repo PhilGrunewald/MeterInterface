@@ -4,6 +4,7 @@
 # 22 May 15:    PG added print by date
 # 29 Jul 15: revisions now done with git
 # 2 Sep 15: about to create new branch for time-use-entry function
+# 30 Nov: publish
 
 # ADD -- SELECT individual
 
