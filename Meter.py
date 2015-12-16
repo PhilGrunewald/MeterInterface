@@ -33,8 +33,7 @@ dateSelection = '2015-02-27'
 
 SerialNumbers   = []
 
-
-dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, db=dbName)
+dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
 cursor = dbConnection.cursor()
 
 
