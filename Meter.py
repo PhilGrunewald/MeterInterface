@@ -1,4 +1,8 @@
 #!/usr/bin/python
+
+# BUG: phone_id_setup() running twice on stratup - not when called from menu ??!!
+
+
 # revision history
 # originally called uploadData.py
 # 22 May 15:    PG added print by date
@@ -23,13 +27,12 @@ import npyscreen
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
-contactID = '80'
-metaID = ''
-individual = '999'
+contactID = '0'
+metaID = '0'
+individual = '0'
 householdID = '0'
 dataType = 'E'
-dateSelection = '2015-02-27'
-
+dateSelection = '2000-01-14'
 
 SerialNumbers   = []
 
@@ -57,8 +60,8 @@ def data_plot():
     global dataType
     global filePath
     gnuPath = filePath + 'plots/'
-    gnufile_E = '/Users/pg1008/Documents/Software/gnuplot/meter_E.gp'
-    gnufile_E_PV = '/Users/pg1008/Documents/Software/gnuplot/meter_E_PV.gp'
+    gnufile_E = '/Users/phil/Software/gnuplot/meter_E.gp'
+    gnufile_E_PV = '/Users/phil/Software/gnuplot/meter_E_PV.gp'
 
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
         + contactID + "'"
@@ -134,100 +137,27 @@ def data_plot():
 
 def data_download():
     # pull files from phone
-    call('adb pull /sdcard/METER/ ~/Documents/Data/METER/', shell=True)
+    call('adb pull /sdcard/METER/ ' + filePath, shell=True)
     cmd = 'adb shell ls /sdcard/Meter/'
     s = subprocess.check_output(cmd.split())
     call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
     call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
 
 
+def data_review():
+    MeterApp.switchForm('MetaForm')
+
 def data_upload():
     # set up file names
     global filePath
-    ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
+
     allMetafiles = filePath + '*.meta'
     fileList = glob.glob(allMetafiles)
     # XXX do as list iteration...
     MetaFile = fileList[0]
-    DataFile, void = MetaFile.split('.meta')
-    DataFile = DataFile + '.csv'
+    fileName, void = MetaFile.split('.meta')
+    uploadFile(fileName)
 
-    # read Meta file information
-    # ---------------------------
-    if os.path.exists(MetaFile):
-        deviceSN = getMetaData(MetaFile, "Device ID")
-        contactID = getMetaData(MetaFile, "Contact ID")
-        dataType = getMetaData(MetaFile, "Data type")
-        # offset = getMetaData(MetaFile, "Offset")
-        collectionDate = getMetaData(MetaFile, "Date")
-
-    # ############## CONTACT CHECK
-    # -----------------------------
-    #  does the contact specified in the meta file exist?
-    sqlq = "SELECT idContact FROM Contact WHERE idContact = '" + contactID + "'"
-    global cursor
-    cursor.execute(sqlq)
-    if cursor.fetchone():
-        npyscreen.notify_confirm('Now processing data for contact ' + contactID)
-    else:
-        npyscreen.notify_confirm('Creating new contact for unknown contact!')
-        sqlq = "INSERT INTO Contact(idContact) VALUES ('"+contactID+"')"
-        cursor.execute(sqlq)
-        dbConnection.commit()
-
-    # ############## HOUSEHOLD CHECK
-    # -----------------------------
-    # does a household record for this contact exist yet?
-    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" +\
-        contactID + "'"
-    cursor.execute(sqlq)
-    if cursor.fetchone():
-        householdID = cursor.fetchone()
-    else:
-        # Create a placeholder household (details can be populated when
-        # processing the relevant meta file
-        sqlq = "INSERT INTO Household(Contact_idContact, HouseType_idHouseType,\
-            HeatingSystem_idHeatingSystem, BillingType_idBillingType) VALUES ('"\
-            + contactID + "', '1','1','1')"
-        # XXX the above '1's are placeholders for unknown foreign keys!!
-        cursor.execute(sqlq)
-        householdID = cursor.lastrowid
-
-    # ############## META CHECK
-    #  -----------------------------
-    # does a meta record for this data and this household exist yet?
-    sqlq = "SELECT idMeta FROM Meta WHERE (SerialNumber = '" + deviceSN +\
-        "' AND CollectionDate = '" + collectionDate +\
-        "' AND Household_idHousehold = '" + str(householdID) + "')"
-    cursor.execute(sqlq)
-    if cursor.fetchone():
-        MetaID = cursor.fetchone()
-    else:
-        # create a new meta entry
-        sqlq = "INSERT INTO meta(CollectionDate , DataType , SerialNumber ,\
-            Household_idHousehold) VALUES ('" + collectionDate + "', '" +\
-            dataType + "', '" + deviceSN + "', '" + str(householdID) + "');"
-        cursor.execute(sqlq)
-        # get the id of the entry just made
-        MetaID = cursor.lastrowid
-        # insert electricity DataFile into database
-        csv_data = csv.reader(file(DataFile))
-        for row in csv_data:
-            sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
-            VALUES(\
-            '" + row[0] + "', '" + row[1] + "', '" + str(MetaID) + "')"
-            cursor.execute(sqlq)
-        dbConnection.commit()
-        upload_10min_readings(MetaID)
-
-    # close the connection to the database.
-    # -------------------------------------
-    dbConnection.commit()
-    # cursor.close()
-    cmd_moveToArchive = 'mv ' + DataFile + ' ' + ArchivePath
-    call(cmd_moveToArchive, shell=True)
-    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
-    call(cmd_moveToArchive, shell=True)
 
 def add_time_use_to_file(idIndividual, idTimeUseCode, TimePeriod, timeUseActivity):
 # def add_time_use(idIndividual, idTimeUseCode, TimePeriod):
@@ -291,11 +221,10 @@ def next_period(thisTime):
     # advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00'
     return thisTime + datetime.timedelta(minutes = 10)
     
-def time_in_seconds(timestr):
+def time_in_seconds(timestr): # not used - just kept for reference...
     # '00:01:01' -> 61
     factors = [3600, 60, 1]
     return sum([a*b for a, b in zip(factors, map(int, timestr.split(':')))])
-
 
 def upload_10min_readings(idMeta=20):
     # calc the average for each 10 min period and write to database
@@ -332,105 +261,13 @@ def upload_10min_readings(idMeta=20):
         str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
     cursor.execute(sqlq)
 
-def uploadFile_old(fileName):  
-    # called from MetaForm - after editing - for each file
-    # set up file names
-    # filePath='/Users/pg1008/Documents/Data/METER/'
-    ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
-
-    MetaFile = fileName + '.meta'
-    DataFile = fileName + '.csv'
-
-    # read Meta file information
-    # ---------------------------
-    if os.path.exists(MetaFile):
-        deviceSN = getMetaData(MetaFile, "Device ID")
-        contactID = getMetaData(MetaFile, "Contact ID")
-        dataType = getMetaData(MetaFile, "Data type")
-        #    offset = getMetaData(MetaFile, "Offset")
-        collectionDate = getMetaData(MetaFile, "Date")
-
-    # ############## CONTACT CHECK
-    # -----------------------------
-    # does the contact specified in the meta file exist?
-    sqlq = "SELECT idContact FROM Contact WHERE idContact = '" + contactID + "'"
-    global cursor
-    cursor.execute(sqlq)
-    if cursor.fetchone():
-        npyscreen.notify_confirm('Now processing data for contact ' + contactID)
-    else:
-        npyscreen.notify_confirm('Creating new contact for unknown contact!')
-        sqlq = "INSERT INTO Contact(idContact) VALUES ('"+contactID+"')"
-        cursor.execute(sqlq)
-        dbConnection.commit()
-
-    # ############## HOUSEHOLD CHECK
-    # -----------------------------
-    # does a household record for this contact exist yet?
-    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" +\
-        contactID + "'"
-    cursor.execute(sqlq)
-
-    householdID = cursor.fetchone()
-    if householdID is None:
-        # Create a placeholder household (details can be populated when
-        # processing the relevant meta file
-        sqlq = "INSERT INTO Household(Contact_idContact, HouseType_idHouseType,\
-            HeatingSystem_idHeatingSystem, BillingType_idBillingType) \
-            VALUES ('" + contactID + "', '1','1','1')"
-        # XXX the above '1's are placeholders for unknown foreign keys!!
-        cursor.execute(sqlq)
-        householdID = cursor.lastrowid
-    else:
-        householdID = ("%s" % householdID)
-        # introduced for when HH DOES exist and is a tuple, not an integer
-
-    # ############## META CHECK
-    # -----------------------------
-    # does a meta record for this data and this household exist yet?
-    sqlq = "SELECT idMeta FROM Meta WHERE (SerialNumber = '" + deviceSN +\
-        "' AND CollectionDate = '" + collectionDate +\
-        "' AND Household_idHousehold = '" + str(householdID) + "')"
-    cursor.execute(sqlq)
-    MetaID = cursor.fetchone()
-
-    if MetaID is None:
-        # create a new meta entry
-        sqlq = "INSERT INTO meta(CollectionDate, DataType, SerialNumber,\
-            Household_idHousehold) VALUES \
-            ('" + collectionDate + "', '" + dataType + "', '" + deviceSN +\
-            "', '" + str(int(householdID)) + "');"
-        # WATCH THIS: removed [0] from householdID (this was to make a case
-        # work where the household was newly created!
-        # the str(int(x[0]) term is to turn the tuple of a 'long integer'
-        # i.e. '123L,' in to a simple integer and then string
-
-        cursor.execute(sqlq)
-        # XXX add DataType PV/E/TU...
-        # get the id of the entry just made
-        MetaID = cursor.lastrowid
-        # ###################### Enter data
-        # insert electricity DataFile into database
-        csv_data = csv.reader(file(DataFile))
-        for row in csv_data:
-            sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
-            VALUES('" + row[0] + "', '" + row[1] + "', '" + str(MetaID) + "')"
-            cursor.execute(sqlq)
-
-    # close the connection to the database.
-    # -------------------------------------
-    dbConnection.commit()
-    # cursor.close()
-    cmd_moveToArchive = 'mv ' + DataFile + ' ' + ArchivePath
-    call(cmd_moveToArchive, shell=True)
-    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
-    call(cmd_moveToArchive, shell=True)
-
 def uploadFile(fileName):  
     # called from MetaForm - after editing - for each file
-    # set up file names
-    # filePath='/Users/pg1008/Documents/Data/METER/'
-    ArchivePath = '/Users/pg1008/Documents/Data/METER_Archive/'
+    global cursor
+    global metaID
+    global dataType
+    global householdID
+    global archivePath
 
     MetaFile = fileName + '.meta'
     DataFile = fileName + '.csv'
@@ -439,7 +276,7 @@ def uploadFile(fileName):
     # ---------------------------
     if os.path.exists(MetaFile):
         deviceSN = getMetaData(MetaFile, "Device ID")
-        metaID = getMetaData(MetaFile, "Contact ID")  # 17 Nov 15 phones are now set up with the prepared entry ID in the meta file
+        metaID = getMetaData(MetaFile, "Meta ID")  # 17 Nov 15 phones are now set up with the prepared entry ID in the meta file
         dataType = getMetaData(MetaFile, "Data type")
         #    offset = getMetaData(MetaFile, "Offset")
         collectionDate = getMetaData(MetaFile, "Date")
@@ -447,40 +284,48 @@ def uploadFile(fileName):
     # ############## MetaID CHECK
     # -----------------------------
     # Was a meta entry made when this phone was set up?
+
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '" + metaID + "'"
-    global cursor
     cursor.execute(sqlq)
-    householdID = cursor.fetchone()
-    if householdID is None:
-        npyscreen.notify_confirm('This phone was not properly registered in the database. It is now listed as ' + str(metaID))
+    thisHousehold = cursor.fetchone()
+
+    if thisHousehold is None:
         # create a new meta entry
-        sqlq = "INSERT INTO meta(CollectionDate, DataType, SerialNumber,\
+        sqlq = "INSERT INTO Meta(CollectionDate, DataType, SerialNumber,\
             Household_idHousehold) VALUES \
             ('" + collectionDate + "', '" + dataType + "', '" + deviceSN +\
-            "', '" + str(int(householdID)) + "');"
-        # WATCH THIS: removed [0] from householdID (this was to make a case
-        # work where the household was newly created!
-        # the str(int(x[0]) term is to turn the tuple of a 'long integer'
-        # i.e. '123L,' in to a simple integer and then string
+             "', '" + householdID + "');"
         cursor.execute(sqlq)
+        dbConnection.commit()
         # get the id of the entry just made
         metaID = cursor.lastrowid
-
+        npyscreen.notify_confirm('This phone was not properly registered in the database. Household ' + householdID + ' recording is now listed as meta entry ' + str(metaID))
+    else:
+        # update meta entry
+        # XXX what to do if more than one recording was taken? at the moment only one meta entry with the most recent date...
+        sqlq = "UPDATE Meta SET \
+                `DataType`='"+ dataType +"', \
+                `SerialNumber`='"+ deviceSN +"', \
+                `CollectionDate`='"+ collectionDate +"'\
+                WHERE `idMeta`='" +metaID+"';"
+        cursor.execute(sqlq)
+        npyscreen.notify_confirm('meta updated')
+        
     # ###################### Enter data
     # insert electricity DataFile into database
     csv_data = csv.reader(file(DataFile))
     for row in csv_data:
         sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
-        VALUES('" + row[0] + "', '" + row[1] + "', '" + str(MetaID) + "')"
+        VALUES('" + row[0] + "', '" + row[1] + "', '" + str(metaID) + "')"
         cursor.execute(sqlq)
 
     # close the connection to the database.
     # -------------------------------------
     dbConnection.commit()
     # cursor.close()
-    cmd_moveToArchive = 'mv ' + DataFile + ' ' + ArchivePath
+    cmd_moveToArchive = 'mv ' + DataFile + ' ' + archivePath
     call(cmd_moveToArchive, shell=True)
-    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + ArchivePath
+    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + archivePath
     call(cmd_moveToArchive, shell=True)
 
 
@@ -506,50 +351,57 @@ def diary_setup():
     npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
 
 
-def phone_id_setup():
+def phone_id_setup(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
-    global MetaID
+    global metaID
     # 1) get household ID (assuming a 1:1 relationship!)
+    npyscreen.notify_confirm('1: ' + str(metaID))
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
         + contactID + "'"
     cursor.execute(sqlq)
     householdID = ("%s" % cursor.fetchone())
 
+    npyscreen.notify_confirm('2: ' + str(householdID))
     # 2) create a meta id entry for an 'eMeter'
     sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
-           VALUES ('E', '" + householdID + "')"
+           VALUES ('"+ meterType +"', '" + householdID + "')"
     cursor.execute(sqlq)
     dbConnection.commit()
-    MetaID = cursor.lastrowid
+    metaID = str(cursor.lastrowid)
+    npyscreen.notify_confirm('3: ' + str(metaID))
     
     idFile = open(idFilePath, 'w+')
-    idFile.write(str(MetaID))
+    idFile.write(str(metaID))
     idFile.close()
-
     call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
-    
-    npyscreen.notify_confirm('Diary ID ' + str(MetaID) + ' has been created on phone')
+    MeterApp._Forms['MAIN'].wStatus2.value =\
+        "Phone was assigned ID " + metaID
+    MeterApp._Forms['MAIN'].wStatus2.display()
+    MeterApp._Forms['MAIN'].setMainMenu()
 
-def phone_setup():
-    # collect the contact ID and sensor type and write complied data to phone
-    # set up device
-    xmlFile = \
-        '/Users/pg1008/Documents/Software/Android/DMon/res/values/strings.xml'
-    tree = et.parse(xmlFile)
-    root = tree.getroot()
-    for rank in root.iter('string'):
-        if rank.attrib['name'] == 'contactID':
-            rank.text = contactID
-        if rank.attrib['name'] == 'dataType':
-            rank.text = dataType
-    tree.write(xmlFile)
-    call('ant debug -f ~/Documents/Software/Android/DMon/build.xml', shell=True)
+def aMeter_setup():
+    # compile and upload the cordova activity app
+    call('/Users/phil/Sites/MeterApp/platforms/android/cordova/run', shell=True)
+    # install AutoStart app
+    call('adb install ~/Software/Android/AutoStart_2.1.apk',
+         shell=True)
+    # configure phone for recording
+    phone_id_setup('A')
+
+def eMeter_setup():
+    # Compile
+    call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
+    # remove old copy
     call('adb uninstall com.Phil.DEMon', shell=True)
+    # install new
     call('adb install \
-        ~/Documents/Software/Android/DMon/bin/MainActivity-debug.apk',
+        ~/Software/Android/DMon/bin/MainActivity-debug.apk',
          shell=True)
-    call('adb install ~/Documents/Software/Android/AutoStart_2.1.apk',
+    # install AutoStart app
+    call('adb install ~/Software/Android/AutoStart_2.1.apk',
          shell=True)
+    # configure phone for recording
+    phone_id_setup('E')
 
 
 def email_graph():
@@ -643,7 +495,7 @@ def print_address_label(void):
 
     myFile = open(filePath + "temp_letter.md", "w+")
     myFile.write("\pagenumbering{gobble}")
-    myFile.write('![](/Users/pg1008/Documents/Oxford/Meter/Illustrations/Logos/meter_banner.pdf)')
+    myFile.write('![](/Users/phil/Documents/Oxford/Meter/Illustrations/Logos/meter_banner.pdf)')
     myFile.write(fromLetter)
     myFile.write(addressBlock)
     myFile.write("\n\n\ \n\n\ \n\n Dear " + thisName + ",\n\n")
@@ -666,8 +518,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
         super(ActionControllerData, self).__init__(*args, **keywords)
         global MenuActionKeys
         MenuActionKeys = {
-            # '1': self.phone_setup,
-            #   'p': self.phone_setup,
+            # '1': self.eMeter_setup,
+            #   'p': self.eMeter_setup,
             'A': print_address_label,
             'd': self.data_download,
             "u": self.data_upload,
@@ -789,8 +641,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
         self.parent.myStatus = 'Backing up...'
         backup_database()
 
-    def phone_setup(self, *args, **keywords):
-        phone_setup()
+    def eMeter_setup(self, *args, **keywords):
+        eMeter_setup()
 
     def show_Tables(self, *args, **keywords):
         self.parent.myStatus = 'Tables'
@@ -947,7 +799,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
     def getMenuText(self):
         MenuText = []
         # CommandNumber=0
-        for line in open("/Users/pg1008/Documents/Software/Android/MainMenu.txt", "r"):
+        MenuText.append("\n")
+        for line in open("meterLogo.txt", "r"):
             # if (line[0] == "#"):
             #    MenuText.append("\t" + str(CommandNumber) + ".\t" + line[1:])
             #    CommandNumber+=1
@@ -955,11 +808,12 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\t" + line)
         MenuText.append("\n")
         MenuText.append("\n")
-        MenuText.append("Contact:  \t" + str(contactID))
-        MenuText.append("Individual:  \t" + str(individual))
-        MenuText.append("Household:  \t" + str(householdID))
-        MenuText.append("Data type:\t" + str(dataType))
-        MenuText.append("Date:\t" + str(dateSelection))
+        MenuText.append("Contact:    " + str(contactID))
+        MenuText.append("Household:  " + str(householdID))
+        MenuText.append("Individual: " + str(individual))
+        MenuText.append("Meta ID:    " + str(metaID) + "  Type: " + str(dataType))
+        MenuText.append("\n")
+        MenuText.append("Date:       " + str(dateSelection))
 
         return MenuText
 
@@ -984,16 +838,18 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m1 = self.add_menu(name="Data handling", shortcut="D")
         self.m1.addItemsFromList([
             ("Download from phone", data_download, "d"),
+            ("Review Meta Data", data_review, "r"),
             ("Upload to database",  data_upload, "u"),
             ("Download and upload", data_download_upload, "D"),
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
         self.m2.addItemsFromList([
-            ("Set up phone with ID", phone_id_setup, "i"),
-            ("Set up new phone", phone_setup, "p"),
+            ("Create eMeter ID", phone_id_setup('E'), "e"),
+            ("Create aMeter ID", phone_id_setup('A'), "a"),
             ("Set up new diary", diary_setup, "d"),
-            ("Set sensor type (currently " + str(dataType) +")",\
-              self.change_data_type, "s"),
+            ("Set sensor type (currently " + str(dataType) +")", self.change_data_type, "s"),
+            ("New eMeter", eMeter_setup, "E"),
+            ("New aMeter", aMeter_setup, "A"),
         ])
         self.m2 = self.add_menu(name="Input returned data", shortcut="i")
         self.m2.addItemsFromList([
@@ -1006,13 +862,17 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItemsFromList([
             ("Add new contact", self.add_contact, "p"),
-#             ("Display table",    self.display_data, "s"),
-            #("Display Contact",   self.display_table_data, "c"),
-#             ("Display Contact",   self.XXdisplay_selected_data, "c"),
+            # ("Display table",    self.display_data, "s"),
+            # ("Display Contact",   self.display_table_data, "c"),
+            # ("Display Contact",   self.XXdisplay_selected_data, "c"),
+            ("List Contacts", self.list_contacts, "c"),
             ("Backup database",   backup_database, "c"),
         ])
         self.m3 = self.add_menu(name="Exit", shortcut="X")
         self.m3.addItem(text="Exit", onSelect = self.exit_application)
+
+    def list_contacts(self):
+        MeterApp._Forms['MAIN'].display_selected_data("Contact")
 
     def IgnoreForNow(self):
         pass
@@ -1448,15 +1308,6 @@ class TimeUseForm(npyscreen.FormMuttActiveTraditional):
         return returnString
  
 
-
-
-
-
-
-
-
-
-
 class newContactForm(npyscreen.Form):
     # gets fields from database, collects new entries
     def create(self):
@@ -1476,6 +1327,10 @@ class newContactForm(npyscreen.Form):
         # cursor.close()
 
     def afterEditing(self):
+        global cursor
+        global contactID
+        global householdID
+
         # combine all column names into comma separated string with ``
         sqlColumnString = "`"+self.ColumnName[0]+"`"
         for item in self.ColumnName[1:]:
@@ -1485,13 +1340,20 @@ class newContactForm(npyscreen.Form):
         for item in self.ColumnEntry[1:]:
             sqlEntryString = sqlEntryString + (",'"+item.value+"'")
 
+        # create contact
         sqlq = "INSERT INTO `Contact`(" + sqlColumnString + ") \
             VALUES ("+sqlEntryString+")"
-        global cursor
         cursor.execute(sqlq)
         dbConnection.commit()
+        contactID = cursor.lastrowid
+        
+        # create household
+        sqlq = "INSERT INTO `Household`(Contact_idContact, security_code) \
+            VALUES ("+str(contactID)+", 123)"
+        cursor.execute(sqlq)
+        dbConnection.commit()
+        householdID = cursor.lastrowid
         self.parentApp.setNextFormPrevious()
-
 
 
 class newIndividualForm(npyscreen.Form):
@@ -1532,14 +1394,8 @@ class newIndividualForm(npyscreen.Form):
         self.parentApp.setNextFormPrevious()
 
 
-
-
-
-
-
-
-
 class metaFileInformation(npyscreen.Form):
+    # The MetaForm
     # display all .meta files in /METER/
     fileList = []
     reject_fileList = []
@@ -1596,7 +1452,7 @@ class metaFileInformation(npyscreen.Form):
                 selectIndex.append(selectCounter)
                 self.fileList.append(thisFileName)
                 contactID.append(getMetaData(thisFileName +
-                                 '.meta', "Contact ID"))
+                                 '.meta', "Meta ID"))
                 collectionDate.append(getMetaData(thisFileName +
                                       '.meta', "Date"))
                 dataType.append(getMetaData(thisFileName+'.meta', "Data type"))
@@ -1639,17 +1495,6 @@ class metaFileInformation(npyscreen.Form):
         self.parentApp.setNextFormPrevious()
 
 
-
-
-
-
-
-
-
-
-
-
-
 class selectionForm(npyscreen.Form):
 # show all Serial Numbers that emerged from the search in Meta for a given household
     # in time this could be a more generic form....
@@ -1675,10 +1520,6 @@ class selectionForm(npyscreen.Form):
         global MetaID
         MetaID = self.SelectionOptions.value
         self.parentApp.setNextFormPrevious()
-
-
-
-
 
 
 class MeterForms(npyscreen.NPSAppManaged):
