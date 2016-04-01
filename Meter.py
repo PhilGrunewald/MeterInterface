@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # BUG: phone_id_setup() running twice on stratup - not when called from menu ??!!
+# fix this please
 
 
 # revision history
