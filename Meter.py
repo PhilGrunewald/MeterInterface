@@ -2,7 +2,7 @@
 
 # BUG: phone_id_setup() running twice on stratup - not when called from menu ??!!
 # fix this please
-# for messing about
+# for messing about in master
 
 
 # revision history
