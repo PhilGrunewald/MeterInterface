@@ -352,12 +352,11 @@ def diary_setup():
     MetaID = cursor.lastrowid
     npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
 
-
 def phone_id_setup(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
     global metaID
     # 1) get household ID (assuming a 1:1 relationship!)
-    npyscreen.notify_confirm('1: ' + str(metaID))
+    npyscreen.notify_confirm('1: ' + meterType)
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
         + contactID + "'"
     cursor.execute(sqlq)
@@ -845,14 +844,10 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             ("Download and upload", data_download_upload, "D"),
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
-        self.m2.addItemsFromList([
-            ("Create eMeter ID", phone_id_setup('E'), "e"),
-            ("Create aMeter ID", phone_id_setup('A'), "a"),
-            ("Set up new diary", diary_setup, "d"),
-            ("Set sensor type (currently " + str(dataType) +")", self.change_data_type, "s"),
-            ("New eMeter", eMeter_setup, "E"),
-            ("New aMeter", aMeter_setup, "A"),
-        ])
+        self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='E')
+        self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='A')
+        self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='E', arguments=None)
         self.m2 = self.add_menu(name="Input returned data", shortcut="i")
         self.m2.addItemsFromList([
             ("Process eMeter phone", self.IgnoreForNow, "i"),
