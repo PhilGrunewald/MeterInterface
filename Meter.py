@@ -1,18 +1,9 @@
 #!/usr/bin/python
 
-# BUG: phone_id_setup() running twice on stratup - not when called from menu ??!!
-# fix this please
-# for messing about in upload
-
-
-# revision history
-# originally called uploadData.py
-# 22 May 15:    PG added print by date
-# 29 Jul 15: revisions now done with git
-# 2 Sep 15: about to create new branch for time-use-entry function
-# 30 Nov: publish
-
+## 
 # ADD -- SELECT individual
+# show upcomming deployments
+# upload_10min_readings is not called - use Numpi smoothing for 10 min readings
 
 import os
 import csv
@@ -26,21 +17,41 @@ import glob                 # for reading files in directory
 from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen
 
+# For plotting
+import flask                  # serve python
+import json                   # used for reading activities.json
+import urllib                 # to read json from github
+import numpy as np            # used for mean
+from bokeh.embed import components
+from bokeh.resources import INLINE
+from bokeh.util.string import encode_utf8
+
+from bokeh.plotting import figure, curdoc, vplot, show
+from bokeh.plotting import figure, show, output_file
+from bokeh.models import Range1d, Circle
+
 from meter_ini import *     # reads the database and file path information from meter_ini.py
+
+app = flask.Flask(__name__)
+app.config['DEBUG'] = True
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '0'
-metaID = '0'
+metaID = '1026'
 individual = '0'
 householdID = '0'
 dataType = 'E'
-dateSelection = '2000-01-14'
+participantCount = '0'
+aMeterCount = '0'
+eMeterCount = '0'
+
+dateTimeToday = datetime.datetime.now()
+str_date = dateTimeToday.strftime("%Y-%m-%d")
 
 SerialNumbers   = []
 
 dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
 cursor = dbConnection.cursor()
-
 
 def getMetaData(MetaFile, ItemName):
     # extract content from meta file (or any other file)
@@ -50,92 +61,205 @@ def getMetaData(MetaFile, ItemName):
             content = line.split(ItemName + ": ", 1)[1]
     return content.strip()
 
-
 def backup_database():
-    call('mysqldump -u ' + dbUser + ' --databases ' + dbName +
-         ' > ' + filePath + 'database/' + dbName + '.sql', shell=True)
+    call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
+         ' > ' + filePath + 'database/' + str_date + '_' + dbName + '.sql', shell=True)
+    npyscreen.notify_confirm('Database backed up as ' + str_date + dbName + '.sql')
 
+def plot_data():
+    # get readings for a given metaID
+    global metaID
 
-def data_plot():
-    # get readings for a given contact and data type
-    global contactID
-    global dataType
-    global filePath
-    gnuPath = filePath + 'plots/'
-    gnufile_E = '/Users/phil/Software/gnuplot/meter_E.gp'
-    gnufile_E_PV = '/Users/phil/Software/gnuplot/meter_E_PV.gp'
+    # READ ACTIVITIES.JSON
+    activity_file = urllib.urlopen('https://raw.githubusercontent.com/PhilGrunewald/MeterApp/master/www/js/activities.json').read()
+    activities =json.loads(activity_file)
 
-    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
-        + contactID + "'"
+    # GET ELECTRICTY READINGS
+    sqlq = "SELECT * FROM Electricity where Meta_idMeta = "+str(metaID)+" and idElectricity % 10 =0;"
     cursor.execute(sqlq)
-    householdID = ("%s" % cursor.fetchone())
+    result = list(cursor.fetchall())
+    watt=[]
+    date_time=[]
 
-    # sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '"\
-    #     + str(householdID) + "' AND DataType = '" + dataType + "'"
-    sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '"\
-        + str(householdID) + "'"
+    for item in result:
+        watt.append(item[1])
+        date_time.append(item[3])
+
+    # get min and max values
+    minWatt = min(watt) 
+    maxWatt = max(watt)
+    peakDateTime = date_time[[t for t,y in enumerate(watt) if y == maxWatt][0]]
+    minDateTime = date_time[[t for t,y in enumerate(watt) if y == minWatt][0]]
+    meanWatt = np.mean(watt)
+    minTime = date_time[1]
+    maxTime = date_time[-1]
+    # string versions
+
+    str_minWatt  = "{:,.0f}".format(minWatt) + " Watt"
+    str_maxWatt  = "{:,.0f}".format(maxWatt) + " Watt"
+    str_peakTime = str(peakDateTime.hour) + ":" +str(peakDateTime.minute) 
+    str_minTime  = str(minDateTime.hour) + ":" +str(minDateTime.minute) 
+    str_meanWatt = "{:,.0f}".format(meanWatt)
+    str_costDay  = "{:,.0f}".format(meanWatt*24/1000*0.14)
+    str_costYear = "{:,.0f}".format(meanWatt*24/1000*0.14*365)
+    #p.y_range = Range1d(17, 22)
+
+    ## TIME USE DATA
+    tuc_colours = {
+            'care_self':        '#66c2a5', 
+            'care_other':       '#8da0cb', 
+            'care_house':       '#e5c494', 
+            'recreation':       '#e78ac3', 
+            'travel':           '#ffd92f',
+            'food':             '#a6d854',
+            'work':             '#fc8d62',
+            'other_category':   '#ededed'
+            }
+    tuc_colours_dim = {
+            'care_self':        '#66c2a533', 
+            'care_other':       '#8da0cb33', 
+            'care_house':       '#e5c49433', 
+            'recreation':       '#e78ac333', 
+            'travel':           '#ffd92f33',
+            'food':             '#a6d85433',
+            'work':             '#fc8d6233',
+            'other_category':   '#ededed33'
+            }
+
+    tuc_key     =[]
+    tuc_category=[]
+    tuc_ID      =[]
+    tuc_location=[]
+    tuc_time    =[]
+    tuc_colour  =[]
+    tuc_size    =[]
+
+    sqlq = "SELECT tuc_time,activity,location FROM TimeUse WHERE Meta_idMeta = "+str(999)+";"
     cursor.execute(sqlq)
-    # metaID = ("%s" % cursor.fetchone())
-    metaIDall = cursor.fetchall()
+    result = list(cursor.fetchall())
 
-    for collectionItem in metaIDall:
-        metaID = "%s" % (collectionItem)
-        # sqlq = "SELECT CollectionDate FROM Meta WHERE Household_idHousehold = '" + str(householdID) +"' AND DataType = '" + dataType +"'"
-        # above seemed daft way to do it, since we have the metaID
-        sqlq = "SELECT CollectionDate FROM Meta WHERE idMeta = '" + metaID + "'"
-        cursor.execute(sqlq)
-        # CollectionDate = ("%s" % cursor.fetchone())
-        CollectionDateAll = ("%s" % cursor.fetchall())
+    for item in result:
+        tuc_time.append(item[0])
+        tuc_key.append(item[1])
+        tuc_location.append(item[2])
+        thisCat = activities['activities'][item[1]]['category']
+        tuc_category.append(thisCat)
+        if (str(item[2]) == "home"):
+            tuc_colour.append(tuc_colours[thisCat])
+            tuc_size.append(4000)
+        else:
+            tuc_colour.append(tuc_colours_dim[thisCat])
+            tuc_size.append(6000)
 
-        for collectionItem in CollectionDateAll:
-            CollectionDate = "%s" % (collectionItem)
-            # this way we end up with the latest (right?)
+    #p = figure(width=800, height=350,  x_axis_type="datetime")
+    p = figure(width=800, height=350, tools="tap", x_axis_type="datetime")
+    p.xaxis.axis_label = str(item[2]) + 'Time'
+    p.yaxis.axis_label = 'Electricity use [Watt]'
 
-        # Check if this is 'E', weather there are other records for this day
-        # XXX add "if dataType=E"
-        # sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '" +\
-        #     str(householdID) + "' AND DataType = 'PV' AND CollectionDate = '" +\
-        #     CollectionDate + "'"
-        sqlq = "SELECT idMeta FROM Meta WHERE Household_idHousehold = '" +\
-            str(householdID) + "' AND DataType = 'PV'"
-        cursor.execute(sqlq)
-        # XXX ERROR HERE !!! not piccking up PV....
-        result = cursor.fetchone()
+    ## Style (removal)
+    ##--------------------  
+    p.outline_line_width = 0
+    p.outline_line_color = "white"
+    #
+    #p.ygrid.band_fill_alpha = 0.3
+    #p.ygrid.band_fill_color = "red"
+    #p.grid.bounds = (0, minWatt)
+    #
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+    p.yaxis.minor_tick_line_color = None
+    #
+    p.line(date_time, watt, color="green")
 
-        if result is None:               # there is no PV -> just do this record
-            # Write data to temp file
-            sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = " +\
-                str(metaID)
-            cursor.execute(sqlq)
-            data = cursor.fetchall()
-            data_file = open(gnuPath + "temp_data.csv", "w+")
-            data_file.write("Time, Electricity\n")
-            for row in data:
-                data_file.write("%s,%s\n" % (row[0], row[1]))
-            data_file.close()
-            gnufile = gnufile_E
-        else:                       # there is PV - include it in the 3rd column
-            metaID2 = ("%s" % result)
-            sqlq = """SELECT a.Time,a.Watt as a_watt,b.Watt as b_watt FROM
-                (SELECT Watt, Time FROM Electricity \
-                    where Electricity.Meta_idMeta = """ + str(metaID) + """) a
-                LEFT JOIN (SELECT Watt, Time FROM Electricity \
-                    where Electricity.Meta_idMeta = """ + str(metaID2) + """) b
-                ON a.Time = b.Time"""
-            cursor.execute(sqlq)
-            data = cursor.fetchall()
-            data_file = open(gnuPath + "temp_data.csv", "w+")
-            data_file.write("Time, Electricity, PV\n")
-            for row in data:
-                data_file.write("%s,%s,%s\n" % (row[0], row[1], row[2]))
-            data_file.close()
-            gnufile = gnufile_E_PV
+    # time_bar = p.square(x=tuc_time, 
+    #                     y=tuc_size, 
+    #                     size = 5, 
+    #                     color= tuc_colour,
+    #                     nonselection_color="purple"
+    #                     )
 
-        gnucommand = 'gnuplot -e \'filename="' + gnuPath + \
-            'temp_data.csv"; filenameonly="' + gnuPath + CollectionDate + '_' +\
-            contactID + '"; \' ' + gnufile
-        call(gnucommand, shell=True)
+    # bands
+    p.quad(top=[minWatt, meanWatt], bottom=[0, minWatt], left=[minTime, minTime],
+                   right=[maxTime, maxTime], color=["blue", "gray"], fill_alpha=0.2, line_color=None)
 
+    # p.line([minTime, maxTime], [minWatt, minWatt], color="blue")
+    # p.line([minTime, maxTime], [meanWatt, meanWatt], color="gray")
+    p.text([minDateTime, peakDateTime], [0, maxWatt*0.9], 
+            text_color = ["blue", "red"],
+            angle      = [0, 0],
+            text=["Baseload: " + str_minWatt, "Peak: " + str_maxWatt])
+    renderer = p.circle([minDateTime, peakDateTime], [minWatt, maxWatt], size=10, 
+            fill_color=["blue","red"],
+            fill_alpha=0.2,
+                                  # set visual properties for selected glyphs
+                       selection_color="firebrick",
+                       # set visual properties for non-selected glyphs
+                       nonselection_fill_alpha=0.2,
+                       nonselection_fill_color="green",
+                       nonselection_line_color="firebrick",
+                       nonselection_line_alpha=1.0) 
+    # selected_circle      = Circle(fill_alpha=0.2, fill_color="firebrick", line_color=None)
+    # nonselected_circle   = Circle(fill_alpha=0.2, fill_color="red", line_color="firebrick")
+    # renderer.selection_glyph = selected_circle
+    # renderer.nonselection_glyph = nonselected_circle
+
+    #p.line(date_time, setPoint, color="navy")
+
+    output_file(plotPath + metaID + '.html', title= metaID + ' data')
+    js_resources = INLINE.render_js()
+    css_resources = INLINE.render_css()
+    
+    script, div = components(p, INLINE)
+    show(p)
+    # html = flask.render_template('meter_graph.html',
+    #     plot_script=script,
+    #     plot_div=div,
+    #     js_resources=js_resources,
+    #     css_resources=css_resources,
+    #     _from = date_time[-1],
+    #     minWatt  = str_minWatt,
+    #     minTime  = str_minTime,
+    #     maxWatt  = str_maxWatt,
+    #     peakTime = str_peakTime,
+    #     meanWatt = str_meanWatt,
+    #     costDay  = str_costDay,
+    #     costYear = str_costYear,
+    #     name     = 'bob',
+    #     metaID   = metaID
+    #     )
+    # return encode_utf8(html)
+
+def email_graph():
+    # send email with link to graph
+
+    sqlq = "SELECT Name,Email FROM Contact WHERE idContact = '" +\
+        contactID + "'"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    thisName = ("%s" % (result[0]))
+    thisEmail = ("%s" % (result[1]))
+
+    sqlq = "SELECT CollectionDate FROM Meter.Meta WHERE idMeta = '" + metaID + "'"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    strCollectionDate = ("%s" % (result[0]))
+    dateArray = strCollectionDate.split('-')
+    CollectionDate = datetime.date(int(dateArray[0]), int(dateArray[1]), int(dateArray[2]))
+    thisDate = CollectionDate.strftime("%A, %e %B")
+
+    templateFile = open(emailPath + "emailTemplate.md", "r")
+    templateText = templateFile.read()
+    templateFile.close()
+
+    templateText = templateText.replace("[name]", thisName)
+    templateText = templateText.replace("[date]", thisDate)
+    templateText = templateText.replace("[metaID]", metaID)
+
+    emailFilePath = emailPath + "tempEmail.mail"
+    emailFile = open(emailFilePath, "w+")
+    emailFile.write(templateText)
+    emailFile.close()
+    call('mutt -s "[Meter] Your electricity profile" ' + thisEmail + ' < ' + emailFilePath, shell=True)
 
 def data_download():
     # pull files from phone
@@ -144,6 +268,7 @@ def data_download():
     s = subprocess.check_output(cmd.split())
     call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
     call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
+    MeterApp.switchForm('MetaForm')
 
 
 def data_review():
@@ -282,6 +407,12 @@ def uploadFile(fileName):
         dataType = getMetaData(MetaFile, "Data type")
         #    offset = getMetaData(MetaFile, "Offset")
         collectionDate = getMetaData(MetaFile, "Date")
+    else:
+        deviceSN = 'not found'
+        metaID = '0'
+        dataType = '?'
+        collectionDate = '00-01-01'
+
 
     # ############## MetaID CHECK
     # -----------------------------
@@ -352,24 +483,80 @@ def diary_setup():
     MetaID = cursor.lastrowid
     npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
 
+def getDeviceCount(householdID, deviceType):
+    # check if eMeter has been configured
+    sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = '"+deviceType+"' AND Household_idHousehold = '" + householdID + "';"
+    cursor.execute(sqlq)
+    # Count = ("%s" % cursor.fetchone())
+    return cursor.fetchone()
+    
+    # check if aMeter has been configured
+    sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '" + householdID + "';"
+    cursor.execute(sqlq)
+    aMeterCount = ("%s" % cursor.fetchone())
+
+def getParticipantCount(householdID):
+    # get number of diaries required
+    sqlq ="SELECT age_group2, age_group3, age_group4, age_group5, age_group6\
+            FROM Household \
+            WHERE idHousehold = '" + householdID + "';"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    return int(result[0]) + int(result[1]) + int(result[2]) + int(result[3]) + int(result[4])
+
+def getNextHouseholdForParcel(void):
+    global householdID
+    global contactID
+    global str_date
+    # get the household that has the nearest chosen date
+    sqlq ="SELECT idHousehold, Contact_idContact, date_choice \
+            FROM Household \
+            WHERE date_choice > CURDATE() AND status = 0 ORDER BY date_choice ASC LIMIT 1;"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    householdID = ("%s" % result[0])
+    contactID   = ("%s" % result[1])
+    str_date    = ("%s" % result[2])
+    MeterApp._Forms['MAIN'].setMainMenu()
+
+def markHouseholdAsIssued(householdID):
+    # update status of household to '1 = kit issued / in the field'
+    # to be done when on eMeter and all aMeters are issued
+    sqlq = "UPDATE Household \
+            SET `status`=1\
+            WHERE `idHousehold` ='" + householdID + "';"
+    cursor.execute(sqlq)
+    dbConnection.commit()
+
+def markHouseholdAsProcessed(householdID):
+    # update status of household to '2 = kit processed into database'
+    # to be done when on eMeter and all aMeters have been downloaded into db
+    sqlq = "UPDATE Household \
+            SET `status`=2\
+            WHERE `idHousehold` ='" + householdID + "';"
+    cursor.execute(sqlq)
+    dbConnection.commit()
+
 def phone_id_setup(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
     global metaID
+    global contactID
     # 1) get household ID (assuming a 1:1 relationship!)
-    npyscreen.notify_confirm('1: ' + meterType)
+    # npyscreen.notify_confirm('1: ' + meterType)
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
-        + contactID + "'"
+        + str(contactID) + "'"
     cursor.execute(sqlq)
     householdID = ("%s" % cursor.fetchone())
 
-    npyscreen.notify_confirm('2: ' + str(householdID))
+    # npyscreen.notify_confirm('2: ' + str(householdID))
     # 2) create a meta id entry for an 'eMeter'
     sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
            VALUES ('"+ meterType +"', '" + householdID + "')"
     cursor.execute(sqlq)
     dbConnection.commit()
     metaID = str(cursor.lastrowid)
-    npyscreen.notify_confirm('3: ' + str(metaID))
+
+    # npyscreen.notify_confirm('3: ' + str(metaID))
     
     idFile = open(idFilePath, 'w+')
     idFile.write(str(metaID))
@@ -399,48 +586,13 @@ def eMeter_setup():
         ~/Software/Android/DMon/bin/MainActivity-debug.apk',
          shell=True)
     # install AutoStart app
-    call('adb install ~/Software/Android/AutoStart_2.1.apk',
-         shell=True)
+    call('adb install ~/Software/Android/AutoStart_2.1.apk', shell=True)
+
+    # create the METER folder
+    call('adb shell mkdir /sdcard/METER', shell=True)
     # configure phone for recording
     phone_id_setup('E')
 
-
-def email_graph():
-    # attach graph to a personalised email
-    plotFile = filePath + "plots/" + dateSelection + "_" + contactID + ".pdf"
-    if os.path.exists(plotFile):
-        sqlq = "SELECT Name,Email FROM Contact WHERE idContact = '" +\
-            contactID + "'"
-        cursor.execute(sqlq)
-        result = cursor.fetchone()
-        thisName = ("%s" % (result[0]))
-        thisEmail = ("%s" % (result[1]))
-        dateArray = dateSelection.split('-')
-        thisDate = ("%s " "%s " "%s" %
-                    (dateArray[2], dateArray[1], dateArray[0]))
-
-        emailPath = filePath + "emails/"
-        templateFile = open(emailPath + "emailTemplate.md", "r")
-        templateText = templateFile.read()
-        templateFile.close()
-
-        templateText = templateText.replace("[name]", thisName)
-        templateText = templateText.replace("[date]", thisDate)
-
-        emailFilePath = emailPath + "tempEmail.mail"
-        emailFile = open(emailFilePath, "w+")
-        emailFile.write(templateText)
-        emailFile.close()
-
-        call('mutt -s "SWELL: Your electricity profile from ' + thisDate +
-             '" ' + thisEmail + ' -a ' + plotFile + ' < ' + emailFilePath,
-             shell=True)
-        # call('mutt -s "SWELL: Your electricity profile from ' + thisDate +
-        # '" ' + thisEmail + ' energy@WeSET.org -a '+ plotFile +' < ' +\
-        # emailFilePath)
-    else:
-        npyscreen.notify_confirm('Please create a graph for contact ' +
-                                 contactID + ' first')
 
 
 def print_address_label(void):
@@ -459,7 +611,7 @@ def print_address_label(void):
 
     returnAddress = "_Please return for free to_ \n\n\ \n\n\ \ \ \ Dr Philipp Grunewald \n\n\ \ \ \ University of Oxford \n\n\ \ \ \ OUCE, South Parks Road \n\n\ \ \ \ **OX1 3QY** Oxford\n\n\ "
     fromAddress = "\n\n\ \n\n\ _Dr Grunewald, University of Oxford, OX1 3QY Oxford_    \n\n"
-    fromLetter = "\n\n\ \n\n\ _Dr Philipp Grunewald_ \n\n\ _Environmental Change Institute_ \n\n\ _University of Oxford_\n\n"
+    fromLetter = "\n\n\ \n\n\ _Dr Philipp Grunewald, Environmental Change Institute, University of Oxford_\n\n"
     letterPath = filePath + "letters/"
     myFile = open(letterPath + "address.md", "a")
     myFile.write(fromAddress)
@@ -479,7 +631,7 @@ def print_address_label(void):
     templateFile = open(letterTemplate, "r")
     templateText = templateFile.read()
     templateFile.close()
-    templateText = templateText.replace("[date]", "**Monday**, 21 September 2015")
+    templateText = templateText.replace("[date]", "**Wednesday**, 13 April 2016")
     if (dataType == 'PV'):
         templateText = templateText.replace("[s]", "s")
         templateText = templateText.replace("[is are]", "are")
@@ -500,7 +652,7 @@ def print_address_label(void):
     myFile.write(fromLetter)
     myFile.write(addressBlock)
     myFile.write("\n\n\ \n\n\ \n\n Dear " + thisName + ",\n\n")
-    myFile.write("\n\n\ \n\n **Subject: Monday, 21 Sep: Your diary and electricity collection day **\n\n\ \n\n")
+    myFile.write("\n\n\ \n\n **Subject: Wednesday, 13 April: Your diary and electricity collection day **\n\n\ \n\n")
     myFile.write(templateText)
     # myFile.write('![](/Users/pg1008/Pictures/Signatures/Signature_PG.png =50x50)')
     #  myFile.write("\n\n\ \n\n\ \n\n")
@@ -521,35 +673,43 @@ class ActionControllerData(npyscreen.MultiLineAction):
         MenuActionKeys = {
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
-            'A': print_address_label,
-            'd': self.data_download,
-            "u": self.data_upload,
-            "D": data_download_upload,
+            'xA': print_address_label,
+            'a': self.aMeter_id_setup,
+            'e': self.eMeter_id_setup,
+            'I': getNextHouseholdForParcel,
+            'P': self.data_download,
+            # "u": self.data_upload,
+            # "D": data_download_upload,
 
-            "C": self.show_TimeUse,
-            "t": self.show_DataTypes,
-            "c": self.show_Contact,
-            "a": self.show_NewContact,
-            "i": self.show_NewIndividual,
-            "I": self.show_Individual,
-            'T': self.show_Tables,
+            # "C": self.show_TimeUse,
+            # "t": self.show_DataTypes,
+            # "c": self.show_Contact,
+            # "a": self.show_NewContact,
+            # "i": self.show_NewIndividual,
+            # "I": self.show_Individual,
+            # 'T': self.show_Tables,
 
-            "m": self.show_MetaForm,
-            "g": self.show_Plot,
-            "e": email_graph,
+            # "m": self.show_MetaForm,
 
-            "B": self.backup_database,
-            "s": self.show_MainMenu,
+            # "s": self.show_MainMenu,
 
             "M": self.show_MainMenu,
             "X": self.parent.exit_application,
-            '5': self.add_nTimeUse ,
-            '0': self.upload_time_use_file,
+            # '5': self.add_nTimeUse ,
+            # '0': self.upload_time_use_file,
         }
         self.add_handlers(MenuActionKeys)
 
 
     def actionHighlighted(self, selectedLine, keypress):
+        global householdID 
+        global contactID
+        global str_date 
+        global metaID
+        global individual 
+        global paticipantCount
+        global eMeterCount
+        global aMeterCount
         # choose action based on the display status and selected line
         if (self.parent.myStatus == 'Main'):
             self.parent.wMain.values = ['Selection: ', selectedLine,
@@ -559,7 +719,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             MenuActionKeys[selectedLine[1]]()
 
         elif (self.parent.myStatus == 'Contact'):
-            global contactID
             dataArray = selectedLine.split(',')
             contactID = str(dataArray[0])
             self.parent.wStatus2.value =\
@@ -570,7 +729,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
 
         elif (self.parent.myStatus == 'Diaries'):
-            global metaID
             dataArray = selectedLine.split('\t')
             metaID = str(dataArray[0])
             self.parent.wStatus2.value =\
@@ -590,8 +748,19 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.show_TimeUseEntryScreen()
 
 
+        elif (self.parent.myStatus == 'upcomingHousehold'):
+            dataArray   = selectedLine.split('\t\t')
+            householdID = str(dataArray[0])
+            contactID   = str(dataArray[1])
+            str_date    = str(dataArray[2])
+            self.parent.wStatus2.value =\
+                "Household changed to " + householdID +\
+                "for Contact " + contactID +\
+                "on " + str_date
+            self.parent.wStatus2.display()
+            self.parent.setMainMenu()
+
         elif (self.parent.myStatus == 'Household'):
-            global householdID 
             dataArray = selectedLine.split('\t')
             householdID  = str(dataArray[0])
             self.parent.wStatus2.value =\
@@ -601,7 +770,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
 
         elif (self.parent.myStatus == 'Individual'):
-            global individual 
             dataArray = selectedLine.split('\t')
             individual  = str(dataArray[0])
             self.parent.wStatus2.value =\
@@ -615,8 +783,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.display_selected_data(selectedLine)
 
-
-
         elif (self.parent.myStatus == 'TimeUseCode'):
             timeUseArray = selectedLine.split('\t')         # the time use code is left of the two tabs and acts as ID
             global idTimeUseCode
@@ -626,8 +792,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.add_TimeUse()
             self.parent.display_selected_data('TimeUseCode')
 
-
-
         elif (self.parent.myStatus == 'DataTypes'):
             global dataType
             dataTypeArray = selectedLine.split('\t')
@@ -636,11 +800,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Data type changed to " + str(dataTypeArray[2])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
-
-
-    def backup_database(self, *args, **keywords):
-        self.parent.myStatus = 'Backing up...'
-        backup_database()
 
     def eMeter_setup(self, *args, **keywords):
         eMeter_setup()
@@ -652,6 +811,12 @@ class ActionControllerData(npyscreen.MultiLineAction):
     def show_MainMenu(self, *args, **keywords):
         self.parent.setMainMenu()
 
+    def eMeter_id_setup(self, *args, **keywords):
+        phone_id_setup('E')
+
+    def aMeter_id_setup(self, *args, **keywords):
+        phone_id_setup('A')
+        
     def data_download(self, *args, **keywords):
         data_download()
 
@@ -756,9 +921,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
     def show_NewIndividual(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewIndividual')
 
-    def show_Plot(self, *args, **keywords):
-        self.parent.myStatus = 'Plotting'
-        data_plot()
 
     def formated_data_type(self, vl):
         return "%s (%s)" % (vl[1], str(vl[0]))
@@ -807,15 +969,40 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             #    CommandNumber+=1
             # else:
             MenuText.append("\t" + line)
+        participantCount = ("%s" % getParticipantCount(str(householdID)))
+        eMeterCount = ("%s" % getDeviceCount(str(householdID),'E'))
+        aMeterCount = ("%s" % getDeviceCount(str(householdID),'A'))
+        if (participantCount == aMeterCount):
+            markHouseholdAsIssued(householdID)
         MenuText.append("\n")
         MenuText.append("\n")
+        MenuText.append("Date:       " + str(str_date))
         MenuText.append("Contact:    " + str(contactID))
         MenuText.append("Household:  " + str(householdID))
-        MenuText.append("Individual: " + str(individual))
+        MenuText.append("<e>Meters:  " + str(eMeterCount))
+        MenuText.append("<a>Meters:  " + str(aMeterCount) + "/" + str(participantCount))
+        MenuText.append("\n")
         MenuText.append("Meta ID:    " + str(metaID) + "  Type: " + str(dataType))
         MenuText.append("\n")
-        MenuText.append("Date:       " + str(dateSelection))
+        # upcomming Households
+        sqlq = "SELECT count(idHousehold) FROM Meter.Household where date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL '14' DAY AND status < 1;"
+        cursor.execute(sqlq)
+        result = cursor.fetchone()
+        strUpcomingHH = ("%s" % (result[0]))
+        MenuText.append("Next 2 weeks: " + strUpcomingHH + "\t\t<I>ssue")
+        sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = 'E' AND CollectionDate IS NULL;"
+        cursor.execute(sqlq)
+        result = cursor.fetchone()
+        eMeterInField = ("%s" % (result[0]))
+        sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = 'A' AND CollectionDate IS NULL;"
+        cursor.execute(sqlq)
+        result = cursor.fetchone()
+        aMeterInField = ("%s" % (result[0]))
+        MenuText.append("In the field: " + eMeterInField + "/" +aMeterInField+ " a/e\t\t<P>rocess")
 
+        MenuText.append("\n")
+        MenuText.append("\n")
+        MenuText.append("Individual: " + str(individual))
         return MenuText
 
     def setMainMenu(self):
@@ -844,10 +1031,12 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             ("Download and upload", data_download_upload, "D"),
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
+        self.m2.addItem(text='select Household', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['upcomingHousehold'])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='A')
         self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
         self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='E', arguments=None)
+
         self.m2 = self.add_menu(name="Input returned data", shortcut="i")
         self.m2.addItemsFromList([
             ("Process eMeter phone", self.IgnoreForNow, "i"),
@@ -857,6 +1046,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         ])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
+        self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=None)
+        self.m2.addItem(text='Email', onSelect=email_graph, shortcut='e', arguments=None)
         self.m2.addItemsFromList([
             ("Add new contact", self.add_contact, "p"),
             # ("Display table",    self.display_data, "s"),
@@ -866,7 +1057,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             ("Backup database",   backup_database, "c"),
         ])
         self.m3 = self.add_menu(name="Exit", shortcut="X")
-        self.m3.addItem(text="Exit", onSelect = self.exit_application)
+        self.m3.addItem(text="Home", onSelect = MeterApp._Forms['MAIN'].setMainMenu,shortcut="h")
+        self.m3.addItem(text="Exit", onSelect = self.exit_application, shortcut="X")
 
     def list_contacts(self):
         MeterApp._Forms['MAIN'].display_selected_data("Contact")
@@ -949,6 +1141,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             cursor.execute(sqlq)
             result = cursor.fetchall()
 
+        elif (displayModus == "upcomingHousehold"):
+            result = [{'HH\t\tContact\t\tDate'}]
+            sqlq = "SELECT idHousehold, Contact_idContact, date_choice FROM Meter.Household where date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL '14' DAY AND status < 1;"
+            cursor.execute(sqlq)
+            result = cursor.fetchall()
 
         elif (displayModus == "Household"):
             sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
