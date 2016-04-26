@@ -37,7 +37,7 @@ app.config['DEBUG'] = True
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '0'
-metaID = '1026'
+metaID = '1045'
 individual = '0'
 householdID = '0'
 dataType = 'E'
@@ -82,8 +82,8 @@ def plot_data():
     date_time=[]
 
     for item in result:
-        watt.append(item[1])
-        date_time.append(item[3])
+        watt.append(item[2])
+        date_time.append(item[1])
 
     # get min and max values
     minWatt = min(watt) 
@@ -398,6 +398,7 @@ def uploadFile(fileName):
 
     MetaFile = fileName + '.meta'
     DataFile = fileName + '.csv'
+    DataFileName = os.path.basename(DataFile)
 
     # read Meta file information
     # ---------------------------
@@ -445,12 +446,19 @@ def uploadFile(fileName):
         npyscreen.notify_confirm('meta updated')
         
     # ###################### Enter data
+    # NEW approach: copy to server, then import to database
+    os.system("scp " + DataFile + " phil@109.74.196.205:/home/phil/meter")
+    sqlq = "LOAD DATA INFILE '/home/phil/meter/" + DataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+    cursor.execute(sqlq)
+
+
+    # OLD APPROACH very slow
     # insert electricity DataFile into database
-    csv_data = csv.reader(file(DataFile))
-    for row in csv_data:
-        sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
-        VALUES('" + row[0] + "', '" + row[1] + "', '" + str(metaID) + "')"
-        cursor.execute(sqlq)
+    # # csv_data = csv.reader(file(DataFile))
+    # # for row in csv_data:
+    # #     sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
+    # #     VALUES('" + row[0] + "', '" + row[1] + "', '" + str(metaID) + "')"
+    # #     cursor.execute(sqlq)
 
     # close the connection to the database.
     # -------------------------------------
@@ -524,7 +532,7 @@ def markHouseholdAsIssued(householdID):
     # to be done when on eMeter and all aMeters are issued
     sqlq = "UPDATE Household \
             SET `status`=1\
-            WHERE `idHousehold` ='" + householdID + "';"
+            WHERE `idHousehold` ='" + str(householdID) + "';"
     cursor.execute(sqlq)
     dbConnection.commit()
 
@@ -533,7 +541,7 @@ def markHouseholdAsProcessed(householdID):
     # to be done when on eMeter and all aMeters have been downloaded into db
     sqlq = "UPDATE Household \
             SET `status`=2\
-            WHERE `idHousehold` ='" + householdID + "';"
+            WHERE `idHousehold` ='" + str(householdID) + "';"
     cursor.execute(sqlq)
     dbConnection.commit()
 
@@ -593,73 +601,65 @@ def eMeter_setup():
     # configure phone for recording
     phone_id_setup('E')
 
+def getCollectionDate(householdID):
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '" + householdID + "'"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    strCollectionDate = ("%s" % (result[0]))
+    dateArray = strCollectionDate.split('-')
+    CollectionDate = datetime.date(int(dateArray[0]), int(dateArray[1]), int(dateArray[2]))
+    return CollectionDate.strftime("%A, %e %B")
 
+def print_letter(void):
+    global householdID
+    participantCount = ("%s" % getParticipantCount(str(householdID)))
+    # The letter
+    dateToday = datetime.datetime.now()
+    todayDate = dateToday.strftime("%e %B %Y")
 
-def print_address_label(void):
-    # produces postage label and personal letter
-    sqlq = "SELECT Name,Address1,Postcode,Address2 FROM Contact WHERE idContact = '"\
+    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '"\
         + contactID + "'"
     cursor.execute(sqlq)
     result = cursor.fetchone()
-    # addressDetails = ""
-    # for item in result:
-    #    addressDetails += "%s \n\n" % (item)
-    addressDetails = \
-        "**To:** \n\n \ \ \ **%s**\n\n \ \ \ **%s**\n\n \ \ \ **%s %s**" %\
-        (result)
-    addressBlock = "\ \n\n %s\n\n %s\n\n%s %s" % (result)
+    thisName    = ("%s %s" % (result[0:2]))
+    thisAddress = ("%s\n\n %s \n\n%s %s" % (result[2:6]))
+    thisAddress = thisAddress.replace("None ", "\ ")
+    thisDate = getCollectionDate(householdID)
 
-    returnAddress = "_Please return for free to_ \n\n\ \n\n\ \ \ \ Dr Philipp Grunewald \n\n\ \ \ \ University of Oxford \n\n\ \ \ \ OUCE, South Parks Road \n\n\ \ \ \ **OX1 3QY** Oxford\n\n\ "
-    fromAddress = "\n\n\ \n\n\ _Dr Grunewald, University of Oxford, OX1 3QY Oxford_    \n\n"
-    fromLetter = "\n\n\ \n\n\ _Dr Philipp Grunewald, Environmental Change Institute, University of Oxford_\n\n"
-    letterPath = filePath + "letters/"
-    myFile = open(letterPath + "address.md", "a")
-    myFile.write(fromAddress)
-    myFile.write(addressDetails)
-    myFile.write("\n\n\ \n\n\ \n\n\ ")
-    myFile.write("\n\n\ \n\n\ \n\n\ \n\n\ \n")
-    myFile.write(returnAddress)
-    myFile.write("\n\n\ \n\n\ \n\n")
-    myFile.close()
-    call('pandoc -V geometry:margin=0.5in ' + letterPath + "address.md -o" +
-         letterPath + "address.pdf ", shell=True)
-
-    # The letter
-    thisName = ("%s" % (result[0]))
     letterFile = letterPath + contactID + "_letter."
     letterTemplate = letterPath + "letter.md"
     templateFile = open(letterTemplate, "r")
     templateText = templateFile.read()
     templateFile.close()
-    templateText = templateText.replace("[date]", "**Wednesday**, 13 April 2016")
-    if (dataType == 'PV'):
+
+    templateText = templateText.replace("[address]", thisAddress)
+    templateText = templateText.replace("[name]", thisName)
+    templateText = templateText.replace("[date]", thisDate)
+    templateText = templateText.replace("[today]", todayDate)
+    templateText = templateText.replace("[participantCount]", participantCount)
+    if (participantCount != "1"):
         templateText = templateText.replace("[s]", "s")
-        templateText = templateText.replace("[is are]", "are")
-        templateText = templateText.replace("[This These]", "These")
-        templateText = templateText.replace("[it them]", "them")
-        templateText = templateText.replace("[PV]", \
-            " and a separate recorder for your PV system")
+        templateText = templateText.replace("{multiple booklets}", " -- one for each household member above the age of eight. Do encourage the others to join you. The more people fill in their booklet, the better our understanding of electricity use becomes")
     else:
         templateText = templateText.replace("[s]", "")
-        templateText = templateText.replace("[is are]", "is")
-        templateText = templateText.replace("[This These]", "This")
-        templateText = templateText.replace("[it them]", "it")
-        templateText = templateText.replace("[PV]", "")
+        templateText = templateText.replace("{multiple booklets}", "") 
 
     myFile = open(filePath + "temp_letter.md", "w+")
-    myFile.write("\pagenumbering{gobble}")
-    myFile.write('![](/Users/phil/Documents/Oxford/Meter/Illustrations/Logos/meter_banner.pdf)')
-    myFile.write(fromLetter)
-    myFile.write(addressBlock)
-    myFile.write("\n\n\ \n\n\ \n\n Dear " + thisName + ",\n\n")
-    myFile.write("\n\n\ \n\n **Subject: Wednesday, 13 April: Your diary and electricity collection day **\n\n\ \n\n")
     myFile.write(templateText)
-    # myFile.write('![](/Users/pg1008/Pictures/Signatures/Signature_PG.png =50x50)')
-    #  myFile.write("\n\n\ \n\n\ \n\n")
     myFile.close()
-    call('pandoc -V geometry:margin=1.2in ' + filePath + "temp_letter.md -o" +
-         letterFile + "pdf ", shell=True)
 
+    call('pandoc -V geometry:margin=1.2in ' + filePath + "temp_letter.md -o" + letterFile + "pdf ", shell=True)
+
+    # ADDRESS LABEL
+    # produces postage label and personal letter
+    toAddress = thisName + "\n\n" + thisAddress
+
+    myFile = open(letterPath + "address.md", "a")
+    myFile.write(toAddress)
+    myFile.write("\\vspace{10 mm}\n\n")
+    myFile.close()
+    call('pandoc -V geometry:margin=0.8in ' + letterPath + "address.md -o" +
+         letterPath + "address.pdf ", shell=True)
 
 # ------------------------------------------------------------------------------
 # --------------------------FORMS-----------------------------------------------
@@ -673,7 +673,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
         MenuActionKeys = {
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
-            'xA': print_address_label,
+            'A': self.test,
+            # 'A': print_letter,
             'a': self.aMeter_id_setup,
             'e': self.eMeter_id_setup,
             'I': getNextHouseholdForParcel,
@@ -800,6 +801,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Data type changed to " + str(dataTypeArray[2])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
+
+    def test(self, *args, **keywords):
+        uploadFile("/Users/phil/Data/METER/null_1040_1")
 
     def eMeter_setup(self, *args, **keywords):
         eMeter_setup()
