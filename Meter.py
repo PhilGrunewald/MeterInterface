@@ -37,7 +37,7 @@ app.config['DEBUG'] = True
 
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '0'
-metaID = '1045'
+metaID = '1061'
 individual = '0'
 householdID = '0'
 dataType = 'E'
@@ -71,8 +71,12 @@ def plot_data():
     global metaID
 
     # READ ACTIVITIES.JSON
-    activity_file = urllib.urlopen('https://raw.githubusercontent.com/PhilGrunewald/MeterApp/master/www/js/activities.json').read()
-    activities =json.loads(activity_file)
+    ## THis worked fine for a while and suddenly I got "Error 503 backend read error" from github
+    # activity_file = urllib.urlopen('https://raw.githubusercontent.com/PhilGrunewald/MeterApp/master/www/js/activities.json').read()
+    #activities = json.loads(activity_file)
+    activity_file = "/Users/phil/Sites/MeterApp/www/js/activities.json"
+    with open(activity_file, "r") as f:
+          activities = json.loads(f.read())
 
     # GET ELECTRICTY READINGS
     sqlq = "SELECT * FROM Electricity where Meta_idMeta = "+str(metaID)+" and idElectricity % 10 =0;"
@@ -151,9 +155,9 @@ def plot_data():
             tuc_colour.append(tuc_colours_dim[thisCat])
             tuc_size.append(6000)
 
-    #p = figure(width=800, height=350,  x_axis_type="datetime")
-    p = figure(width=800, height=350, tools="tap", x_axis_type="datetime")
-    p.xaxis.axis_label = str(item[2]) + 'Time'
+    p = figure(width=800, height=350,  x_axis_type="datetime")
+    #p = figure(width=800, height=350, tools="tap", x_axis_type="datetime")
+    p.xaxis.axis_label = 'Time'
     p.yaxis.axis_label = 'Electricity use [Watt]'
 
     ## Style (removal)
@@ -205,7 +209,7 @@ def plot_data():
 
     #p.line(date_time, setPoint, color="navy")
 
-    output_file(plotPath + metaID + '.html', title= metaID + ' data')
+    output_file(plotPath + str(metaID) + '.html', title= str(metaID) + ' data')
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
     
@@ -460,15 +464,34 @@ def uploadFile(fileName):
     # #     VALUES('" + row[0] + "', '" + row[1] + "', '" + str(metaID) + "')"
     # #     cursor.execute(sqlq)
 
-    # close the connection to the database.
-    # -------------------------------------
     dbConnection.commit()
+    # close the connection to the database.
     # cursor.close()
     cmd_moveToArchive = 'mv ' + DataFile + ' ' + archivePath
     call(cmd_moveToArchive, shell=True)
     cmd_moveToArchive = 'mv ' + MetaFile + ' ' + archivePath
     call(cmd_moveToArchive, shell=True)
 
+def uploadSurveyFile(DataFile):
+    # insert survey DataFile into database
+    # structure:
+    metaID=9999;
+    # [0] date, [1] column name, [2] value, [3] metaID
+    csv_data = csv.reader(file(DataFile))
+
+    # create a new entry for this individual
+    sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
+    cursor.execute(sqlq)
+    dbConnection.commit()
+    # get the id of the entry just made
+    individualID = cursor.lastrowid
+
+    npyscreen.notify_confirm('xx ' + str(individualID) + 'has been created')
+    for row in csv_data:
+        sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
+                WHERE idIndividual = '"+str(individualID)+"';"
+        cursor.execute(sqlq)
+    dbConnection.commit()
 
 def data_download_upload(self):
     # call upload and download
@@ -674,7 +697,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
             'A': self.test,
-            # 'A': print_letter,
+            ##'A': print_letter,
             'a': self.aMeter_id_setup,
             'e': self.eMeter_id_setup,
             'I': getNextHouseholdForParcel,
@@ -803,7 +826,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.setMainMenu()
 
     def test(self, *args, **keywords):
-        uploadFile("/Users/phil/Data/METER/null_1040_1")
+        uploadSurveyFile("/Users/phil/Data/METER/surveys/survey.csv")
 
     def eMeter_setup(self, *args, **keywords):
         eMeter_setup()
