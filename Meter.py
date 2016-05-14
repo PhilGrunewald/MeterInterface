@@ -4,6 +4,7 @@
 # ADD -- SELECT individual
 # show upcomming deployments
 # upload_10min_readings is not called - use Numpi smoothing for 10 min readings
+# individual = MeterApp._Forms['SelectionForm'].SelectionOptions.value
 
 import os
 import csv
@@ -64,7 +65,7 @@ def getMetaData(MetaFile, ItemName):
 def backup_database():
     call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
          ' > ' + filePath + 'database/' + str_date + '_' + dbName + '.sql', shell=True)
-    npyscreen.notify_confirm('Database backed up as ' + str_date + dbName + '.sql')
+    npyscreen.notify_confirm('Database backed up as ' + str_date + '_' + dbName + '.sql')
 
 def plot_data():
     # get readings for a given metaID
@@ -138,7 +139,7 @@ def plot_data():
     tuc_colour  =[]
     tuc_size    =[]
 
-    sqlq = "SELECT tuc_time,activity,location FROM TimeUse WHERE Meta_idMeta = "+str(999)+";"
+    sqlq = "SELECT dt_activity,activity,location FROM Activities WHERE Meta_idMeta = "+str(999)+";"
     cursor.execute(sqlq)
     result = list(cursor.fetchall())
 
@@ -148,7 +149,7 @@ def plot_data():
         tuc_location.append(item[2])
         thisCat = activities['activities'][item[1]]['category']
         tuc_category.append(thisCat)
-        if (str(item[2]) == "home"):
+        if (str(item[2]) == "1"):
             tuc_colour.append(tuc_colours[thisCat])
             tuc_size.append(4000)
         else:
@@ -322,6 +323,10 @@ def identifyIndividual():
     SerialNumbers = list(cursor.fetchall())
 
 def upload_time_use_file():
+    #### SUPERSEEDED by uploadActivityFile()
+
+
+    
     # what came before:
     # MetaID for these entries has been identified
     # now the text file is read into the data base
@@ -392,105 +397,38 @@ def upload_10min_readings(idMeta=20):
         str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
     cursor.execute(sqlq)
 
-def uploadFile(fileName):  
-    # called from MetaForm - after editing - for each file
-    global cursor
-    global metaID
-    global dataType
-    global householdID
-    global archivePath
+def uploadDataFile(fileName,dataType,metaID,collectionDate):  
+    # put file content into database
+    npyscreen.notify_confirm('file: ' +fileName + ' type: ' + dataType + '  mID: '+ metaID)
+    dataFile = fileName + '.csv'
 
-    MetaFile = fileName + '.meta'
-    DataFile = fileName + '.csv'
-    DataFileName = os.path.basename(DataFile)
+    # update meta entry - this MUST already exist!
+    sqlq = "UPDATE Meta SET \
+            `DataType`='"+ dataType +"', \
+            `CollectionDate`='"+ collectionDate +"'\
+            WHERE `idMeta`='" +metaID+"';"
+    cursor.execute(sqlq)
 
-    # read Meta file information
-    # ---------------------------
-    if os.path.exists(MetaFile):
-        deviceSN = getMetaData(MetaFile, "Device ID")
-        metaID = getMetaData(MetaFile, "Meta ID")  # 17 Nov 15 phones are now set up with the prepared entry ID in the meta file
-        dataType = getMetaData(MetaFile, "Data type")
-        #    offset = getMetaData(MetaFile, "Offset")
-        collectionDate = getMetaData(MetaFile, "Date")
+    if (dataType == 'E'):
+        os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
+        sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFile + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+        cursor.execute(sqlq)
     else:
-        deviceSN = 'not found'
-        metaID = '0'
-        dataType = '?'
-        collectionDate = '00-01-01'
-
-
-    # ############## MetaID CHECK
-    # -----------------------------
-    # Was a meta entry made when this phone was set up?
-
-    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '" + metaID + "'"
-    cursor.execute(sqlq)
-    thisHousehold = cursor.fetchone()
-
-    if thisHousehold is None:
-        # create a new meta entry
-        sqlq = "INSERT INTO Meta(CollectionDate, DataType, SerialNumber,\
-            Household_idHousehold) VALUES \
-            ('" + collectionDate + "', '" + dataType + "', '" + deviceSN +\
-             "', '" + householdID + "');"
-        cursor.execute(sqlq)
-        dbConnection.commit()
-        # get the id of the entry just made
-        metaID = cursor.lastrowid
-        npyscreen.notify_confirm('This phone was not properly registered in the database. Household ' + householdID + ' recording is now listed as meta entry ' + str(metaID))
-    else:
-        # update meta entry
-        # XXX what to do if more than one recording was taken? at the moment only one meta entry with the most recent date...
-        sqlq = "UPDATE Meta SET \
-                `DataType`='"+ dataType +"', \
-                `SerialNumber`='"+ deviceSN +"', \
-                `CollectionDate`='"+ collectionDate +"'\
-                WHERE `idMeta`='" +metaID+"';"
-        cursor.execute(sqlq)
-        npyscreen.notify_confirm('meta updated')
-        
-    # ###################### Enter data
-    # NEW approach: copy to server, then import to database
-    os.system("scp " + DataFile + " phil@109.74.196.205:/home/phil/meter")
-    sqlq = "LOAD DATA INFILE '/home/phil/meter/" + DataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
-    cursor.execute(sqlq)
-
-
-    # OLD APPROACH very slow
-    # insert electricity DataFile into database
-    # # csv_data = csv.reader(file(DataFile))
-    # # for row in csv_data:
-    # #     sqlq = "INSERT INTO Electricity(Time, Watt, Meta_idMeta ) \
-    # #     VALUES('" + row[0] + "', '" + row[1] + "', '" + str(metaID) + "')"
-    # #     cursor.execute(sqlq)
-
-    dbConnection.commit()
-    # close the connection to the database.
-    # cursor.close()
-    cmd_moveToArchive = 'mv ' + DataFile + ' ' + archivePath
-    call(cmd_moveToArchive, shell=True)
-    cmd_moveToArchive = 'mv ' + MetaFile + ' ' + archivePath
-    call(cmd_moveToArchive, shell=True)
-
-def uploadSurveyFile(DataFile):
-    # insert survey DataFile into database
-    # structure:
-    metaID=9999;
-    # [0] date, [1] column name, [2] value, [3] metaID
-    csv_data = csv.reader(file(DataFile))
-
-    # create a new entry for this individual
-    sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
-    cursor.execute(sqlq)
-    dbConnection.commit()
-    # get the id of the entry just made
-    individualID = cursor.lastrowid
-
-    npyscreen.notify_confirm('xx ' + str(individualID) + 'has been created')
-    for row in csv_data:
-        sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
-                WHERE idIndividual = '"+str(individualID)+"';"
-        cursor.execute(sqlq)
+        csv_data = csv.reader(file(dataFile))
+        if (dataType == 'I'):
+            sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
+            cursor.execute(sqlq)                             # create an entry
+            dbConnection.commit()
+            individualID = cursor.lastrowid                  # get the id of the entry just made
+            for row in csv_data:                             # populate columns
+                sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
+                        WHERE idIndividual = '"+str(individualID)+"';"
+                cursor.execute(sqlq)
+        if (dataType == 'A'):
+            for row in csv_data:                                                       # insert each line into Activities
+                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,activity,location,enjoyment) \
+                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"')"
+                cursor.execute(sqlq)
     dbConnection.commit()
 
 def data_download_upload(self):
@@ -608,7 +546,7 @@ def aMeter_setup():
     phone_id_setup('A')
 
 def eMeter_setup():
-    # Compile
+    # Compile and run phone_id_setup(E)
     call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
     # remove old copy
     call('adb uninstall com.Phil.DEMon', shell=True)
@@ -625,6 +563,7 @@ def eMeter_setup():
     phone_id_setup('E')
 
 def getCollectionDate(householdID):
+    # return collection data as a string: Sunday, 31 December
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '" + householdID + "'"
     cursor.execute(sqlq)
     result = cursor.fetchone()
@@ -634,6 +573,7 @@ def getCollectionDate(householdID):
     return CollectionDate.strftime("%A, %e %B")
 
 def print_letter(void):
+    # personal letter as pdf
     global householdID
     participantCount = ("%s" % getParticipantCount(str(householdID)))
     # The letter
@@ -696,7 +636,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
         MenuActionKeys = {
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
-            'A': self.test,
             ##'A': print_letter,
             'a': self.aMeter_id_setup,
             'e': self.eMeter_id_setup,
@@ -711,7 +650,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # "a": self.show_NewContact,
             # "i": self.show_NewIndividual,
             # "I": self.show_Individual,
-            # 'T': self.show_Tables,
 
             # "m": self.show_MetaForm,
 
@@ -720,12 +658,12 @@ class ActionControllerData(npyscreen.MultiLineAction):
             "M": self.show_MainMenu,
             "X": self.parent.exit_application,
             # '5': self.add_nTimeUse ,
-            # '0': self.upload_time_use_file,
         }
         self.add_handlers(MenuActionKeys)
 
 
     def actionHighlighted(self, selectedLine, keypress):
+        # choose action based on the display status and selected line
         global householdID 
         global contactID
         global str_date 
@@ -734,7 +672,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
         global paticipantCount
         global eMeterCount
         global aMeterCount
-        # choose action based on the display status and selected line
         if (self.parent.myStatus == 'Main'):
             self.parent.wMain.values = ['Selection: ', selectedLine,
                                         '\tM\t\t to return to the main menu']
@@ -751,7 +688,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # self.parent.wStatus2.display()
             # self.parent.setMainMenu()
 
-
         elif (self.parent.myStatus == 'Diaries'):
             dataArray = selectedLine.split('\t')
             metaID = str(dataArray[0])
@@ -761,16 +697,14 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # self.parent.setMainMenu()
             self.parent.show_TimeUseEntryScreen()
 
-
         elif (self.parent.myStatus == 'XXXDiaries'):
             dataArray = selectedLine.split('\t')
-            metaID = str(dataArray[0])
+            metaID    = str(dataArray[0])
             self.parent.wStatus2.value =\
                 "Diary ID " + str(dataArray[0]) + " for Household " + str(dataArray[2]) + " selected"
             self.parent.wStatus2.display()
             # self.parent.setMainMenu()
             self.parent.show_TimeUseEntryScreen()
-
 
         elif (self.parent.myStatus == 'upcomingHousehold'):
             dataArray   = selectedLine.split('\t\t')
@@ -784,6 +718,14 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
+        elif (self.parent.myStatus == 'Meta'):
+            dataArray = selectedLine.split('\t')
+            metaID  = str(dataArray[0])
+            self.parent.wStatus2.value =\
+                "Meta set to " + str(dataArray[0])
+            self.parent.wStatus2.display()
+            self.parent.setMainMenu()
+
         elif (self.parent.myStatus == 'Household'):
             dataArray = selectedLine.split('\t')
             householdID  = str(dataArray[0])
@@ -792,7 +734,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
-
         elif (self.parent.myStatus == 'Individual'):
             dataArray = selectedLine.split('\t')
             individual  = str(dataArray[0])
@@ -800,7 +741,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
                 "Individual changed to " + str(dataArray[2]) + " from household " + str(dataArray[0])
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
-
 
         elif (self.parent.myStatus == 'Tables'):
             self.parent.wStatus2.values = ['Table ', selectedLine, 'was selected!']
@@ -825,15 +765,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
-    def test(self, *args, **keywords):
-        uploadSurveyFile("/Users/phil/Data/METER/surveys/survey.csv")
-
-    def eMeter_setup(self, *args, **keywords):
-        eMeter_setup()
-
-    def show_Tables(self, *args, **keywords):
-        self.parent.myStatus = 'Tables'
-        self.parent.display_tables()
 
     def show_MainMenu(self, *args, **keywords):
         self.parent.setMainMenu()
@@ -849,17 +780,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def data_upload(self, *args, **keywords):
         data_upload()
-
-    def upload_time_use_file(self, *args, **keywords):
-        identifyIndividual()
-        self.parent.parentApp.switchForm('SelectionForm')
-        # @@@@@@@@@@@@@@ test only
-        global individual
-        # individual = self.parent.parentApp.Form.SelectionForm.getResult()
-
-        individual = MeterApp._Forms['SelectionForm'].SelectionOptions.value
-        # identifyMetaID(
-        # upload_time_use_file()
 
     def edit_TimeUse(self, *args, **keywords):
         subprocess.call(['vim', tucFilePath])   
@@ -947,7 +867,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def show_NewIndividual(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewIndividual')
-
 
     def formated_data_type(self, vl):
         return "%s (%s)" % (vl[1], str(vl[0]))
@@ -1059,33 +978,32 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
         self.m2.addItem(text='select Household', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['upcomingHousehold'])
-        self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='E')
-        self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='A')
+        self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
+        self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
         self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
-        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='A', arguments=None)
 
-        self.m2 = self.add_menu(name="Input returned data", shortcut="i")
-        self.m2.addItemsFromList([
-            ("Process eMeter phone", self.IgnoreForNow, "i"),
-            ("Find household", self.identifyHousehold, "h"),
-            # ("Add a diary", self.addDiary, "h"),
-            ("Input a diary", self.diary_input, "d"),
-        ])
-
-        self.m2 = self.add_menu(name="Database management", shortcut="m")
+        self.m2 = self.add_menu(name="Work with data", shortcut="i")
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=None)
         self.m2.addItem(text='Email', onSelect=email_graph, shortcut='e', arguments=None)
-        self.m2.addItemsFromList([
-            ("Add new contact", self.add_contact, "p"),
-            # ("Display table",    self.display_data, "s"),
-            # ("Display Contact",   self.display_table_data, "c"),
-            # ("Display Contact",   self.XXdisplay_selected_data, "c"),
-            ("List Contacts", self.list_contacts, "c"),
-            ("Backup database",   backup_database, "c"),
-        ])
+
+        self.m2 = self.add_menu(name="Database management", shortcut="m")
+        self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
+        self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
+        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
+        self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
+        self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
+
         self.m3 = self.add_menu(name="Exit", shortcut="X")
         self.m3.addItem(text="Home", onSelect = MeterApp._Forms['MAIN'].setMainMenu,shortcut="h")
         self.m3.addItem(text="Exit", onSelect = self.exit_application, shortcut="X")
+
+    def show_Tables(self, *args, **keywords):
+        self.myStatus = 'Tables'
+        self.display_tables()
+
+    def list_meta(self):
+        MeterApp._Forms['MAIN'].display_selected_data("Meta")
 
     def list_contacts(self):
         MeterApp._Forms['MAIN'].display_selected_data("Contact")
@@ -1416,8 +1334,6 @@ class ActionControllerTimeUse(npyscreen.MultiLineAction):
             self.parent.Others[self.parent.timeIndex] == 0      # start over
         self.parent.updateScreen()
 
-
-
 class TimeUseForm(npyscreen.FormMuttActiveTraditional):
      ACTION_CONTROLLER = ActionControllerSearch
      MAIN_WIDGET_CLASS = ActionControllerTimeUse
@@ -1621,48 +1537,43 @@ class metaFileInformation(npyscreen.Form):
     fileList = []
     reject_fileList = []
 
+    selectIndex = []
+    selectCounter = 0
+    metaIDs = []
+    collectionDate = []
+    dataType = []
+    duration = []
+    displayString = []
+
+    reject_Index = []
+    reject_Counter = 0
+    reject_contactID = []
+    reject_collectionDate = []
+    reject_dataType = []
+    reject_duration = []
+    reject_displayString = []
 
     def create(self):
-        selectIndex = []
-        displayString = ['nothing']
-        reject_Index = []
-        reject_displayString = []
         self.FileSelection = self.add(npyscreen.TitleMultiSelect, max_height=9,
-                                      value=selectIndex,
+                                      value=self.selectIndex,
                                       name="Which files should be uploaded?",
-                                      values=displayString,
+                                      values=self.displayString,
                                       scroll_exit=True)
         self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15,
-                                      value=reject_Index,
+                                      value=self.reject_Index,
                                       name="These files will be deleted (uncheck to save them)?",
-                                      values=reject_displayString, scroll_exit=True)
-
-
+                                      values=self.reject_displayString, scroll_exit=True)
     def beforeEditing(self):
+        self.selectCounter = 0
+        self.selectIndex = []
+        self.displayString =[]
+        self.reject_Index = []
+        self.reject_displayString = []
         # set up file names
         global filePath
-        # filePath = '/Users/pg1008/Documents/Data/METER/'
 
-        # allMetafiles = filePath + '*.meta'
         allCSVfiles = filePath + '*.csv'
-        # self.fileList = glob.glob(allMetafiles)
         CSVfileList = glob.glob(allCSVfiles)
-
-        selectIndex = []
-        selectCounter = 0
-        contactID = []
-        collectionDate = []
-        dataType = []
-        duration = []
-        displayString = []
-
-        reject_Index = []
-        reject_Counter = 0
-        reject_contactID = []
-        reject_collectionDate = []
-        reject_dataType = []
-        reject_duration = []
-        reject_displayString = []
 
         for DataFile in CSVfileList:
             recordsInFile = sum(1 for line in open(DataFile))
@@ -1672,43 +1583,72 @@ class metaFileInformation(npyscreen.Form):
                 # (that would be 86400 seconds)
                 selectIndex.append(selectCounter)
                 self.fileList.append(thisFileName)
-                contactID.append(getMetaData(thisFileName +
-                                 '.meta', "Meta ID"))
-                collectionDate.append(getMetaData(thisFileName +
-                                      '.meta', "Date"))
+                metaIDs.append(getMetaData(thisFileName + '.meta', "Meta ID"))
+                collectionDate.append(getMetaData(thisFileName + '.meta', "Date"))
                 dataType.append(getMetaData(thisFileName+'.meta', "Data type"))
                 duration.append(round(recordsInFile / 3600.0, 2))
                 displayString.append(str(selectCounter) + '. ID: ' +
-                                     contactID[-1] + ' ' + dataType[-1] +
+                                     metaIDs[-1] + ' ' + dataType[-1] +
                                      ' on ' + collectionDate[-1] + ' for ' +
                                      str(duration[-1]) + ' hours')
                 selectCounter += 1
+
+            elif ('act' in DataFile):
+                self.selectIndex.append(self.selectCounter)
+                self.fileList.append(thisFileName)
+                self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_act.csv'
+                self.collectionDate.append('2000-01-01')           # XXX ToDo read from first and last value
+                self.dataType.append("A")
+                self.duration.append(recordsInFile)
+                self.displayString.append(str(self.selectCounter) + '. ID: ' +
+                                     self.metaIDs[-1] + ' ' + self.dataType[-1] +
+                                     ' with ' +
+                                     str(self.duration[-1]) + ' records')
+                self.selectCounter += 1
+
+            elif ('ind' in DataFile):
+                self.selectIndex.append(self.selectCounter)
+                self.fileList.append(thisFileName)
+                self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_ind.csv'
+                self.collectionDate.append('2000-01-01')
+                self.dataType.append("I")
+                self.duration.append(recordsInFile)
+                self.displayString.append(str(self.selectCounter) + '. ID: ' +
+                                     self.metaIDs[-1] + ' ' + self.dataType[-1] +
+                                     ' with ' + str(self.duration[-1]) + ' records')
+                self.selectCounter += 1
+
             else:
-                reject_Index.append(reject_Counter)
+                self.reject_Index.append(self.reject_Counter)
                 self.reject_fileList.append(thisFileName)
-                reject_contactID.append(getMetaData(thisFileName +
+                self.reject_contactID.append(getMetaData(thisFileName +
                                         '.meta', "Contact ID"))
-                reject_collectionDate.append(getMetaData(thisFileName +
+                self.reject_collectionDate.append(getMetaData(thisFileName +
                                              '.meta', "Date"))
-                reject_dataType.append(getMetaData(thisFileName +
+                self.reject_dataType.append(getMetaData(thisFileName +
                                        '.meta', "Data type"))
-                reject_duration.append(round(recordsInFile / 3600.0, 2))
-                reject_displayString.append(str(reject_Counter) + '.\t ID: ' +
-                                            reject_contactID[-1] + ' ' +
-                                            reject_dataType[-1] + ' on ' +
-                                            reject_collectionDate[-1] +
-                                            ' for ' + str(reject_duration[-1]) +
+                self.reject_duration.append(round(recordsInFile / 3600.0, 2))
+                self.reject_displayString.append(str(self.reject_Counter) + '.\t ID: ' +
+                                            self.reject_contactID[-1] + ' ' +
+                                            self.reject_dataType[-1] + ' on ' +
+                                            self.reject_collectionDate[-1] +
+                                            ' for ' + str(self.reject_duration[-1]) +
                                             ' hours')
-                reject_Counter += 1
-        self.FileSelection.values = displayString
-        self.FileRejection.values = reject_displayString
+                self.reject_Counter += 1
+        self.FileSelection.values = self.displayString
+        self.FileRejection.values = self.reject_displayString
 
 
     def afterEditing(self):
-        for FileIndex in self.FileSelection.value:
-            uploadFile(self.fileList[FileIndex])
+        for i in self.FileSelection.value:
+            uploadDataFile(self.fileList[i],self.dataType[i],self.metaIDs[i],self.collectionDate[i])   # insert to database
+            cmd_moveToArchive = 'mv ' + self.fileList[i] + '.csv ' + archivePath
+            call(cmd_moveToArchive, shell=True)                                         # archive selected
+            if (os.path.isfile(self.fileList[i] + '.meta')):                                  # only E data has a meta file
+                cmd_moveToArchive = 'mv ' + self.fileList[i] + '.meta ' + archivePath
+                call(cmd_moveToArchive, shell=True)
 
-        for FileIndex in self.FileRejection.value:
+        for FileIndex in self.FileRejection.value:                                      # delete all other files
             call('mv ' + self.reject_fileList[FileIndex] +
                  '.meta ~/.Trash/', shell=True)
             call('mv ' + self.reject_fileList[FileIndex] +
