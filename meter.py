@@ -36,9 +36,12 @@ from meter_ini import *     # reads the database and file path information from 
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
 
+
+modi = [ 'Processed', 'Issued', 'Upcomming', 'Future' ]
+operationModus = modi[1]
 timePeriod = datetime.datetime(1,1,1,4,0,0) # 4am start
 contactID = '0'
-metaID = '1061'
+metaID = '0'
 individual = '0'
 householdID = '0'
 dataType = 'E'
@@ -48,11 +51,34 @@ eMeterCount = '0'
 
 dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")
-
 SerialNumbers   = []
 
-dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
-cursor = dbConnection.cursor()
+def connectDatabase(dbHost):
+    try:
+        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
+        cursor = dbConnection.cursor()
+    except:
+        dbHost='localhost'
+        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
+        cursor = dbConnection.cursor()
+    return cursor
+
+def toggleDatabase(void):
+    global cursor
+    global dbHost
+    if (dbHost == 'localhost'):
+        dbHost = '109.74.196.205'
+    else:
+        dbHost = 'localhost'
+    cursor = connectDatabase(dbHost)
+    MeterApp._Forms['MAIN'].setMainMenu()
+
+def toggleOperationModus(void):
+    global operationModus
+    global modi
+    modusNumber = modi.index(operationModus)
+    operationModus = modi[(modusNumber+1) % len(modi)]
+    MeterApp._Forms['MAIN'].setMainMenu()
 
 def getMetaData(MetaFile, ItemName):
     # extract content from meta file (or any other file)
@@ -397,10 +423,12 @@ def upload_10min_readings(idMeta=20):
         str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
     cursor.execute(sqlq)
 
-def uploadDataFile(fileName,dataType,metaID,collectionDate):  
+def uploadDataFile(fileName,dataType,_metaID,collectionDate):  
+    global metaID
+    metaID = _metaID
     # put file content into database
-    npyscreen.notify_confirm('file: ' +fileName + ' type: ' + dataType + '  mID: '+ metaID)
     dataFile = fileName + '.csv'
+    dataFileName = os.path.basename(dataFile)
 
     # update meta entry - this MUST already exist!
     sqlq = "UPDATE Meta SET \
@@ -411,7 +439,8 @@ def uploadDataFile(fileName,dataType,metaID,collectionDate):
 
     if (dataType == 'E'):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
-        sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFile + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+        sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+        npyscreen.notify_confirm(sqlq)
         cursor.execute(sqlq)
     else:
         csv_data = csv.reader(file(dataFile))
@@ -463,6 +492,26 @@ def getDeviceCount(householdID, deviceType):
     sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '" + householdID + "';"
     cursor.execute(sqlq)
     aMeterCount = ("%s" % cursor.fetchone())
+
+def getNameOfContact(thisContactID):
+    # get Contact name for a given Contact
+    sqlq ="SELECT Name,Surname\
+            FROM Contact \
+            WHERE idContact = '" + thisContactID + "';"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    return str(result[0]) + ' ' + str(result[1])
+
+def getContactName(householdID):
+    # disused
+    # XXX always returned "Phil Grunewald" - presumably picking contact = 0 ??!
+    # get Contact name for a given household
+    sqlq ="SELECT Contact_idContact\
+            FROM Household \
+            WHERE idHousehold = '" + householdID + "';"
+    cursor.execute(sqlq)
+    thisContact = str(cursor.fetchone())
+    return getNameOfContact(thisContact)
 
 def getParticipantCount(householdID):
     # get number of diaries required
@@ -562,6 +611,23 @@ def eMeter_setup():
     # configure phone for recording
     phone_id_setup('E')
 
+
+def getContact(householdID):
+    # return contactID for given household
+    sqlq = "SELECT contact_idContact FROM Household WHERE idHousehold = '" + householdID + "'"
+    cursor.execute(sqlq)
+    return ("%s" % cursor.fetchone())
+
+def getDateFormated(dts):
+    # DateTimeString as received from database: return 31 Jan 16
+    # http://strftime.org/
+    if (dts != 'None'):
+        f = '%Y-%m-%d %H:%M:%S'
+        this_dt = datetime.datetime.strptime(dts, f)
+        return this_dt.strftime("%-d %b %y")
+    else:
+        return "None"
+
 def getCollectionDate(householdID):
     # return collection data as a string: Sunday, 31 December
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '" + householdID + "'"
@@ -572,10 +638,59 @@ def getCollectionDate(householdID):
     CollectionDate = datetime.date(int(dateArray[0]), int(dateArray[1]), int(dateArray[2]))
     return CollectionDate.strftime("%A, %e %B")
 
+def pre_post_email(contactID,householdID):
+    # send an email to check contact details are right
+    # make sure they land on the address page (page 1)
+    sqlq = "UPDATE Household SET page_number = '1' WHERE idHousehold = '" + householdID + "'"
+    cursor.execute(sqlq)
+
+    # get contact details
+    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email FROM Contact WHERE idContact = '"\
+        + contactID + "'"
+    cursor.execute(sqlq)
+    result = cursor.fetchone()
+    thisName    = ("%s %s" % (result[0:2]))
+    thisAddress = ("%s\n%s\n%s %s" % (result[2:6]))
+    thisAddress = thisAddress.replace("None ", "\ ")
+    thisDate    = getCollectionDate(householdID)
+    participantCount = ("%s" % getParticipantCount(str(householdID)))
+    thisEmail   = ("%s" % (result[6]))
+
+    # get the security code for this household
+    sqlq = "SELECT security_code FROM Household WHERE idHousehold = '" + householdID + "'"
+    cursor.execute(sqlq)
+    securityCode = ("%s" % (cursor.fetchone()))
+
+    # prepare the custom email
+    templateFile = open(emailPath + "pre_post_emailTemplate.md", "r")
+    templateText = templateFile.read()
+    templateFile.close()
+
+    templateText = templateText.replace("[name]", thisName)
+    templateText = templateText.replace("[date]", thisDate)
+    templateText = templateText.replace("[address]", thisAddress)
+    templateText = templateText.replace("[householdID]", householdID)
+    templateText = templateText.replace("[securityCode]", securityCode)
+    templateText = templateText.replace("[participantCount]", participantCount)
+    if (participantCount != "1"):
+        templateText = templateText.replace("[s]", "s")
+        templateText = templateText.replace("{multiple booklets}", ". Each of you is encouraged to take part (so long as they are eight or older). I hope you will be able to persuade them to join you")
+    else:
+        templateText = templateText.replace("[s]", "")
+        templateText = templateText.replace("{multiple booklets}", "") 
+
+    emailFilePath = emailPath + "tempEmail.mail"
+    emailFile = open(emailFilePath, "w+")
+    emailFile.write(templateText)
+    emailFile.close()
+    call('mutt -s "[Meter] Ready for your package?" ' + thisEmail + ' < ' + emailFilePath, shell=True)
+
 def print_letter(void):
     # personal letter as pdf
     global householdID
+    contactID = getContact(householdID)
     participantCount = ("%s" % getParticipantCount(str(householdID)))
+
     # The letter
     dateToday = datetime.datetime.now()
     todayDate = dateToday.strftime("%e %B %Y")
@@ -636,27 +751,26 @@ class ActionControllerData(npyscreen.MultiLineAction):
         MenuActionKeys = {
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
-            ##'A': print_letter,
+            'A': print_letter,
+            ## 'A': self_pre_post_email,
             'a': self.aMeter_id_setup,
             'e': self.eMeter_id_setup,
             'I': getNextHouseholdForParcel,
             'P': self.data_download,
+            'S': self.showHouseholds,
+            "m": toggleOperationModus,
+            "M": self.show_MainMenu,
+            "X": self.parent.exit_application,
             # "u": self.data_upload,
             # "D": data_download_upload,
-
             # "C": self.show_TimeUse,
             # "t": self.show_DataTypes,
             # "c": self.show_Contact,
             # "a": self.show_NewContact,
             # "i": self.show_NewIndividual,
             # "I": self.show_Individual,
-
             # "m": self.show_MetaForm,
-
             # "s": self.show_MainMenu,
-
-            "M": self.show_MainMenu,
-            "X": self.parent.exit_application,
             # '5': self.add_nTimeUse ,
         }
         self.add_handlers(MenuActionKeys)
@@ -672,6 +786,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
         global paticipantCount
         global eMeterCount
         global aMeterCount
+        global dataType
+
         if (self.parent.myStatus == 'Main'):
             self.parent.wMain.values = ['Selection: ', selectedLine,
                                         '\tM\t\t to return to the main menu']
@@ -706,23 +822,25 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # self.parent.setMainMenu()
             self.parent.show_TimeUseEntryScreen()
 
-        elif (self.parent.myStatus == 'upcomingHousehold'):
-            dataArray   = selectedLine.split('\t\t')
+        elif (self.parent.myStatus == 'Households'):
+            dataArray   = selectedLine.split(' ')
             householdID = str(dataArray[0])
             contactID   = str(dataArray[1])
             str_date    = str(dataArray[2])
             self.parent.wStatus2.value =\
                 "Household changed to " + householdID +\
-                "for Contact " + contactID +\
-                "on " + str_date
+                " for Contact " + contactID +\
+                " on " + str_date
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
+
         elif (self.parent.myStatus == 'Meta'):
-            dataArray = selectedLine.split('\t')
+            dataArray = selectedLine.split('\t\t')
             metaID  = str(dataArray[0])
+            dataType = str(dataArray[3])
             self.parent.wStatus2.value =\
-                "Meta set to " + str(dataArray[0])
+                "Meta " + metaID + ", type " + dataType
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
@@ -757,7 +875,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.display_selected_data('TimeUseCode')
 
         elif (self.parent.myStatus == 'DataTypes'):
-            global dataType
             dataTypeArray = selectedLine.split('\t')
             dataType = str(dataTypeArray[0])
             self.parent.wStatus2.value =\
@@ -775,6 +892,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
     def aMeter_id_setup(self, *args, **keywords):
         phone_id_setup('A')
         
+    def showHouseholds(self, *args, **keywords):
+        self.parent.display_selected_data('Households')
+
     def data_download(self, *args, **keywords):
         data_download()
 
@@ -905,6 +1025,9 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
     first_time = True
     myStatus = "Main"
 
+    global cursor
+    cursor = connectDatabase(dbHost)
+
     def getMenuText(self):
         MenuText = []
         # CommandNumber=0
@@ -921,6 +1044,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         if (participantCount == aMeterCount):
             markHouseholdAsIssued(householdID)
         MenuText.append("\n")
+        MenuText.append("Database:   " + dbHost)
+        MenuText.append("Modus (m):  " + operationModus)
         MenuText.append("\n")
         MenuText.append("Date:       " + str(str_date))
         MenuText.append("Contact:    " + str(contactID))
@@ -977,7 +1102,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             ("Download and upload", data_download_upload, "D"),
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
-        self.m2.addItem(text='select Household', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['upcomingHousehold'])
+        self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
+        self.m2.addItem(text='EMAIL', onSelect=pre_post_email, shortcut='M', arguments=[contactID, householdID])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
         self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
@@ -992,6 +1118,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
         self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
         self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
+        self.m2.addItem(text='Change database', onSelect=toggleDatabase, shortcut='d', arguments=[dbHost])
         self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
 
         self.m3 = self.add_menu(name="Exit", shortcut="X")
@@ -1001,6 +1128,9 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
     def show_Tables(self, *args, **keywords):
         self.myStatus = 'Tables'
         self.display_tables()
+
+    def list_household(self):
+        MeterApp._Forms['MAIN'].display_selected_data("Household")
 
     def list_meta(self):
         MeterApp._Forms['MAIN'].display_selected_data("Meta")
@@ -1086,11 +1216,44 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             cursor.execute(sqlq)
             result = cursor.fetchall()
 
-        elif (displayModus == "upcomingHousehold"):
-            result = [{'HH\t\tContact\t\tDate'}]
-            sqlq = "SELECT idHousehold, Contact_idContact, date_choice FROM Meter.Household where date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL '14' DAY AND status < 1;"
+        elif (displayModus == "Households"):
+            result = [{"{:<6}".format('HH ID') +\
+                       "{:<6}".format('CT ID') +\
+                       "{:<12}".format('Joined') +\
+                       "{:<25}".format('Name') +\
+                       "{:<12}".format('People') +\
+                       "{:<12}".format('Date') +\
+                       "{:<75}".format('Comment') }]
+
+            global operationModus
+            fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8)' 
+
+            if (operationModus == 'Processed'):
+                sqlq = "SELECT " + fields + " FROM Household WHERE date_choice < CURDATE();"
+            elif (operationModus == 'Issued'):
+                sqlq = "SELECT " + fields + " FROM Household WHERE status = 1;"
+            elif (operationModus == 'Upcomming'):
+                sqlq = "SELECT " + fields + " FROM Household WHERE date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL '21' DAY;"
+            elif (operationModus == 'Future'):
+                sqlq = "SELECT " + fields + " FROM Household WHERE date_choice > CURDATE();"
+
             cursor.execute(sqlq)
-            result = cursor.fetchall()
+            hh_result = cursor.fetchall()
+            for hh in hh_result:
+                thisHHid      = str(hh[0])
+                thisTimeStamp = getDateFormated(str(hh[1]))
+                thisContact   = str(hh[2])
+                thisDate      = str(hh[3])
+                thisComment   = str(hh[4])
+                result = result + [{\
+                        "{:<6}".format(thisHHid) +\
+                        "{:<6}".format(thisContact) +\
+                        "{:<12}".format(thisTimeStamp) +\
+                        "{:<25}".format(getNameOfContact(thisContact)) +\
+                        "{:<12}".format(str(getParticipantCount(thisHHid))) +\
+                        "{:<12}".format(thisDate) +\
+                        "{:<75}".format(thisComment) }]
+
 
         elif (displayModus == "Household"):
             sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
@@ -1581,17 +1744,17 @@ class metaFileInformation(npyscreen.Form):
             if (recordsInFile > 80000):
                 # only full 24 hour recordings are of interest
                 # (that would be 86400 seconds)
-                selectIndex.append(selectCounter)
+                self.selectIndex.append(self.selectCounter)
                 self.fileList.append(thisFileName)
-                metaIDs.append(getMetaData(thisFileName + '.meta', "Meta ID"))
-                collectionDate.append(getMetaData(thisFileName + '.meta', "Date"))
-                dataType.append(getMetaData(thisFileName+'.meta', "Data type"))
-                duration.append(round(recordsInFile / 3600.0, 2))
-                displayString.append(str(selectCounter) + '. ID: ' +
-                                     metaIDs[-1] + ' ' + dataType[-1] +
-                                     ' on ' + collectionDate[-1] + ' for ' +
-                                     str(duration[-1]) + ' hours')
-                selectCounter += 1
+                self.metaIDs.append(getMetaData(thisFileName + '.meta', "Meta ID"))
+                self.collectionDate.append(getMetaData(thisFileName + '.meta', "Date"))
+                self.dataType.append(getMetaData(thisFileName+'.meta', "Data type"))
+                self.duration.append(round(recordsInFile / 3600.0, 2))
+                self.displayString.append(str(self.selectCounter) + '. ID: ' +
+                                     self.metaIDs[-1] + ' ' + self.dataType[-1] +
+                                     ' on ' + self.collectionDate[-1] + ' for ' +
+                                     str(self.duration[-1]) + ' hours')
+                self.selectCounter += 1
 
             elif ('act' in DataFile):
                 self.selectIndex.append(self.selectCounter)
