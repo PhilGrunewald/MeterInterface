@@ -6,4 +6,3 @@
                                                  |             |
                                                   \           / 
                                                     \_______/   
-   ^X Menu   M Main Screen    / Search     X Quit

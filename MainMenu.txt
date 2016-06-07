@@ -1,0 +1,25 @@
+
+
+A			Address label
+d			Download data
+
+C			Enter time-use Codes
+t			Select data Type 
+
+c			Select Contact
+I			Select Individual for household
+a			Add new contact
+i			Add new Individual for contact
+T			Select Table
+
+m			Meta review
+g			Plot graph
+e			Email plot file to participant
+
+B			Backup database
+s			Settings
+X			Quit
+
+^X				Menu
+M				Main Screen
+/				Search
