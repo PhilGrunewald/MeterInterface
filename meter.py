@@ -341,7 +341,8 @@ def email_graph(householdID_):
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
-    call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+    # call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+    call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk -a '+plotPath + metaID'.html < ' + emailFilePath, shell=True)
     updateHouseholdStatus(householdID,7)
 
 def data_download():
@@ -855,10 +856,7 @@ def compose_email(type):
     participantCount = ("%s" % getParticipantCount(str(householdID)))
 
     # prepare the custom email
-    if (type == "fail"):
-        templateFile = open(emailPath + "email_compose_fail.md", "r")
-    else:
-        templateFile = open(emailPath + "email_compose.md", "r")
+    templateFile = open(emailPath + "email_compose_" + type + ".md", "r")
     templateText = templateFile.read()
     templateFile.close()
 
@@ -1321,13 +1319,14 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             MenuText.append(formatBox("Household:", householdID))
             MenuText.append(formatBox("People:", getParticipantCounters(householdID)))
 
-            if (operationModus == 'Processed'):
+            if (operationModus in {'Issued', 'Processed'}):
                 MenuText.append(formatBox("[D]iaries:",  getDeviceMetaIDs(householdID,'A')))
                 metaIDs = "%s" % getDeviceMetaIDs(householdID,'E')
                 MenuText.append(formatBox("[E]-Meter:", metaIDs))
-                MenuText.append(formatBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
-                MenuText.append(formatBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
-                MenuText.append(formatBox("[A]nalyse", '' ))
+                if (operationModus == 'Processed'):
+                    MenuText.append(formatBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
+                    MenuText.append(formatBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
+                    MenuText.append(formatBox("[A]nalyse", '' ))
 
             if (operationModus == 'Upcoming'):
                 MenuText.append(formatBox("[D]iaries:",  getDeviceMetaIDs(householdID,'A')))
@@ -1385,8 +1384,9 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m2 = self.add_menu(name="Work with data", shortcut="i")
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=[householdID])
         self.m2.addItem(text='Email graph', onSelect=email_graph, shortcut='e', arguments=[householdID])
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='c', arguments=['blank'])
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='c', arguments=[''])
         self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='f', arguments=['sent'])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
@@ -1468,7 +1468,6 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         # pull SQL data and display                     #display_data
         self.myStatus = displayModus
         self.wStatus1.value = "METER " + self.myStatus + " selection"
-        # self.wStatus2.value = "Now Phil, Select " + self.myStatus + " from selection"
         if (displayModus == "Contact"):
             sqlq = "SELECT * FROM Contact"
             cursor.execute(sqlq)
@@ -1492,17 +1491,17 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             result = cursor.fetchall()
 
         elif (displayModus == "Households"):
-            result = [{"{:<6}".format('HH ID') +\
-                       "{:<6}".format('CT ID') +\
+            result = [{"{:<8}".format('HH ID') +\
+                       "{:<8}".format('CT ID') +\
                        "{:<12}".format('Joined') +\
                        "{:<25}".format('Name') +\
-                       "{:<12}".format('People') +\
+                       "{:<8}".format('People') +\
                        "{:<12}".format('Date') +\
                        "{:<75}".format('Comment') }]
 
             global operationModus
             fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8)' 
-            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[operationModus] +";"
+            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[operationModus] +" ORDER BY date_choice;"
             cursor.execute(sqlq)
             hh_result = cursor.fetchall()
             for hh in hh_result:
@@ -1516,7 +1515,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
                         "{:<8}".format(thisContact) + '\t'\
                         "{:<12}".format(thisTimeStamp +'\t') +\
                         "{:<25}".format(getNameOfContact(thisContact)) +\
-                        "{:<12}".format(str(getParticipantCount(thisHHid))) +\
+                        "{:<8}".format(str(getParticipantCount(thisHHid))) +\
                         "{:<12}".format(thisDate) +\
                         "{:<75}".format(thisComment) }]
 
