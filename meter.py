@@ -147,11 +147,11 @@ def plot_data(_householdID):
 
     # READ ACTIVITIES.JSON
     ## THis worked fine for a while and suddenly I got "Error 503 backend read error" from github
-    # activity_file = urllib.urlopen('https://raw.githubusercontent.com/PhilGrunewald/MeterApp/master/www/js/activities.json').read()
-    #activities = json.loads(activity_file)
-    activity_file = "/Users/phil/Sites/MeterApp/www/js/activities.json"
-    with open(activity_file, "r") as f:
-          activities = json.loads(f.read())
+    activity_file = urllib.urlopen('https://raw.githubusercontent.com/PhilGrunewald/MeterApp/master/www/js/activities.json').read()
+    activities = json.loads(activity_file)
+    # activity_file = "/Users/phil/Sites/MeterApp/www/js/activities.json"
+    #with open(activity_file, "r") as f:
+    #       activities = json.loads(f.read())
 
     # GET ELECTRICTY READINGS
     sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 10 =0;"
@@ -161,7 +161,6 @@ def plot_data(_householdID):
     result = list(cursor.fetchall())
     watt=[]
     date_time=[]
-    print(sqlq)
     for item in result:
         date_time.append(item[0])
         watt.append(item[1])
@@ -215,7 +214,7 @@ def plot_data(_householdID):
     tuc_colour  =[]
     tuc_size    =[]
 
-    sqlq = "SELECT dt_activity,activity,location FROM Activities WHERE Meta_idMeta = "+str(999)+";"
+    sqlq = "SELECT dt_activity,activity,location FROM Activities WHERE Meta_idMeta = "+str(2301)+";"
     cursor.execute(sqlq)
     result = list(cursor.fetchall())
 
@@ -252,12 +251,12 @@ def plot_data(_householdID):
     #
     p.line(date_time, watt, color="green")
 
-    # time_bar = p.square(x=tuc_time, 
-    #                     y=tuc_size, 
-    #                     size = 5, 
-    #                     color= tuc_colour,
-    #                     nonselection_color="purple"
-    #                     )
+    time_bar = p.square(x=tuc_time, 
+                        y=tuc_size, 
+                        size = 5, 
+                        color= tuc_colour,
+                        nonselection_color="purple"
+                        )
 
     # bands
     p.quad(top=[minWatt, meanWatt], bottom=[0, minWatt], left=[minTime, minTime],
@@ -342,7 +341,7 @@ def email_graph(householdID_):
     emailFile.write(templateText)
     emailFile.close()
     # call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
-    call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk -a '+plotPath + metaID'.html < ' + emailFilePath, shell=True)
+    call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk -a ' + plotPath + metaID + '.html < ' + emailFilePath, shell=True)
     updateHouseholdStatus(householdID,7)
 
 def data_download():
