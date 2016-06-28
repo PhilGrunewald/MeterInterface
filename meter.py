@@ -127,6 +127,16 @@ def toggleOperationModus(void):
     MeterApp._Forms['MAIN'].setMainMenu()
     # getHousehold()
 
+def getDateOfFirstEntry(thisFile,col):
+    # Find the date string in a data file
+    # expected format: ...,2016-02-22T17:00:00.000Z,...
+    # in the second column
+    with open(thisFile, 'r') as f:
+            firstLine = f.readline()
+    dateTime = firstLine.split(',')[col]
+    thisDate = dateTime[0:10]
+    return thisDate
+
 def getMetaData(MetaFile, ItemName):
     # extract content from meta file (or any other file)
     content = ""
@@ -2030,7 +2040,7 @@ class metaFileInformation(npyscreen.Form):
                 self.selectIndex.append(self.selectCounter)
                 self.fileList.append(thisFileName)
                 self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_act.csv'
-                self.collectionDate.append('2000-01-01')           # XXX ToDo read from first and last value
+                self.collectionDate.append(getDateOfFirstEntry(DataFile,1))           # take date from first entry in column 1 (2nd col)
                 self.dataType.append("A")
                 self.duration.append(recordsInFile)
                 self.displayString.append(str(self.selectCounter) + '. ID: ' +
@@ -2043,7 +2053,8 @@ class metaFileInformation(npyscreen.Form):
                 self.selectIndex.append(self.selectCounter)
                 self.fileList.append(thisFileName)
                 self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_ind.csv'
-                self.collectionDate.append('2000-01-01')
+
+                self.collectionDate.append(getDateOfFirstEntry(DataFile,0))           # take date from first entry in column 0 (1nd col)
                 self.dataType.append("I")
                 self.duration.append(recordsInFile)
                 self.displayString.append(str(self.selectCounter) + '. ID: ' +
