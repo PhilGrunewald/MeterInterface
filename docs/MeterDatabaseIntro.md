@@ -11,7 +11,7 @@ This document explains
 - how these data are structured, stored and retrieved; and
 - the tools used to manage the data.
 
-This is a live document. For the latest version, please visit http://www.energy-use.org/files/MeterDataIntro.pdf.
+This is a live document. For the latest version, please visit [Meter/docs](https://github.com/PhilGrunewald/Meter/tree/master/docs). 
 
 What data are collected?
 ========================
@@ -90,19 +90,27 @@ When devices are returned the CollectionDate, which is 'NULL' until now is updat
 
 Individual and Activity data share the same idMeta value, because they come from the same instrument and can thus be linked. Individual/Activity data and Electricity readings can be linked to their Household via the Household_idHousehold reference in their Meta entry and vice versa: To find all Activities for a given Household with the ID 1234 one could use the following SQL statement:
 
-`SELECT idMeta FROM Meta WHERE Household_idHousehold = 1234 AND DataType = 'A';`
+```SQL
+SELECT idMeta
+	FROM Meta
+	WHERE Household_idHousehold = 1234 AND DataType = 'A';
+```
 
 This will return one idMeta for each individual which has completed a study day. The activities can then be retrieved for each of these returned values. If 6789 was returned, the activity record can be accessed with:
 
-`SELECT dt_activity,activity FROM Activities WHERE Meta_idMeta = 6789;`
+```SQL
+SELECT dt_activity,activity 
+	FROM Activities 
+	WHERE Meta_idMeta = 6789;
+```
 
 This will produce a list of DateTime values and the description of the activity.
 
 Further information
 ===================
 
-The data handing is principally conducted with the [Meter Interface](https://github.com/PhilGrunewald/Meter). This repository includes a dummy database file in /dbDummy which can be used for experimenting. To set this up you require a working MySQL version on your machine. Create a user and grant privileges to the data.
+The data handing is principally conducted with the [Meter Interface](https://github.com/PhilGrunewald/Meter). This repository includes a dummy database file in [/dbDummy](https://github.com/PhilGrunewald/Meter/tree/master/dbDummy) which can be used for experimenting. To set this up you require a working MySQL version on your machine. Create a user and grant privileges to the data.
 
-To gain access to the live Meter database on http://www.energy-use.org you will need to be granted access.
+To gain access to the live Meter database on [http://www.energy-use.org](www.energy-use.org) you will need to be granted access.
 
-
+# References
