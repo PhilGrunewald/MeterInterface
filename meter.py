@@ -166,7 +166,6 @@ def plot_data(_householdID):
     # GET ELECTRICTY READINGS
     sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 10 =0;"
 
-    npyscreen.notify_confirm("SQL: " + sqlq)
     cursor.execute(sqlq)
     result = list(cursor.fetchall())
     watt=[]
@@ -281,26 +280,30 @@ def plot_data(_householdID):
     renderer = p.circle([minDateTime, peakDateTime], [minWatt, maxWatt], size=10, 
             fill_color=["blue","red"],
             fill_alpha=0.2,
-                                  # set visual properties for selected glyphs
-                       selection_color="firebrick",
-                       # set visual properties for non-selected glyphs
-                       nonselection_fill_alpha=0.2,
-                       nonselection_fill_color="green",
-                       nonselection_line_color="firebrick",
-                       nonselection_line_alpha=1.0) 
+            # set visual properties for selected glyphs
+            selection_color="firebrick",
+            # set visual properties for non-selected glyphs
+            nonselection_fill_alpha=0.2,
+            nonselection_fill_color="green",
+            nonselection_line_color="firebrick",
+            nonselection_line_alpha=1.0) 
     # selected_circle      = Circle(fill_alpha=0.2, fill_color="firebrick", line_color=None)
     # nonselected_circle   = Circle(fill_alpha=0.2, fill_color="red", line_color="firebrick")
     # renderer.selection_glyph = selected_circle
     # renderer.nonselection_glyph = nonselected_circle
 
     #p.line(date_time, setPoint, color="navy")
+    plotFilePath = plotPath + str(householdID) + '.html'
 
-    output_file(plotPath + str(metaID) + '.html', title= str(metaID) + ' data')
+    output_file(plotFilePath, title= str(householdID) + ' electricity use')
     js_resources = INLINE.render_js()
     css_resources = INLINE.render_css()
     
     script, div = components(p, INLINE)
     show(p)
+    # npyscreen.notify_confirm("pre app")
+    # app.run()
+    # npyscreen.notify_confirm("app started")
     # html = flask.render_template('meter_graph.html',
     #     plot_script=script,
     #     plot_div=div,
@@ -317,12 +320,18 @@ def plot_data(_householdID):
     #     name     = 'bob',
     #     metaID   = metaID
     #     )
-    # return encode_utf8(html)
+    # # return encode_utf8(html)
+    # npyscreen.notify_confirm("Graph generated: " + plotFilePath)
+    # plotFile = open(plotFilePath, "w+")
+    # plotFile.write(encode_utf8(html))
+    # plotFile.close()
+    os.system("scp " + plotFilePath + " phil@109.74.196.205:/var/www/energy-use.org/public_html/data/")
 
-def email_graph(householdID_):
+def email_graph():
     # send email with link to graph
-    householdID = householdID_
+    global householdID 
     contactID = getContact(householdID)
+    metaID = getMetaID(householdID)
     sqlq = "SELECT Name,Email FROM Contact WHERE idContact = '" +\
         contactID + "'"
     cursor.execute(sqlq)
@@ -338,7 +347,7 @@ def email_graph(householdID_):
     CollectionDate = datetime.date(int(dateArray[0]), int(dateArray[1]), int(dateArray[2]))
     thisDate = CollectionDate.strftime("%A, %e %B")
 
-    templateFile = open(emailPath + "graph_email.html", "r")
+    templateFile = open(emailPath + "email_graph.html", "r")
     templateText = templateFile.read()
     templateFile.close()
 
@@ -353,6 +362,7 @@ def email_graph(householdID_):
     # call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
     call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk -a ' + plotPath + metaID + '.html < ' + emailFilePath, shell=True)
     updateHouseholdStatus(householdID,7)
+    npyscreen.notify_confirm('Email sent to ' + thisName)
 
 def data_download():
     # pull files from phone
@@ -585,6 +595,11 @@ def diary_setup():
     MetaID = cursor.lastrowid
     npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
 
+def getMetaIDs(householdID, deviceType):
+    # check if eMeter has been configured
+    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '"+deviceType+"' AND Household_idHousehold = '" + householdID + "';"
+    cursor.execute(sqlq)
+    return cursor.fetchall()
     
 
 def getDeviceMetaIDs(householdID, deviceType):
@@ -848,36 +863,58 @@ def XXXgetCollectionDate(householdID):
     return CollectionDate.strftime("%A, %e %B")
 
 
-def compose_email(type):
+def compose_email(type,edit=True):
     # Contact participant with editabel email
     global householdID
 
     # get contact details
     contactID = getContact(householdID)
-    sqlq = "SELECT Name, Surname, email FROM Contact WHERE idContact = '" + contactID + "'"
+    metaID    = getMetaID(householdID)
+
+    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email FROM Contact WHERE idContact = '"\
+        + contactID + "'"
     cursor.execute(sqlq)
     result = cursor.fetchone()
-    thisName         = ("%s %s" % (result[0:2]))
-    thisEmail        = ("%s" % (result[2]))
+    thisName    = ("%s %s" % (result[0:2]))
+    thisAddress = ("%s</br>%s</br>%s %s" % (result[2:6]))
+    thisAddress = thisAddress.replace("None </br>", "")
+    thisDate    = getDateChoice(householdID)
+    thisEmail   = ("%s" % (result[6]))
+    CcEmail     = 'philipp.grunewald@ouce.ox.ac.uk'
 
-    thisDate         = getDateChoice(householdID)
-    metaID           = getMetaID(householdID)
     participantCount = ("%s" % getParticipantCount(str(householdID)))
 
     # prepare the custom email
-    templateFile = open(emailPath + "email_compose_" + type + ".md", "r")
+    # templateFile = open(emailPath + "email_compose_" + type + ".md", "r")
+    templateFile = open(emailPath + "email_" + type + ".html", "r")
     templateText = templateFile.read()
     templateFile.close()
 
     templateText = templateText.replace("[householdID]", householdID)
     templateText = templateText.replace("[name]", thisName)
-    templateText = templateText.replace("[email]", thisEmail)
+    templateText = templateText.replace("[address]", thisAddress)
     templateText = templateText.replace("[date]", thisDate)
     templateText = templateText.replace("[metaID]", metaID)
-    templateText = templateText.replace("[participantCount]", participantCount)
     templateText = templateText.replace("[securityCode]", getSecurityCode(householdID))
+    templateText = templateText.replace("[participantCount]", participantCount)
 
-    emailFilePath = emailPath + "tempEmail.mail"
+    if (participantCount != "1"):
+        templateText = templateText.replace("[s]", "s")
+        templateText = templateText.replace("{multiple booklets}", ". Each of you is encouraged to take part (so long as they are eight or older). I hope you will be able to persuade them to join you")
+    else:
+        templateText = templateText.replace("[s]", "")
+        templateText = templateText.replace("{multiple booklets}", "") 
+
+    if (edit):
+        # needs email in line 1, Cc in line 2 and Subject in line 3
+        # template has subject as line one -> insert emails
+        templateText = thisEmail + '\n' + CcEmail + '\n' + templateText
+    else:
+        # only keep the body of the text -> remove line 1 (Subject)
+        subjectLine = templateText.splitlines()[0]
+        templateText = templateText[templateText.find('\n')+1:]     # find line break and return all from there - i.e. remove first line
+
+    emailFilePath = emailPath + "tempEmail.htmail"
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
@@ -886,7 +923,10 @@ def compose_email(type):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
     
-    call('vim ' + emailFilePath, shell=True)
+    if (edit):
+        call('vim ' + emailFilePath, shell=True)
+    else:
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk '+ attachement +' < ' + emailFilePath, shell=True)
 
 def pre_parcel_email(householdID):
     # send an email to check contact details are right
@@ -952,7 +992,7 @@ def print_letter():
     thisAddress = thisAddress.replace("None ", "\ ")
     thisDate = getDateChoice(householdID)
 
-    letterFile = letterPath + contactID + "_letter."
+    letterFile = letterPath + contactID + "_letter"
     letterTemplate = letterPath + "letter.md"
     templateFile = open(letterTemplate, "r")
     templateText = templateFile.read()
@@ -974,7 +1014,8 @@ def print_letter():
     myFile.write(templateText)
     myFile.close()
 
-    call('pandoc -V geometry:margin=1.2in ' + filePath + "temp_letter.md -o" + letterFile + "pdf ", shell=True)
+    call('pandoc -V geometry:margin=1.3in -V fontsize=11pt ' + filePath + "temp_letter.md -o" + letterFile + ".pdf", shell=True)
+    # call('pandoc -V fontsize=11pt ' + filePath + "temp_letter.md -o" + letterFile + ".pdf", shell=True)
 
     # ADDRESS LABEL
     # produces postage label and personal letter
@@ -1003,11 +1044,12 @@ class ActionControllerData(npyscreen.MultiLineAction):
         MenuActionKeys = {
             # '1': self.eMeter_setup,
             #   'p': self.eMeter_setup,
-            'A': print_letter,
-            #'A': self.btnA,
+            # 'A': print_letter,
+            'A': self.btnA,
             ## 'A': self_pre_post_email,
             'D': self.aMeter_id_setup,
-            'E': self.eMeter_id_setup,
+            'E': self.btnE,
+            # 'E': self.eMeter_id_setup,
             '>': getNextHousehold,
             '<': getPreviousHousehold,
             # 'N': getNextHouseholdForParcel,
@@ -1141,23 +1183,26 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.setMainMenu()
 
     def btnA(self, *args, **keywords):
+        print_letter()
         if (operationModus == 'X'):
             pre_parcel_email(householdID)
         elif (operationModus == 'Upcoming'):
             pre_parcel_email(householdID)
+
+    def btnE(self, *args, **keywords):
+        if (operationModus == 'Processed'):
+            email_graph()
+        elif (operationModus == 'Upcoming'):
+            phone_id_setup('E')
 
     def btnP(self, *args, **keywords):
         if (operationModus == 'Processed'):
             plot_data(householdID)
         elif (operationModus == 'Issued'):
             data_download()
-        
 
     def show_MainMenu(self, *args, **keywords):
         self.parent.setMainMenu()
-
-    def eMeter_id_setup(self, *args, **keywords):
-        phone_id_setup('E')
 
     def aMeter_id_setup(self, *args, **keywords):
         phone_id_setup('A')
@@ -1329,9 +1374,9 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             MenuText.append(formatBox("People:", getParticipantCounters(householdID)))
 
             if (operationModus in {'Issued', 'Processed'}):
-                MenuText.append(formatBox("[D]iaries:",  getDeviceMetaIDs(householdID,'A')))
+                MenuText.append(formatBox("Diaries:",  getDeviceMetaIDs(householdID,'A')))
                 metaIDs = "%s" % getDeviceMetaIDs(householdID,'E')
-                MenuText.append(formatBox("[E]-Meter:", metaIDs))
+                MenuText.append(formatBox("E-Meter:", metaIDs))
                 if (operationModus == 'Processed'):
                     MenuText.append(formatBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
                     MenuText.append(formatBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
@@ -1350,7 +1395,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         if (operationModus == 'Issued'):
             MenuText.append("\t\t\t[P]rocess returned kit")
         elif (operationModus == 'Processed'):
-            MenuText.append("\t\t\t[P]lot data")
+            MenuText.append("\t\t\t[P]lot data\t\t\t[E]mail graph")
 
         MenuText.append("\t\t\t[S]how Households \t\t [>] Next Household")
         MenuText.append("\t\t\t[^X] Menu   [H]ome Screen    [/] Search     [X] Quit")
@@ -1392,10 +1437,13 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
         self.m2 = self.add_menu(name="Work with data", shortcut="i")
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=[householdID])
-        self.m2.addItem(text='Email graph', onSelect=email_graph, shortcut='e', arguments=[householdID])
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='c', arguments=[''])
+
+        self.m2 = self.add_menu(name="Emails", shortcut="e")
+        self.m2.addItem(text='Email graph', onSelect=email_graph, shortcut='e', arguments=None)
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='c', arguments=['blank'])
         self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
         self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='f', arguments=['sent'])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='f', arguments=['confirm'])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
