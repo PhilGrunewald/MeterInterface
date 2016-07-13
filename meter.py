@@ -53,7 +53,7 @@ app.config['DEBUG'] = True
 modi = [ 'Processed', 'Issued', 'Upcoming', 'Future' , 'No date yet']
 
 Criteria = {
-        'Processed':    'status > 5',
+        'Processed':    'status > 5 ORDER BY date_choice DESC',
         'Issued':       'status = 5',
         'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY',
         'Future':       'date_choice > CURDATE()',
@@ -164,7 +164,7 @@ def plot_data(_householdID):
     #       activities = json.loads(f.read())
 
     # GET ELECTRICTY READINGS
-    sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 10 =0;"
+    sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 60 =0 AND watt > 20;"
 
     cursor.execute(sqlq)
     result = list(cursor.fetchall())
@@ -701,7 +701,8 @@ def getPreviousHousehold(void):
     # get the next hh matching the modus criteria
     global householdID
     global contactID
-    sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE " + Criteria[operationModus] +" AND idHousehold < " + householdID +" ORDER BY idHousehold DESC;"
+    sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE idHousehold < " + householdID + " AND " + Criteria[operationModus] +";"
+    # sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE " + Criteria[operationModus] +" AND idHousehold < " + householdID +" ORDER BY idHousehold DESC;"
     cursor.execute(sqlq)
     result =  cursor.fetchone()
     if (result):
@@ -713,7 +714,7 @@ def getNextHousehold(void):
     # get the next hh matching the modus criteria
     global householdID
     global contactID
-    sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE " + Criteria[operationModus] +" AND idHousehold > " + householdID +";"
+    sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE idHousehold > " + householdID + " AND " + Criteria[operationModus] +";"
     cursor.execute(sqlq)
     result =  cursor.fetchone()
     if (result):
@@ -871,7 +872,9 @@ def compose_email(type,edit=True):
     contactID = getContact(householdID)
     metaID    = getMetaID(householdID)
 
-    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email FROM Contact WHERE idContact = '"\
+    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email \
+            FROM Contact \
+            WHERE idContact = '"\
         + contactID + "'"
     cursor.execute(sqlq)
     result = cursor.fetchone()
@@ -900,9 +903,11 @@ def compose_email(type,edit=True):
 
     if (participantCount != "1"):
         templateText = templateText.replace("[s]", "s")
+        templateText = templateText.replace("[people]", "people")
         templateText = templateText.replace("{multiple booklets}", ". Each of you is encouraged to take part (so long as they are eight or older). I hope you will be able to persuade them to join you")
     else:
         templateText = templateText.replace("[s]", "")
+        templateText = templateText.replace("[people]", "person")
         templateText = templateText.replace("{multiple booklets}", "") 
 
     if (edit):
@@ -926,7 +931,8 @@ def compose_email(type,edit=True):
     if (edit):
         call('vim ' + emailFilePath, shell=True)
     else:
-        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk '+ attachement +' < ' + emailFilePath, shell=True)
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+
 
 def pre_parcel_email(householdID):
     # send an email to check contact details are right
@@ -1191,7 +1197,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
 
     def btnE(self, *args, **keywords):
         if (operationModus == 'Processed'):
-            email_graph()
+            compose_email('graph')
+            updateHouseholdStatus(householdID,7)
+            # email_graph()
         elif (operationModus == 'Upcoming'):
             phone_id_setup('E')
 
@@ -1439,11 +1447,18 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=[householdID])
 
         self.m2 = self.add_menu(name="Emails", shortcut="e")
-        self.m2.addItem(text='Email graph', onSelect=email_graph, shortcut='e', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='c', arguments=['blank'])
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
+        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
         self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='f', arguments=['sent'])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='f', arguments=['confirm'])
+
+        self.m2.addItem(text='------No editing------', onSelect=email_graph, shortcut='', arguments=None)
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm',False])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel',False])
+        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph',False])
+        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail',False])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
