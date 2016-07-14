@@ -153,6 +153,7 @@ def backup_database():
 
 def plot_data(_householdID):
     # get readings for a given metaID
+    # XXX this fetches only one - could be more than one...
     metaID = getMetaID(_householdID)
 
     # READ ACTIVITIES.JSON
@@ -819,6 +820,7 @@ def eMeter_setup():
     phone_id_setup('E')
 
 def getMetaID(_householdID):
+    # should be superseeded by getMetaIDs()
     # return contactID for given household
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'E' AND Household_idHousehold = '" + _householdID + "' ORDER BY idMeta DESC LIMIT 1"
     cursor.execute(sqlq)
