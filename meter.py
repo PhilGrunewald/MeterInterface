@@ -544,12 +544,6 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
     dataFile = fileName + '.csv'
     dataFileName = os.path.basename(dataFile)
 
-    # update meta entry - this MUST already exist!
-    sqlq = "UPDATE Meta SET \
-            `DataType`='"+ dataType +"', \
-            `CollectionDate`='"+ collectionDate +"'\
-            WHERE `idMeta`='" +metaID+"';"
-    cursor.execute(sqlq)
 
     if (dataType == 'E'):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
@@ -569,11 +563,20 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
                 cursor.execute(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
-                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,activity,location,enjoyment) \
-                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"')"
+                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,activity,location,enjoyment,category) \
+                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"')"
                 cursor.execute(sqlq)
+    # update meta entry - this MUST already exist!
+    # we don't want 'I' in the Meta table - only E or A
+    if (dataType == 'I'):
+        dataType = 'A'
+    sqlq = "UPDATE Meta SET \
+            `DataType`='"+ dataType +"', \
+            `CollectionDate`='"+ collectionDate +"'\
+            WHERE `idMeta`='" +metaID+"';"
+    cursor.execute(sqlq)
     dbConnection.commit()
-    npyscreen.notify_confirm(dataType + " data for HH " +householdID+ " now in database")
+    # npyscreen.notify_confirm(dataType + " data for HH " +householdID+ " now in database")
 
 def data_download_upload(self):
     # call upload and download
