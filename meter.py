@@ -23,6 +23,7 @@ import os
 import csv
 import MySQLdb
 import datetime            # needed to read TIME from SQL
+import collections          # to make json out of sql results (?)
 
 from subprocess import call
 import subprocess
@@ -328,42 +329,6 @@ def plot_data(_householdID):
     # plotFile.close()
     os.system("scp " + plotFilePath + " phil@109.74.196.205:/var/www/energy-use.org/public_html/data/")
 
-def email_graph():
-    # send email with link to graph
-    global householdID 
-    contactID = getContact(householdID)
-    metaID = getMetaID(householdID)
-    sqlq = "SELECT Name,Email FROM Contact WHERE idContact = '" +\
-        contactID + "'"
-    cursor.execute(sqlq)
-    result = cursor.fetchone()
-    thisName = ("%s" % (result[0]))
-    thisEmail = ("%s" % (result[1]))
-
-    sqlq = "SELECT CollectionDate FROM Meter.Meta WHERE idMeta = '" + metaID + "'"
-    cursor.execute(sqlq)
-    result = cursor.fetchone()
-    strCollectionDate = ("%s" % (result[0]))
-    dateArray = strCollectionDate.split('-')
-    CollectionDate = datetime.date(int(dateArray[0]), int(dateArray[1]), int(dateArray[2]))
-    thisDate = CollectionDate.strftime("%A, %e %B")
-
-    templateFile = open(emailPath + "email_graph.html", "r")
-    templateText = templateFile.read()
-    templateFile.close()
-
-    templateText = templateText.replace("[name]", thisName)
-    templateText = templateText.replace("[date]", thisDate)
-    templateText = templateText.replace("[metaID]", metaID)
-
-    emailFilePath = emailPath + "tempEmail.mail"
-    emailFile = open(emailFilePath, "w+")
-    emailFile.write(templateText)
-    emailFile.close()
-    # call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
-    call('mutt -e "set content_type=text/html" -s "[Meter] Your electricity profile from ' +thisDate+ '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk -a ' + plotPath + metaID + '.html < ' + emailFilePath, shell=True)
-    updateHouseholdStatus(householdID,7)
-    npyscreen.notify_confirm('Email sent to ' + thisName)
 
 def data_download():
     # pull files from phone
@@ -749,11 +714,11 @@ def updateHouseholdStatus(householdID, status):
     # 0 : hhq incomplete                hhq.php
     # 1 : hhq complete but no date      hhq.php
     # 2 : date selected                 hhq.php 
-    # 3 : 2 week warning sent           pre_parcel_email()
+    # 3 : 2 week warning sent           compose_email('confirm')
     # 4 : date confirmed                confirm.php
     # 5 : kit sent                      phone_id_setup()
     # 6 : data uploaded                 uploadDataFile()
-    # 7 : data emailed to participant   email_graph() or compose_email()
+    # 7 : data emailed to participant   compose_email('graph')
     # 8 : participant made annotations
     sqlq = "UPDATE Household \
             SET `status`="+ str(status) +"\
@@ -869,6 +834,7 @@ def XXXgetCollectionDate(householdID):
     return CollectionDate.strftime("%A, %e %B")
 
 
+
 def compose_email(type,edit=True):
     # Contact participant with editabel email
     global householdID
@@ -929,7 +895,9 @@ def compose_email(type,edit=True):
     emailFile.write(templateText)
     emailFile.close()
 
-    if (getStatus(householdID) == '6'):
+    if (type == 'confirm'):
+        updateHouseholdStatus(householdID, 3)
+    elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
     
@@ -937,6 +905,34 @@ def compose_email(type,edit=True):
         call('vim ' + emailFilePath, shell=True)
     else:
         call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+
+def email_many():
+    # compose message
+    emailFilePath = emailPath + "email_many.html"
+    # give oportunity to edit the template
+    call('vim ' + emailFilePath, shell=True)
+
+    templateFile = open(emailFilePath, "r")
+    templateText = templateFile.read()
+    templateFile.close()
+
+    subjectLine = templateText.splitlines()[0]
+    templateText = templateText[templateText.find('\n')+1:]     # find line break and return all from there - i.e. remove first line
+
+    # personalise
+    emailPathPersonal = emailPath + "email_personal.html"
+    sqlq="SELECT Name,email FROM Mailinglist WHERE scope = 'test'"
+    cursor.execute(sqlq)
+    results = list(cursor.fetchall())
+    for result in results:
+        # npyscreen.notify_confirm(str(result))
+        emailText = templateText.replace("[name]", result[0])
+        emailAddress = result[1]
+        emailFile = open(emailPathPersonal, "w+")
+        emailFile.write(emailText)
+        emailFile.close()
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + ' < ' + emailPathPersonal, shell=True)
+
 
 
 def pre_parcel_email(householdID):
@@ -1204,7 +1200,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
         if (operationModus == 'Processed'):
             compose_email('graph')
             updateHouseholdStatus(householdID,7)
-            # email_graph()
         elif (operationModus == 'Upcoming'):
             phone_id_setup('E')
 
@@ -1442,7 +1437,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
         self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
-        self.m2.addItem(text='Pre Parcel email', onSelect=pre_parcel_email, shortcut='M', arguments=[householdID])
+        # self.m2.addItem(text='Pre Parcel email', onSelect=pre_parcel_email, shortcut='M', arguments=[householdID])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
         self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
@@ -1452,13 +1447,14 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=[householdID])
 
         self.m2 = self.add_menu(name="Emails", shortcut="e")
+        self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
         self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
         self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
         self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
         self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
         self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
 
-        self.m2.addItem(text='------No editing------', onSelect=email_graph, shortcut='', arguments=None)
+        self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
         self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
         self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm',False])
         self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel',False])
