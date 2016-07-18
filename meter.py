@@ -23,7 +23,6 @@ import os
 import csv
 import MySQLdb
 import datetime            # needed to read TIME from SQL
-import collections          # to make json out of sql results (?)
 
 from subprocess import call
 import subprocess
@@ -81,7 +80,7 @@ SerialNumbers   = []
 
 def xxxUpdateStatus(void):
     # a one-off function used to get the status of legacy entries right
-    sqlq="SELECT Household_idHousehold from Meta WHERE DataType = 'E' AND CollectionDate is not null;"
+    sqlq="SELECT Household_idHousehold FROM Meta WHERE DataType = 'E' AND CollectionDate is not null;"
     cursor.execute(sqlq)
     result = cursor.fetchall()
     for ID in result:
@@ -528,7 +527,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
                 cursor.execute(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
-                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,activity,location,enjoyment,category) \
+                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,enjoyment) \
                         VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"')"
                 cursor.execute(sqlq)
     # update meta entry - this MUST already exist!
@@ -1199,7 +1198,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
     def btnE(self, *args, **keywords):
         if (operationModus == 'Processed'):
             compose_email('graph')
-            updateHouseholdStatus(householdID,7)
+        if (operationModus == 'Issued'):
+            compose_email('request_return')
         elif (operationModus == 'Upcoming'):
             phone_id_setup('E')
 
@@ -1401,7 +1401,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         MenuText.append("Database: " + dbHost)
         MenuText.append("\n")
         if (operationModus == 'Issued'):
-            MenuText.append("\t\t\t[P]rocess returned kit")
+            MenuText.append("\t\t\t[P]rocess returned kit \t\t[E]mail reminder")
         elif (operationModus == 'Processed'):
             MenuText.append("\t\t\t[P]lot data\t\t\t[E]mail graph")
 
