@@ -55,7 +55,7 @@ modi = [ 'Processed', 'Issued', 'Upcoming', 'Future' , 'No date yet']
 Criteria = {
         'Processed':    'status > 5 ORDER BY date_choice DESC',
         'Issued':       'status = 5',
-        'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY',
+        'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "28" DAY',
         'Future':       'date_choice > CURDATE()',
         'No date yet':  'date_choice < "2010-01-01"',
         'no reading':   'Watt < 10',
@@ -769,17 +769,25 @@ def aMeter_setup():
     # configure phone for recording
     phone_id_setup('A')
 
+def root_phone():
+    call('adb install -r ./apk/root.apk',  shell=True)
+    call('adb install -r ./apk/Insecure.apk',  shell=True)
+
+
 def eMeter_setup():
     # Compile and run phone_id_setup(E)
-    call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
+    # XXX call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
     # remove old copy
-    call('adb uninstall com.Phil.DEMon', shell=True)
+    # XXX call('adb uninstall com.Phil.DEMon', shell=True)
     # install new
-    call('adb install \
-        ~/Software/Android/DMon/bin/MainActivity-debug.apk',
-         shell=True)
+    # call('adb install -r \
+    #     ~/Software/Android/DMon/bin/MainActivity-debug.apk',
+    #      shell=True)
     # install AutoStart app
-    call('adb install ~/Software/Android/AutoStart_2.1.apk', shell=True)
+    call('adb install -r ./apk/AppHider.apk',  shell=True)
+    call('adb install -r ./apk/AutoStart.apk',  shell=True)
+    call('adb install -r ./apk/eMeter.apk',  shell=True)
+    call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
 
     # create the METER folder
     call('adb shell mkdir /sdcard/METER', shell=True)
@@ -836,6 +844,7 @@ def XXXgetCollectionDate(householdID):
 
 def compose_email(type,edit=True):
     # Contact participant with editabel email
+    # edit = False -> send immediately
     global householdID
 
     # get contact details
@@ -854,6 +863,8 @@ def compose_email(type,edit=True):
     thisDate    = getDateChoice(householdID)
     thisEmail   = ("%s" % (result[6]))
     CcEmail     = 'philipp.grunewald@ouce.ox.ac.uk'
+
+    thisAddress = thisAddress.replace("None</br>", "")
 
     participantCount = ("%s" % getParticipantCount(str(householdID)))
 
@@ -995,7 +1006,7 @@ def print_letter():
     result = cursor.fetchone()
     thisName    = ("%s %s" % (result[0:2]))
     thisAddress = ("%s\n\n %s \n\n%s %s" % (result[2:6]))
-    thisAddress = thisAddress.replace("None ", "\ ")
+    thisAddress = thisAddress.replace("None ", "")
     thisDate = getDateChoice(householdID)
 
     letterFile = letterPath + contactID + "_letter"
@@ -1440,7 +1451,8 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         # self.m2.addItem(text='Pre Parcel email', onSelect=pre_parcel_email, shortcut='M', arguments=[householdID])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
-        self.m2.addItem(text='eMeter config', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='eMeter root apk', onSelect=root_phone, shortcut='R', arguments=None)
         self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='A', arguments=None)
 
         self.m2 = self.add_menu(name="Work with data", shortcut="i")
