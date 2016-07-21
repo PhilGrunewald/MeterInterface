@@ -729,12 +729,12 @@ def updateHouseholdStatus(householdID, status):
 def phone_id_setup(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
     global metaID
-    global contactID
+    global householdID
     # 1) get household ID (assuming a 1:1 relationship!)
-    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
-        + str(contactID) + "'"
-    cursor.execute(sqlq)
-    householdID = ("%s" % cursor.fetchone())
+    # sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
+    #     + str(contactID) + "'"
+    # cursor.execute(sqlq)
+    # householdID = ("%s" % cursor.fetchone())
 
     # 2) create a meta id entry for an 'eMeter'
     sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
@@ -745,6 +745,7 @@ def phone_id_setup(meterType):
     updateIDfile(metaID)
 
     if (meterType == 'E'):
+        # only need this once per household
         print_letter()
         updateHouseholdStatus(householdID,5)
 
@@ -757,7 +758,10 @@ def updateIDfile(_id):
     idFile = open(idFilePath, 'w+')
     idFile.write(str(_id))
     idFile.close()
+    # XXX only needs doing once, but flashing doesn't seem to create this folder
+    call('adb shell mkdir /sdcard/METER', shell=True)
     call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
+    call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
 
 
 def aMeter_setup():
@@ -772,9 +776,22 @@ def aMeter_setup():
 def root_phone():
     call('adb install -r ./apk/root.apk',  shell=True)
     call('adb install -r ./apk/Insecure.apk',  shell=True)
+    call('adb install -r ./apk/Flasify.apk',  shell=True)
+    call('adb push ./apk/recovery.img /sdcard/',  shell=True)
+    npyscreen.notify_confirm("Complete process\n 1) connect to WiFi\n2) run KingoRoot\n3) in Insecure check adbd at boot\n4) Flash eMeter (this Menu)")
 
+def flash_phone(meterType):
+    # restore phone from Mater copy
+    # assumes rooted phone
+    if (meterType == 'E'):
+        call('adb push ./flash_eMeter/ /sdcard/',  shell=True)
+    elif (meterType == 'A'):
+        call('adb push ./flash_aMeter/ /sdcard/',  shell=True)
+    call('adb reboot recovery',  shell=True)
+    npyscreen.notify_confirm("Phone restarting\nSelect <RESTORE> file, swipe\nReboot System\nassign xMeter ID (this Menu)i")
 
 def eMeter_setup():
+    # superseeded by flash_phone()
     # Compile and run phone_id_setup(E)
     # XXX call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
     # remove old copy
@@ -787,7 +804,6 @@ def eMeter_setup():
     call('adb install -r ./apk/AppHider.apk',  shell=True)
     call('adb install -r ./apk/AutoStart.apk',  shell=True)
     call('adb install -r ./apk/eMeter.apk',  shell=True)
-    call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
 
     # create the METER folder
     call('adb shell mkdir /sdcard/METER', shell=True)
@@ -1451,9 +1467,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         # self.m2.addItem(text='Pre Parcel email', onSelect=pre_parcel_email, shortcut='M', arguments=[householdID])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
-        self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
-        self.m2.addItem(text='eMeter root apk', onSelect=root_phone, shortcut='R', arguments=None)
-        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='A', arguments=None)
+        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
+        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
+        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='C', arguments=None)
+        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
 
         self.m2 = self.add_menu(name="Work with data", shortcut="i")
         self.m2.addItem(text='Plot', onSelect=plot_data, shortcut='p', arguments=[householdID])
