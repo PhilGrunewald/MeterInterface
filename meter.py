@@ -55,7 +55,7 @@ modi = [ 'Processed', 'Issued', 'Upcoming', 'Future' , 'No date yet']
 Criteria = {
         'Processed':    'status > 5 ORDER BY date_choice DESC',
         'Issued':       'status = 5',
-        'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "28" DAY',
+        'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "28" DAY ORDER BY date_choice ASC',
         'Future':       'date_choice > CURDATE()',
         'No date yet':  'date_choice < "2010-01-01"',
         'no reading':   'Watt < 10',
@@ -776,19 +776,23 @@ def aMeter_setup():
 def root_phone():
     call('adb install -r ./apk/root.apk',  shell=True)
     call('adb install -r ./apk/Insecure.apk',  shell=True)
-    call('adb install -r ./apk/Flasify.apk',  shell=True)
+    call('adb install -r ./apk/Flashify.apk',  shell=True)
     call('adb push ./apk/recovery.img /sdcard/',  shell=True)
-    npyscreen.notify_confirm("Complete process\n 1) connect to WiFi\n2) run KingoRoot\n3) in Insecure check adbd at boot\n4) Flash eMeter (this Menu)")
+    npyscreen.notify_confirm("Complete process\n1) connect to WiFi\n2) run KingoRoot\n3) in Insecure check adbd at boot\n4) Flashify > Recovery image > choose a file \"/sdcard/recovery.img\" >yup (2min)\n5) Press <Home> Flash e/aMeter (this Menu)")
 
 def flash_phone(meterType):
+    call('adb install -r ./apk/root.apk',  shell=True)
+    call('adb install -r ./apk/Insecure.apk',  shell=True)
+    call('adb install -r ./apk/Flashify.apk',  shell=True)
+    call('adb push ./apk/recovery.img /sdcard/',  shell=True)
+    npyscreen.notify_confirm("Complete process\n1) connect to WiFi\n2) run KingoRoot\n3) in Insecure check adbd at boot\n4) Flashify > Recovery image > choose a file \"/sdcard/recovery.img\" >yup (2min)\n5) Press <Home> Flash e/aMeter (this Menu)")
     # restore phone from Mater copy
-    # assumes rooted phone
     if (meterType == 'E'):
         call('adb push ./flash_eMeter/ /sdcard/',  shell=True)
     elif (meterType == 'A'):
         call('adb push ./flash_aMeter/ /sdcard/',  shell=True)
     call('adb reboot recovery',  shell=True)
-    npyscreen.notify_confirm("Phone restarting\nSelect <RESTORE> file, swipe\nReboot System\nassign xMeter ID (this Menu)i")
+    npyscreen.notify_confirm("Phone restarting\n1) Restore \n2) Select \"... KitKat\" \n3) swipe (2min) \n4) Reboot System\n5) assign a/eMeter ID (this Menu)")
 
 def eMeter_setup():
     # superseeded by flash_phone()
@@ -1595,16 +1599,17 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
         elif (displayModus == "Households"):
             result = [{"{:<8}".format('HH ID') +\
-                       "{:<8}".format('CT ID') +\
-                       "{:<12}".format('Joined') +\
-                       "{:<25}".format('Name') +\
-                       "{:<8}".format('People') +\
-                       "{:<12}".format('Date') +\
-                       "{:<75}".format('Comment') }]
+                       "{:<7}".format('CT ID') +\
+                       "{:<11}".format('Joined') +\
+                       "{:<20}".format('Name') +\
+                       "{:<7}".format('Status') +\
+                       "{:<11}".format('Date') +\
+                       "{:<7}".format('#') +\
+                       "{:<25}".format('Comment') }]
 
             global operationModus
-            fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8)' 
-            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[operationModus] +" ORDER BY date_choice;"
+            fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status' 
+            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[operationModus] +";"
             cursor.execute(sqlq)
             hh_result = cursor.fetchall()
             for hh in hh_result:
@@ -1613,14 +1618,16 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
                 thisContact   = str(hh[2])
                 thisDate      = str(hh[3])
                 thisComment   = str(hh[4])
+                thisStatus    = str(hh[5])
                 result = result + [{\
-                        "{:<8}".format(thisHHid) + '\t'\
-                        "{:<8}".format(thisContact) + '\t'\
-                        "{:<12}".format(thisTimeStamp +'\t') +\
-                        "{:<25}".format(getNameOfContact(thisContact)) +\
-                        "{:<8}".format(str(getParticipantCount(thisHHid))) +\
-                        "{:<12}".format(thisDate) +\
-                        "{:<75}".format(thisComment) }]
+                        "{:<7}".format(thisHHid) + '\t'\
+                        "{:<7}".format(thisContact) + '\t'\
+                        "{:<11}".format(thisTimeStamp +'\t') +\
+                        "{:<20}".format(getNameOfContact(thisContact)) +\
+                        "{:<7}".format(thisStatus) +\
+                        "{:<11}".format(thisDate) +\
+                        "{:<3}".format(str(getParticipantCount(thisHHid))) +\
+                        "{:<25}".format(thisComment) }]
 
 
         elif (displayModus == "Household"):
