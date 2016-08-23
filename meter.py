@@ -527,8 +527,8 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
                 cursor.execute(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
-                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,enjoyment) \
-                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"')"
+                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment) \
+                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"', '"+row[8]+"')"
                 cursor.execute(sqlq)
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
@@ -762,6 +762,9 @@ def updateIDfile(_id):
     call('adb shell mkdir /sdcard/METER', shell=True)
     call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
     call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
+    # shut down phone (unless id is 0, i.e. the phone still needs setting up)
+    if (_id):
+        call('adb shell reboot -p',  shell=True)
 
 
 def aMeter_setup():
@@ -1064,6 +1067,7 @@ def print_letter():
     myFile.close()
     call('pandoc -V geometry:margin=0.8in ' + letterPath + "address.md -o" +
          letterPath + "address.pdf ", shell=True)
+    call('lp -d Xerox_Phaser_3250 ' + letterFile + '.pdf', shell=True)
 
 def formatBox(col1, col2):
     return "\t\t\t|\t\t" + "{:<12}".format(col1) + "{:<30}".format(col2) + "|"
