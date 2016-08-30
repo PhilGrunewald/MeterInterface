@@ -36,6 +36,8 @@ import flask                  # serve python
 import json                   # used for reading activities.json
 import urllib                 # to read json from github
 import numpy as np            # used for mean
+import pandas as pd           # to reshape el readings
+
 from bokeh.embed import components
 from bokeh.resources import INLINE
 from bokeh.util.string import encode_utf8
@@ -302,6 +304,7 @@ def plot_data(_householdID):
     
     script, div = components(p, INLINE)
     show(p)
+
     # npyscreen.notify_confirm("pre app")
     # app.run()
     # npyscreen.notify_confirm("app started")
@@ -463,40 +466,67 @@ def getReadingPeriods(_householdID,_condition,_duration):
         return "no meta entry"
 
 
-def upload_10min_readings(idMeta=20):
+def upload_10min_readings():
+    sqlq="SELECT Meta.idMeta, Household.Contact_idContact \
+            From Meta \
+            Join Household \
+            On Household.idHOusehold = Meta.Household_idHousehold \
+            where Meta.idMeta = 1050"
+
+            # where Household.Contact_idContact > 507 AND Household.Contact_idContact < 550 AND Meta.DataType = 'E' AND Meta.idMeta = 1050"
+    cursor.execute(sqlq)
+    EmetaIDs = list(cursor.fetchall())
+
+    for idMeta in EmetaIDs:
+        # sqlq = "select * from meter.electricity where Meta_idMeta=1008"
+        sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % idMeta[0]
+        df_elec       = pd.read_sql(sqlq, con=dbConnection)
+        df_elec.index = pd.to_datetime(df_elec.dt)
+
+        # del df_elec['idElectricity']
+        df_elec_10min = df_elec.resample('600S').median()
+        # df_elec_10min.index = pd.to_datetime(df_elec_10min.idElectricity)
+        del df_elec_10min['idElectricity']
+
+        df_elec_10min.to_sql(con=dbConnection, name='Electricity_10min', if_exists='append', flavor='mysql')
+        df_elec_10min.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0],idMeta[1]))
+
+
+
+
     # calc the average for each 10 min period and write to database
-    sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = '" +\
-        str(idMeta) + "' ORDER BY Time"
-    cursor.execute(sqlq)
-    eReadings = cursor.fetchall()
+    # sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = '" +\
+    #     str(idMeta) + "' ORDER BY Time"
+    # cursor.execute(sqlq)
+    # eReadings = cursor.fetchall()
 
-    period = 1
-    thisPeriodSum = 0
-    thisPeriodCounter = 1
+    # period = 1
+    # thisPeriodSum = 0
+    # thisPeriodCounter = 1
 
-    for thisLine in eReadings:
-        if get_time_period("%s" % (thisLine[0])) < period:
-            thisPeriodSum = thisPeriodSum + float(thisLine[1])
-            thisPeriodCounter += 1
-        else:  # entered next period -> write average of last period and reset
-            if (thisPeriodCounter == 1):
-                        # if no readings, set value to -1 as error flag
-                thisPeriodSum = -1
-            sqlq = "INSERT INTO Electricity_periods(Period,Watt,Meta_idMeta)\
-                VALUES ('" + str(period) + "', '" +\
-                str(thisPeriodSum/thisPeriodCounter) + "', '" + \
-                str(idMeta) + "')"
-            cursor.execute(sqlq)
-            period += 1
-            thisPeriodSum = float(thisLine[1])
-            thisPeriodCounter = 1
-    # one more time at the end to make sure we get the last period as well
-    if (thisPeriodCounter == 1):  # if no readings set value to -1 as error flag
-        thisPeriodSum = -1
-    sqlq = "INSERT INTO Electricity_periods(Period,Watt,Meta_idMeta) \
-        VALUES ('" + str(period) + "', '" +\
-        str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
-    cursor.execute(sqlq)
+    # for thisLine in eReadings:
+    #     if get_time_period("%s" % (thisLine[0])) < period:
+    #         thisPeriodSum = thisPeriodSum + float(thisLine[1])
+    #         thisPeriodCounter += 1
+    #     else:  # entered next period -> write average of last period and reset
+    #         if (thisPeriodCounter == 1):
+    #                     # if no readings, set value to -1 as error flag
+    #             thisPeriodSum = -1
+    #         sqlq = "INSERT INTO Electricity_periods(Period,Watt,Meta_idMeta)\
+    #             VALUES ('" + str(period) + "', '" +\
+    #             str(thisPeriodSum/thisPeriodCounter) + "', '" + \
+    #             str(idMeta) + "')"
+    #         cursor.execute(sqlq)
+    #         period += 1
+    #         thisPeriodSum = float(thisLine[1])
+    #         thisPeriodCounter = 1
+    # # one more time at the end to make sure we get the last period as well
+    # if (thisPeriodCounter == 1):  # if no readings set value to -1 as error flag
+    #     thisPeriodSum = -1
+    # sqlq = "INSERT INTO Electricity_periods(Period,Watt,Meta_idMeta) \
+    #     VALUES ('" + str(period) + "', '" +\
+    #     str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
+    # cursor.execute(sqlq)
 
 def uploadDataFile(fileName,dataType,_metaID,collectionDate):  
     global metaID
@@ -763,7 +793,7 @@ def updateIDfile(_id):
     call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
     call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
     # shut down phone (unless id is 0, i.e. the phone still needs setting up)
-    if (_id):
+    if (_id != '0'):
         call('adb shell reboot -p',  shell=True)
 
 
@@ -1224,11 +1254,7 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.setMainMenu()
 
     def btnA(self, *args, **keywords):
-        print_letter()
-        if (operationModus == 'X'):
-            pre_parcel_email(householdID)
-        elif (operationModus == 'Upcoming'):
-            pre_parcel_email(householdID)
+        upload_10min_readings()
 
     def btnE(self, *args, **keywords):
         if (operationModus == 'Processed'):
