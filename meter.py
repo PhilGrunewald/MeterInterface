@@ -466,6 +466,26 @@ def getReadingPeriods(_householdID,_condition,_duration):
         return "no meta entry"
 
 
+def upload_1min_readings(hhID):
+    # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
+    # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
+
+    sqlq="SELECT idMeta \
+            From Meta \
+            WHERE DataType = 'E' AND \
+            Household_idHousehold =%s" % hhID
+    cursor.execute(sqlq)
+    EmetaIDs = list(cursor.fetchall())
+
+    for idMeta in EmetaIDs:
+        sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % idMeta[0]
+        df_elec       = pd.read_sql(sqlq, con=dbConnection)
+        df_elec.index = pd.to_datetime(df_elec.dt)                                          # index by time
+        df_elec_resampled = df_elec.resample('1min',label='left').median()              # downsample, label left such that time refers to the next minute
+        del df_elec_resampled['idElectricity']                                              # remove index, so that a new one is auto-incremented
+        df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
+        # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0]))                  # create a csv copy
+
 def upload_10min_readings():
     sqlq="SELECT Meta.idMeta, Household.Contact_idContact \
             From Meta \
@@ -544,6 +564,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         cursor.execute(sqlq)
         updateHouseholdStatus(householdID,6)
+        upload_1min_readings(householdID)
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
@@ -557,8 +578,8 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
                 cursor.execute(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
-                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment) \
-                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"', '"+row[8]+"')"
+                sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
+                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"', '"+row[8]+"', '"+row[9]+"')"
                 cursor.execute(sqlq)
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
@@ -749,6 +770,7 @@ def updateHouseholdStatus(householdID, status):
     # 6 : data uploaded                 uploadDataFile()
     # 7 : data emailed to participant   compose_email('graph')
     # 8 : participant made annotations
+    # 10: no el data recorder
     sqlq = "UPDATE Household \
             SET `status`="+ str(status) +"\
             WHERE `idHousehold` ='" + str(householdID) + "';"
@@ -767,12 +789,18 @@ def phone_id_setup(meterType):
     # householdID = ("%s" % cursor.fetchone())
 
     # 2) create a meta id entry for an 'eMeter'
-    sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
-           VALUES ('"+ meterType +"', '" + householdID + "')"
+
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'"  %householdID
+    cursor.execute(sqlq)
+    dateChoice = ("%s" % cursor.fetchone())
+    # dateChoice = getDateChoice(householdID)
+    sqlq = "INSERT INTO Meta(DataType, Household_idHousehold, CollectionDate) \
+           VALUES ('"+ meterType +"', '" + householdID + "', '%s')" %dateChoice
     cursor.execute(sqlq)
     dbConnection.commit()
     metaID = str(cursor.lastrowid)
-    updateIDfile(metaID)
+    updateConfigFile(metaID,dateChoice)
+    # updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
 
     if (meterType == 'E'):
         # only need this once per household
@@ -783,6 +811,39 @@ def phone_id_setup(meterType):
         "Phone was assigned ID " + metaID
     MeterApp._Forms['MAIN'].wStatus2.display()
     MeterApp._Forms['MAIN'].setMainMenu()
+
+def updateConfigFile(_id,_dateChoice):
+    today = datetime.datetime.now()
+    dateFormat = '%Y-%m-%d'
+    dateChoice_dt = datetime.datetime.strptime(_dateChoice,dateFormat)
+    if (dateChoice_dt > today):     # only for testing
+        dateChoice_dt = today
+    startDate = dateChoice_dt.strftime("%Y-%m-%d")
+    dateChoice_dt += datetime.timedelta(days=1)
+    endDate   = dateChoice_dt.strftime("%Y-%m-%d")
+    jstring = {"id": _id}
+    jstring.update({"start date": "%s" %startDate})
+    jstring.update({"end date": "%s" %endDate})  # XXX needs date + 1 Day
+    times1 = [
+            "17:30:00",
+            "18:00:00",
+            "18:30:00"]
+    times2 = [
+            "08:00:00",
+            "08:30:00",
+            "17:30:00",
+            "18:00:00",
+            "18:30:00"]
+    dts = []
+    for time in times1:
+        dts.append("%s %s" %(jstring['start date'],time))
+    for time in times2:
+        dts.append("%s %s" %(jstring['end date'],time))
+    jstring.update({"times": dts})
+    config_file = open(configFilePath, "w")
+    config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
+    config_file.close()
+    call('adb push ' + configFilePath + ' /sdcard/METER/', shell=True)
 
 def updateIDfile(_id):
     idFile = open(idFilePath, 'w+')
@@ -1120,7 +1181,6 @@ class ActionControllerData(npyscreen.MultiLineAction):
             ## 'A': self_pre_post_email,
             'D': self.aMeter_id_setup,
             'E': self.btnE,
-            # 'E': self.eMeter_id_setup,
             '>': getNextHousehold,
             '<': getPreviousHousehold,
             # 'N': getNextHouseholdForParcel,
@@ -1129,8 +1189,8 @@ class ActionControllerData(npyscreen.MultiLineAction):
             # 'P': self.data_download,
             'S': self.showHouseholds,
             "M": toggleOperationModus,
-            "H": self.show_MainMenu,
-            "X": self.parent.exit_application,
+            "q": self.show_MainMenu,
+            "Q": self.parent.exit_application,
             # "u": self.data_upload,
             # "D": data_download_upload,
             # "C": self.show_TimeUse,
@@ -1254,7 +1314,9 @@ class ActionControllerData(npyscreen.MultiLineAction):
             self.parent.setMainMenu()
 
     def btnA(self, *args, **keywords):
-        upload_10min_readings()
+        pass
+        # upload_10min_readings()
+        # upload_1min_readings(householdID)
 
     def btnE(self, *args, **keywords):
         if (operationModus == 'Processed'):
@@ -2128,6 +2190,8 @@ class metaFileInformation(npyscreen.Form):
                                       name="These files will be deleted (uncheck to save them)?",
                                       values=self.reject_displayString, scroll_exit=True)
     def beforeEditing(self):
+        self.fileList = []      # added to not carry over old file lists
+        self.reject_fileList = []
         self.selectCounter = 0
         self.selectIndex = []
         self.displayString =[]
