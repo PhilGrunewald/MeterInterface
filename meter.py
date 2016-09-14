@@ -81,6 +81,7 @@ str_date = dateTimeToday.strftime("%Y-%m-%d")
 SerialNumbers   = []
 
 def message(msgStr):
+    # shorthand to display debug information
     npyscreen.notify_confirm(msgStr)
 
 def connectDatabase(_dbHost):
