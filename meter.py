@@ -80,16 +80,8 @@ dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")
 SerialNumbers   = []
 
-def xxxUpdateStatus(void):
-    # a one-off function used to get the status of legacy entries right
-    sqlq="SELECT Household_idHousehold FROM Meta WHERE DataType = 'E' AND CollectionDate is not null;"
-    cursor.execute(sqlq)
-    result = cursor.fetchall()
-    for ID in result:
-        strID = ("%s" % ID)
-        sqlq = "UPDATE Household SET status = 6 WHERE idHousehold = " + strID + ";"
-        cursor.execute(sqlq)
-    dbConnection.commit()
+def message(msgStr):
+    npyscreen.notify_confirm(msgStr)
 
 def connectDatabase(_dbHost):
     global dbConnection
@@ -103,6 +95,16 @@ def connectDatabase(_dbHost):
         dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
         cursor = dbConnection.cursor()
     return cursor
+
+def executeSQL(_sqlq):
+    # to safeguard against dropped connections
+    global cursor
+    try:
+        cursor.execute(_sqlq)
+    except:
+        npyscreen.notify_confirm("Need to reconnect to datahase")
+        cursor = connectDatabase(dbHost)
+        cursor.execute(_sqlq)
 
 def toggleDatabase(void):
     global cursor
@@ -169,7 +171,7 @@ def plot_data(_householdID):
     # GET ELECTRICTY READINGS
     sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 60 =0 AND watt > 20;"
 
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = list(cursor.fetchall())
     watt=[]
     date_time=[]
@@ -227,7 +229,7 @@ def plot_data(_householdID):
     tuc_size    =[]
 
     sqlq = "SELECT dt_activity,activity,location FROM Activities WHERE Meta_idMeta = "+str(2301)+";"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = list(cursor.fetchall())
 
     for item in result:
@@ -379,13 +381,13 @@ def identifyIndividual():
 
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" +\
         contactID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     # householdID = str(cursor.fetchone())
     householdID = ("%s" % cursor.fetchone())
    
     sqlq = "SELECT SerialNumber FROM Meta where Household_idHousehold ='" + str(householdID) + "' and DataType = 'T'"
     # sqlq = "SELECT SerialNumber FROM Meta where Household_idHousehold ='75' and DataType = 'T'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     global SerialNumbers
     SerialNumbers = list(cursor.fetchall())
 
@@ -403,7 +405,7 @@ def upload_time_use_file():
          col = row.split(',')
          sqlq = "INSERT INTO TimeUse(TimePeriod, TimeUseCode_idTimeUseCode,Meta_idMeta,Dishwasher)\
                  VALUES ('" + col[1] + "', '" + col[0] + "', '" + MetaID + "', '" + str(Dishwasher[period]) + "');"
-         cursor.execute(sqlq)
+         executeSQL(sqlq)
          period += 1
 
     dbConnection.commit()
@@ -436,7 +438,7 @@ def getReadingPeriods(_householdID,_condition,_duration):
     if (metaID != 'None'):
         sqlq = "SELECT idElectricity FROM Electricity WHERE " + _condition +\
             " AND Meta_idMeta = " + metaID + " ORDER BY dt"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         eIDs = cursor.fetchall()
         if eIDs:
             prevID   =  int("%s" % eIDs[0])
@@ -474,7 +476,7 @@ def upload_1min_readings(hhID):
             From Meta \
             WHERE DataType = 'E' AND \
             Household_idHousehold =%s" % hhID
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     EmetaIDs = list(cursor.fetchall())
 
     for idMeta in EmetaIDs:
@@ -494,7 +496,7 @@ def upload_10min_readings():
             where Meta.idMeta = 1050"
 
             # where Household.Contact_idContact > 507 AND Household.Contact_idContact < 550 AND Meta.DataType = 'E' AND Meta.idMeta = 1050"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     EmetaIDs = list(cursor.fetchall())
 
     for idMeta in EmetaIDs:
@@ -517,7 +519,7 @@ def upload_10min_readings():
     # calc the average for each 10 min period and write to database
     # sqlq = "SELECT Time,Watt FROM Electricity WHERE Meta_idMeta = '" +\
     #     str(idMeta) + "' ORDER BY Time"
-    # cursor.execute(sqlq)
+    # executeSQL(sqlq)
     # eReadings = cursor.fetchall()
 
     # period = 1
@@ -536,7 +538,7 @@ def upload_10min_readings():
     #             VALUES ('" + str(period) + "', '" +\
     #             str(thisPeriodSum/thisPeriodCounter) + "', '" + \
     #             str(idMeta) + "')"
-    #         cursor.execute(sqlq)
+    #         executeSQL(sqlq)
     #         period += 1
     #         thisPeriodSum = float(thisLine[1])
     #         thisPeriodCounter = 1
@@ -546,7 +548,7 @@ def upload_10min_readings():
     # sqlq = "INSERT INTO Electricity_periods(Period,Watt,Meta_idMeta) \
     #     VALUES ('" + str(period) + "', '" +\
     #     str(thisPeriodSum/thisPeriodCounter) + "', '" + str(idMeta) + "')"
-    # cursor.execute(sqlq)
+    # executeSQL(sqlq)
 
 def uploadDataFile(fileName,dataType,_metaID,collectionDate):  
     global metaID
@@ -562,25 +564,25 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
     if (dataType == 'E'):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         updateHouseholdStatus(householdID,6)
         upload_1min_readings(householdID)
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
             sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
-            cursor.execute(sqlq)                             # create an entry
+            executeSQL(sqlq)                             # create an entry
             dbConnection.commit()
             individualID = cursor.lastrowid                  # get the id of the entry just made
             for row in csv_data:                             # populate columns
                 sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
                         WHERE idIndividual = '"+str(individualID)+"';"
-                cursor.execute(sqlq)
+                executeSQL(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
                 sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
                         VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"', '"+row[8]+"', '"+row[9]+"')"
-                cursor.execute(sqlq)
+                executeSQL(sqlq)
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
     if (dataType == 'I'):
@@ -589,7 +591,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
             `DataType`='"+ dataType +"', \
             `CollectionDate`='"+ collectionDate +"'\
             WHERE `idMeta`='" +metaID+"';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dbConnection.commit()
     # npyscreen.notify_confirm(dataType + " data for HH " +householdID+ " now in database")
 
@@ -604,12 +606,12 @@ def diary_setup():
     # 1) get household ID (assuming a 1:1 relationship!)
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
         + contactID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     householdID = ("%s" % cursor.fetchone())
 
     sqlq = "INSERT INTO Meta(DataType, Household_idHousehold) \
            VALUES ('T', '" + householdID + "')"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dbConnection.commit()
     MetaID = cursor.lastrowid
     npyscreen.notify_confirm('Diary ID' + str(MetaID) + 'has been created')
@@ -617,14 +619,14 @@ def diary_setup():
 def getMetaIDs(householdID, deviceType):
     # check if eMeter has been configured
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = '"+deviceType+"' AND Household_idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return cursor.fetchall()
     
 
 def getDeviceMetaIDs(householdID, deviceType):
     # check if eMeter has been configured
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = '"+deviceType+"' AND Household_idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     results = cursor.fetchall()
     metaIDs = ''
     for result in results:
@@ -642,25 +644,25 @@ def getParticipantCounters(householdID):
 def getHouseholdForMeta(_metaID):
     # count household in database matching the modus criteria
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = " + _metaID +";"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % cursor.fetchone())
 
 def getHouseholdCount():
     # count household in database matching the modus criteria
     sqlq = "SELECT count(idHousehold) FROM Household WHERE " + Criteria[operationModus] +";"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % cursor.fetchone())
 
 def getDeviceCount(householdID, deviceType):
     # check if eMeter has been configured
     sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = '"+deviceType+"' AND Household_idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     # Count = ("%s" % cursor.fetchone())
     return cursor.fetchone()
     
     # check if aMeter has been configured
     sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     aMeterCount = ("%s" % cursor.fetchone())
 
 def getNameOfContact(thisContactID):
@@ -668,7 +670,7 @@ def getNameOfContact(thisContactID):
     sqlq ="SELECT Name,Surname\
             FROM Contact \
             WHERE idContact = '" + thisContactID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     return str(result[0]) + ' ' + str(result[1])
 
@@ -679,20 +681,20 @@ def getContactName(householdID):
     sqlq ="SELECT Contact_idContact\
             FROM Household \
             WHERE idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     thisContact = str(cursor.fetchone())
     return getNameOfContact(thisContact)
 
 def getSecurityCode(householdID):
     # get the security code for this household
     sqlq = "SELECT security_code FROM Household WHERE idHousehold = '" + householdID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % (cursor.fetchone()))
 
 def getStatus(householdID):
     # get the status for this household
     sqlq = "SELECT status FROM Household WHERE idHousehold = '" + householdID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % (cursor.fetchone()))
 
 def getParticipantCount(householdID):
@@ -700,7 +702,7 @@ def getParticipantCount(householdID):
     sqlq ="SELECT age_group2, age_group3, age_group4, age_group5, age_group6\
             FROM Household \
             WHERE idHousehold = '" + householdID + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     return int(result[0]) + int(result[1]) + int(result[2]) + int(result[3]) + int(result[4])
 
@@ -710,7 +712,7 @@ def getHousehold():
     global householdID
     global contactID
     sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE " + Criteria[operationModus] +";"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result =  cursor.fetchone()
     if (result):
         householdID =  ("%s" % result[0])
@@ -722,7 +724,7 @@ def getPreviousHousehold(void):
     global contactID
     sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE idHousehold < " + householdID + " AND " + Criteria[operationModus] +";"
     # sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE " + Criteria[operationModus] +" AND idHousehold < " + householdID +" ORDER BY idHousehold DESC;"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result =  cursor.fetchone()
     if (result):
         householdID =  ("%s" % result[0])
@@ -734,7 +736,7 @@ def getNextHousehold(void):
     global householdID
     global contactID
     sqlq = "SELECT idHousehold, Contact_idContact FROM Household WHERE idHousehold > " + householdID + " AND " + Criteria[operationModus] +";"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result =  cursor.fetchone()
     if (result):
         householdID =  ("%s" % result[0])
@@ -750,7 +752,7 @@ def getNextHouseholdForParcel(void):
     sqlq ="SELECT idHousehold, Contact_idContact, date_choice \
             FROM Household \
             WHERE date_choice > CURDATE() AND status = 0 ORDER BY date_choice ASC LIMIT 1;"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     householdID = ("%s" % result[0])
     contactID   = ("%s" % result[1])
@@ -774,7 +776,7 @@ def updateHouseholdStatus(householdID, status):
     sqlq = "UPDATE Household \
             SET `status`="+ str(status) +"\
             WHERE `idHousehold` ='" + str(householdID) + "';"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dbConnection.commit()
 
 
@@ -785,18 +787,18 @@ def phone_id_setup(meterType):
     # 1) get household ID (assuming a 1:1 relationship!)
     # sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
     #     + str(contactID) + "'"
-    # cursor.execute(sqlq)
+    # executeSQL(sqlq)
     # householdID = ("%s" % cursor.fetchone())
 
     # 2) create a meta id entry for an 'eMeter'
 
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'"  %householdID
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dateChoice = ("%s" % cursor.fetchone())
     # dateChoice = getDateChoice(householdID)
     sqlq = "INSERT INTO Meta(DataType, Household_idHousehold, CollectionDate) \
            VALUES ('"+ meterType +"', '" + householdID + "', '%s')" %dateChoice
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dbConnection.commit()
     metaID = str(cursor.lastrowid)
     updateConfigFile(metaID,dateChoice)
@@ -912,19 +914,19 @@ def getMetaID(_householdID):
     # should be superseeded by getMetaIDs()
     # return contactID for given household
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'E' AND Household_idHousehold = '" + _householdID + "' ORDER BY idMeta DESC LIMIT 1"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % cursor.fetchone())
 
 def getContact(householdID):
     # return contactID for given household
     sqlq = "SELECT contact_idContact FROM Household WHERE idHousehold = '" + householdID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     return ("%s" % cursor.fetchone())
 
 def getDateChoice(householdID):
     # return collection data as a string: Sun, 31 Dec
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '" + householdID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     dateStr = ("%s" % cursor.fetchone())
     if (dateStr != 'None'):
         f = '%Y-%m-%d'
@@ -947,7 +949,7 @@ def XXXgetCollectionDate(householdID):
     # superseeded by getDateChoice
     # return collection data as a string: Sunday, 31 December
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '" + householdID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     strCollectionDate = ("%s" % (result[0]))
     dateArray = strCollectionDate.split('-')
@@ -969,7 +971,7 @@ def compose_email(type,edit=True):
             FROM Contact \
             WHERE idContact = '"\
         + contactID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     thisName    = ("%s %s" % (result[0:2]))
     thisAddress = ("%s</br>%s</br>%s %s" % (result[2:6]))
@@ -1046,7 +1048,7 @@ def email_many():
     # personalise
     emailPathPersonal = emailPath + "email_personal.html"
     sqlq="SELECT Name,email FROM Mailinglist WHERE scope = 'test'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     results = list(cursor.fetchall())
     for result in results:
         # npyscreen.notify_confirm(str(result))
@@ -1066,7 +1068,7 @@ def pre_parcel_email(householdID):
     # get contact details
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email FROM Contact WHERE idContact = '"\
         + contactID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     thisName    = ("%s %s" % (result[0:2]))
     thisAddress = ("%s</br>%s</br>%s %s" % (result[2:6]))
@@ -1116,7 +1118,7 @@ def print_letter():
 
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '"\
         + contactID + "'"
-    cursor.execute(sqlq)
+    executeSQL(sqlq)
     result = cursor.fetchone()
     thisName    = ("%s %s" % (result[0:2]))
     thisAddress = ("%s\n\n %s \n\n%s %s" % (result[2:6]))
@@ -1626,7 +1628,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
     def identifyHousehold(self):
         sqlq = "SELECT COUNT(*) FROM Household WHERE Contact_idContact = '" + contactID + "'"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         result = cursor.fetchone()
         # returns a tuple with format 'nL,' - extract value 'n':
         count = int(result[0])
@@ -1636,7 +1638,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         elif (count == 1):
             # set to the only option
             sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchone()
             global householdID 
             householdID = str(int(result[0]))
@@ -1669,13 +1671,13 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.wStatus1.value = "METER " + self.myStatus + " selection"
         if (displayModus == "Contact"):
             sqlq = "SELECT * FROM Contact"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchall()
         elif (displayModus == "TimeUseCode"):
             with open(tucFilePath) as inputFile:
                 tucTuple = [tuple(line.split(',')) for line in inputFile.readlines()]
             sqlq = "SELECT * FROM " + self.myStatus
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = tucTuple[-5:] + ['----------'] + list(cursor.fetchall())
             # XXX
 
@@ -1686,7 +1688,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
         elif (displayModus == "Diaries"):
             sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'T' and SerialNumber is NULL"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchall()
 
         elif (displayModus == "Households"):
@@ -1702,7 +1704,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
             global operationModus
             fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status' 
             sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[operationModus] +";"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             hh_result = cursor.fetchall()
             for hh in hh_result:
                 thisHHid      = str(hh[0])
@@ -1724,7 +1726,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
 
         elif (displayModus == "Household"):
             sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchall()
 
         elif (displayModus == "Individual"):
@@ -1737,11 +1739,11 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
                     LEFT JOIN \
                     (SELECT * FROM Individual) b\
                     ON a.idHousehold = b.Household_idHousehold;"
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchall()
         else:
             sqlq = "SELECT * FROM " + self.myStatus
-            cursor.execute(sqlq)
+            executeSQL(sqlq)
             result = cursor.fetchall()
 
         # result is populated, now display result
@@ -1760,6 +1762,9 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.wMain.values = self.value.get()  # XXX testj
         self.wMain.display()
         self.wStatus1.display()
+
+        global dbConnection
+        dbConnection.commit()
         # self.wStatus2.display()
 
     def formated_contact(self, vl):
@@ -1779,7 +1784,7 @@ class MeterMain(npyscreen.FormMuttActiveTraditionalWithMenus):
         self.wStatus1.value = "METER " + self.myStatus
         # sqlq = "SELECT * FROM Contact"
         sqlq = "SHOW TABLES"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         result = cursor.fetchall()
         displayList = []
         for items in result:
@@ -1983,7 +1988,7 @@ class TimeUseForm(npyscreen.FormMuttActiveTraditional):
  
      def initialise(self):
         sqlq = "SELECT * FROM TimeUseCode"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         result = [' - codes - '] + list(cursor.fetchall())
         for items in result:
             self.tucDisplay.append(self.formated_any(items))
@@ -2079,7 +2084,7 @@ class newContactForm(npyscreen.Form):
         self.ColumnEntry = []
         sqlq = "SHOW columns from Contact;"
         global cursor
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         tabledata = cursor.fetchall()
         for field in tabledata:
             self.ColumnName.append(field[0])
@@ -2106,14 +2111,14 @@ class newContactForm(npyscreen.Form):
         # create contact
         sqlq = "INSERT INTO `Contact`(" + sqlColumnString + ") \
             VALUES ("+sqlEntryString+")"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         dbConnection.commit()
         contactID = cursor.lastrowid
         
         # create household
         sqlq = "INSERT INTO `Household`(Contact_idContact, security_code) \
             VALUES ("+str(contactID)+", 123)"
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         dbConnection.commit()
         householdID = cursor.lastrowid
         self.parentApp.setNextFormPrevious()
@@ -2127,7 +2132,7 @@ class newIndividualForm(npyscreen.Form):
         self.ColumnEntry = []
         sqlq = "SHOW columns from Individual;"
         global cursor
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         tabledata = cursor.fetchall()
         for field in tabledata:
             self.ColumnName.append(field[0])
@@ -2150,7 +2155,7 @@ class newIndividualForm(npyscreen.Form):
         sqlq = "INSERT INTO `Individual`(" + sqlColumnString + ") \
             VALUES ("+sqlEntryString+")"
         global cursor
-        cursor.execute(sqlq)
+        executeSQL(sqlq)
         dbConnection.commit()
         global individual
         individual = str(cursor.lastrowid)
