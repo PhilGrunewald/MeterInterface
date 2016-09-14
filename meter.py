@@ -2165,42 +2165,48 @@ class newIndividualForm(npyscreen.Form):
 class metaFileInformation(npyscreen.Form):
     # The MetaForm
     # display all .meta files in /METER/
-    fileList = []
-    reject_fileList = []
-
-    selectIndex = []
-    selectCounter = 0
-    metaIDs = []
-    collectionDate = []
-    dataType = []
-    duration = []
-    displayString = []
-
-    reject_Index = []
-    reject_Counter = 0
-    reject_contactID = []
-    reject_collectionDate = []
-    reject_dataType = []
-    reject_duration = []
-    reject_displayString = []
-
     def create(self):
+        fileList = []
+        reject_fileList = []
+
+        selectIndex = []
+        selectCounter = 0
+        metaIDs = []
+        collectionDate = []
+        dataType = []
+        duration = []
+        displayString = []
+
+        reject_Index = []
+        reject_Counter = 0
+        reject_contactID = []
+        reject_collectionDate = []
+        reject_dataType = []
+        reject_duration = []
+        reject_displayString = []
+
         self.FileSelection = self.add(npyscreen.TitleMultiSelect, max_height=9,
-                                      value=self.selectIndex,
+                                      value=selectIndex,
                                       name="Which files should be uploaded?",
-                                      values=self.displayString,
+                                      values=displayString,
                                       scroll_exit=True)
         self.FileRejection = self.add(npyscreen.TitleMultiSelect, max_height=15,
-                                      value=self.reject_Index,
+                                      value=reject_Index,
                                       name="These files will be deleted (uncheck to save them)?",
-                                      values=self.reject_displayString, scroll_exit=True)
+                                      values=reject_displayString, scroll_exit=True)
+
     def beforeEditing(self):
         self.fileList = []      # added to not carry over old file lists
         self.reject_fileList = []
         self.selectCounter = 0
+        self.reject_Counter = 0
         self.selectIndex = []
         self.displayString =[]
         self.reject_Index = []
+        self.reject_contactID = []
+        self.reject_collectionDate = []
+        self.reject_dataType = []
+        self.reject_duration = []
         self.reject_displayString = []
         # set up file names
         global filePath
