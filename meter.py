@@ -56,6 +56,7 @@ def executeSQL(_sqlq):
         message("Need to reconnect to datahase")
         cursor = connectDatabase(dbHost)
         cursor.execute(_sqlq)
+    return cursor.lastrowid
 
 def getSQL(_sqlq):
     # to safeguard against dropped connections
@@ -67,7 +68,6 @@ def getSQL(_sqlq):
         cursor = connectDatabase(dbHost)
         cursor.execute(_sqlq)
     return cursor.fetchall()
-    # return list(cursor.fetchall())
 
 def toggleDatabase(void):
     global cursor
@@ -84,24 +84,6 @@ def backup_database():
     call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
          ' > ' + filePath + 'database/' + thisDate + '_' + dbName + '.sql', shell=True)
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
-
-# def toggleTable(void):
-#     global subsection
-#     global tables
-#     global table
-#     tableIndex = tables.index(table)
-#     tableIndex = (tableIndex+1) % len(tables)
-#     table = tables[tableIndex]
-#     subsection = subsections[table][0]
-#     MeterApp._Forms['MAIN'].setMainMenu()
-# 
-# def togglesubsection(void):
-#     global subsection
-#     global table
-#     modusNumber = subsections[table].index(subsection)
-#     modusNumber = (modusNumber+1) % len(subsections[table])
-#     subsection = subsections[table][modusNumber]
-#     MeterApp._Forms['MAIN'].setMainMenu()
 
 def getNameEmail(table,criterium):
     if (table == "Contact"):
@@ -128,9 +110,9 @@ def getHouseholdCount(condition):
 
 def getContact(householdID):
     # return contactID for given household
-    sqlq = "SELECT contact_idContact FROM Household WHERE idHousehold = '" + householdID + "'"
-    executeSQL(sqlq)
-    return ("%s" % cursor.fetchone())
+    sqlq = "SELECT Contact_idContact FROM Household WHERE idHousehold = '%s';" % householdID
+    result = getSQL(sqlq)[0]
+    return ("%s" % result['Contact_idContact'])
 
 def getNameOfContact(thisContactID):
     # get Contact name for a given Contact
