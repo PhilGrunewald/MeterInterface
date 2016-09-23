@@ -9,8 +9,6 @@
 #action_highlighted action based on line selected (enter) depending on displayModus
 #statusUpdate       list of and setting of household status
 
-
-
 # For plotting
 import flask                  # serve python
 import json                   # used for reading activities.json
@@ -94,11 +92,10 @@ def getMetaData(MetaFile, ItemName):
             content = line.split(ItemName + ": ", 1)[1]
     return content.strip()
 
-
 def plot_data(_householdID):
     # get readings for a given metaID
     # XXX this fetches only one - could be more than one...
-    metaID = getMetaID(_householdID)
+    metaID = getMetaIDs(_householdID,'E')
 
     # READ ACTIVITIES.JSON
     ## THis worked fine for a while and suddenly I got "Error 503 backend read error" from github
@@ -248,7 +245,6 @@ def plot_data(_householdID):
     show(p)
     os.system("scp " + plotFilePath + " phil@109.74.196.205:/var/www/energy-use.org/public_html/data/")
 
-
 def data_download():
     # pull files from phone
     call('adb pull /sdcard/METER/ ' + filePath, shell=True)
@@ -256,23 +252,11 @@ def data_download():
     s = subprocess.check_output(cmd.split())
     call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
     call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
-    updateIDfile('0')                                           # set to 0 to avoid confusion if phone comes on again
+    updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
     MeterApp.switchForm('MetaForm')
-
 
 def data_review():
     MeterApp.switchForm('MetaForm')
-
-def data_upload():
-    # set up file names
-    global filePath
-
-    allMetafiles = filePath + '*.meta'
-    fileList = glob.glob(allMetafiles)
-    # XXX do as list iteration...
-    MetaFile = fileList[0]
-    fileName, void = MetaFile.split('.meta')
-    uploadFile(fileName)
 
 def get_time_period(timestr):
     # convert into one of 144 10minute periods of the day
@@ -295,8 +279,8 @@ def time_in_seconds(timestr): # not used - just kept for reference...
 def getReadingPeriods(_householdID,_condition,_duration):
     # returns start and end of consequitive records matching the condition
     # used to identify how long 'no readings' were taken, or 'high readings'
-    metaID = getMetaID(_householdID)        # only fetches the first (should only be one...)
-    if (metaID != 'None'):
+    metaID = getMetaIDs(_householdID,'E')        # only fetches the first (should only be one...)
+    if (metaID != ''):
         sqlq = "SELECT idElectricity FROM Electricity WHERE %s\
                 AND Meta_idMeta = %s ORDER BY dt;" % (_condition,metaID)
         eIDs = getSQL(sqlq)
@@ -326,7 +310,6 @@ def getReadingPeriods(_householdID,_condition,_duration):
             return "none"
     else:
         return "no meta entry"
-
 
 def upload_1min_readings(hhID):
     # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
@@ -392,19 +375,6 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
     dbConnection.commit()
     # nps.notify_confirm(dataType + " data for HH " +householdID+ " now in database")
 
-def data_download_upload(self):
-    # call upload and download
-    data_download()
-    data_upload()
-
-def getMetaIDs(householdID, deviceType):
-    # check if eMeter has been configured
-    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType,householdID)
-    result = getSQL(sqlq)
-    if (result):
-        return result
-    else:
-        return ''
 
 def getDeviceMetaIDs(householdID, deviceType):
     # check if eMeter has been configured
@@ -424,32 +394,6 @@ def getParticipantCounters(householdID):
     return clist
 
 
-def getHouseholdForMeta(_metaID):
-    # count household in database matching the modus criteria
-    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = " + _metaID +";"
-    result = getSQL(sqlq)
-    return ("%s" % result['Household_idHousehold'])
-
-
-def getDeviceCount(householdID, deviceType):
-    # check if eMeter has been configured
-    sqlq = "SELECT count(idMeta) FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType,householdID)
-    result = getSQL(sqlq)[0]
-    return ("%s" % result['count(idMeta)'])
-
-def getNameOfContact(thisContactID):
-    # get Contact name for a given Contact
-    sqlq ="SELECT Name,Surname\
-            FROM Contact \
-            WHERE idContact = '%s';" % thisContactID
-    result = getSQL(sqlq)[0]
-    return str(result['Name']) + ' ' + str(result['Surname'])
-
-def getSecurityCode(householdID):
-    # get the security code for this household
-    sqlq = "SELECT security_code FROM Household WHERE idHousehold = '%s';" % householdID 
-    result = getSQL(sqlq)[0]
-    return ("%s" % result['security_code'])
 
 def getStatus(householdID):
     # get the status for this household
@@ -495,6 +439,7 @@ def getNextHousehold(void):
 
 def updateHouseholdStatus(householdID, status):
     # update status of household                            #statusUpdate
+    status
     # only case 3,5,6 and 7 dealt with here. others from php forms.
     # 0 : hhq incomplete                hhq.php
     # 1 : hhq complete but no date      hhq.php
@@ -510,7 +455,7 @@ def updateHouseholdStatus(householdID, status):
             SET `status`="+ str(status) +"\
             WHERE `idHousehold` ='" + str(householdID) + "';"
     executeSQL(sqlq)
-    dbConnection.commit()
+    commit()
 
 
 def phone_id_setup(meterType):
@@ -648,16 +593,14 @@ def eMeter_setup():
     # configure phone for recording
     phone_id_setup('E')
 
-def getMetaID(hhID):
-    # should be superseeded by getMetaIDs()
-    # return contactID for given household
-    sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'E' AND Household_idHousehold = '%s' ORDER BY idMeta DESC LIMIT 1" % hhID
+def getMetaIDs(hhID, deviceType):
+    # check if eMeter has been configured
+    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType,hhID)
     result = getSQL(sqlq)
     if (result):
         return ("%s" % result[0]['idMeta'])
     else:
-        return 'None'
-
+        return ''
 
 def getDateChoice(householdID):
     # return collection data as a string: Sun, 31 Dec
@@ -687,7 +630,7 @@ def compose_email(type,edit=True):
     global householdID
     # get contact details
     contactID = getContact(householdID)
-    metaID    = getMetaID(householdID)
+    metaID    = getMetaIDs(householdID,'E')
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email \
             FROM Contact \
             WHERE idContact = '%s';" % contactID
@@ -789,7 +732,7 @@ def print_letter():
     result = getSQL(sqlq)[0]
     thisName    = ("%s %s" % (result['Name'],result['Surname']))
     thisAddress = ("%s\n\n%s\n\n%s %s" % (result['Address1'],result['Address2'],result['Town'],result['Postcode']))
-    thisAddress = thisAddress.replace("None \n\n", "")
+    thisAddress = thisAddress.replace("None\n\n", "")
     thisDate    = getDateChoice(householdID)
 
     letterFile = letterPath + contactID + "_letter"
@@ -856,8 +799,6 @@ class ActionControllerData(nps.MultiLineAction):
             "M": toggleOperationModus,
             "q": self.show_MainMenu,
             "Q": self.parent.exit_application,
-            # "u": self.data_upload,
-            # "D": data_download_upload,
             # "t": self.show_DataTypes,
             # "c": self.show_Contact,
             # "a": self.show_NewContact,
@@ -976,8 +917,6 @@ class ActionControllerData(nps.MultiLineAction):
     def data_download(self, *args, **keywords):
         data_download()
 
-    def data_upload(self, *args, **keywords):
-        data_upload()
 
     def show_DataTypes(self, *args, **keywords):
         self.parent.myStatus = 'DataTypes'
@@ -1039,6 +978,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def getMenuText(self):                                      #menu_text
         global householdID
+        dbHost = getHost()
         householdID = str(householdID)
         contactID   = getContact(householdID)
         MenuText = []
@@ -1057,6 +997,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\t\t\t _____________________________________________")  
             MenuText.append(formatBox("Date:", getDateChoice(householdID)))
             MenuText.append(formatBox("Household:", householdID))
+            MenuText.append(formatBox("Status:", getStatus(householdID)))
             MenuText.append(formatBox("People:", getParticipantCounters(householdID)))
 
             if (operationModus in {'Issued', 'Processed'}):
@@ -1110,8 +1051,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m1.addItemsFromList([
             ("Download from phone", data_download, "d"),
             ("Review Meta Data", data_review, "r"),
-            ("Upload to database",  data_upload, "u"),
-            ("Download and upload", data_download_upload, "D"),
         ])
         self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
         self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
@@ -1146,7 +1085,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
         self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
         self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
-        self.m2.addItem(text='Change database', onSelect=toggleDatabase, shortcut='d', arguments=[dbHost])
+        self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
         self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
 
         self.m3 = self.add_menu(name="Exit", shortcut="X")
@@ -1168,6 +1107,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def IgnoreForNow(self):
         pass
+
+    def toggleDatabase(self):
+        message(dbHost)
+        toggleDatabase(dbHost)
+        MeterApp._Forms['MAIN'].setMainMenu()
 
     def toggleDishwasher(self):
         Dishwasher[timeIndex] = 1
@@ -1209,14 +1153,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             result = getSQL(sqlq)
 
         elif (displayModus == "Households"):
-            result = [{"{:<8}".format('HH ID') +\
+            result = ["{:<8}".format('HH ID') +\
                        "{:<7}".format('CT ID') +\
                        "{:<11}".format('Joined') +\
                        "{:<20}".format('Name') +\
                        "{:<7}".format('Status') +\
                        "{:<11}".format('Date') +\
                        "{:<7}".format('#') +\
-                       "{:<25}".format('Comment') }]
+                       "{:<25}".format('Comment') ]
 
             global operationModus
             fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status' 
@@ -1230,7 +1174,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 thisDate      = str(hh['date_choice'])
                 thisComment   = str(hh['CONVERT(comment USING utf8)'])
                 thisStatus    = str(hh['status'])
-                result = result + [{\
+                result = result + [\
                         "{:<7}".format(thisHHid) + '\t'\
                         "{:<7}".format(thisContact) + '\t'\
                         "{:<11}".format(thisTimeStamp +'\t') +\
@@ -1238,7 +1182,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                         "{:<7}".format(thisStatus) +\
                         "{:<11}".format(thisDate) +\
                         "{:<3}".format(str(getParticipantCount(thisHHid))) +\
-                        "{:<25}".format(thisComment) }]
+                        "{:<25}".format(thisComment) ]
 
 
         elif (displayModus == "Household"):

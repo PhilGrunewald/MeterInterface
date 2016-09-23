@@ -29,6 +29,9 @@ def connectDatabase(_dbHost):
         cursor = dbConnection.cursor()
     return cursor
 
+def getHost():
+    return dbHost
+
 def connectDatabaseOLD(_dbHost):
     # remove
     global dbConnection
@@ -53,7 +56,7 @@ def executeSQL(_sqlq):
     try:
         cursor.execute(_sqlq)
     except:
-        message("Need to reconnect to datahase")
+        message("Reconnect to datahase")
         cursor = connectDatabase(dbHost)
         cursor.execute(_sqlq)
     return cursor.lastrowid
@@ -69,15 +72,13 @@ def getSQL(_sqlq):
         cursor.execute(_sqlq)
     return cursor.fetchall()
 
-def toggleDatabase(void):
+def toggleDatabase(dbHost):
     global cursor
-    global dbHost
     if (dbHost == 'localhost'):
         dbHost = '109.74.196.205'
     else:
         dbHost = 'localhost'
     cursor = connectDatabase(dbHost)
-    MeterApp._Forms['MAIN'].setMainMenu()
 
 def backup_database():
     thisDate = dateTimeToday.strftime("%Y-%m-%d")
@@ -118,10 +119,21 @@ def getNameOfContact(thisContactID):
     # get Contact name for a given Contact
     sqlq ="SELECT Name,Surname\
             FROM Contact \
-            WHERE idContact = '" + thisContactID + "';"
-    executeSQL(sqlq)
-    result = cursor.fetchone()
-    return str(result[0]) + ' ' + str(result[1])
+            WHERE idContact = '%s';" % thisContactID
+    result = getSQL(sqlq)[0]
+    return str(result['Name']) + ' ' + str(result['Surname'])
+
+def getSecurityCode(householdID):
+    # get the security code for this household
+    sqlq = "SELECT security_code FROM Household WHERE idHousehold = '%s';" % householdID 
+    result = getSQL(sqlq)[0]
+    return ("%s" % result['security_code'])
+
+def getHouseholdForMeta(_metaID):
+    # count household in database matching the modus criteria
+    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = " + _metaID +";"
+    result = getSQL(sqlq)
+    return ("%s" % result['Household_idHousehold'])
 
 def getStatus(householdID):
     # get the status for this household
@@ -139,38 +151,6 @@ def getDateTimeFormated(dts):
     else:
         return "None"
 
-
-# def editMessage():
-#     # compose message
-#     # emailFilePath = emailPath + "email_many.html"
-#     call('vim ' + emailFilePath, shell=True)
-# 
-# def sendTo(condition,attach):
-#     # compose message
-#     emailRCFilePath = emailPath + ".emailrc"
-#     templateFile = open(emailFilePath, "r")
-#     templateText = templateFile.read()
-#     templateFile.close()
-# 
-#     subjectLine = templateText.splitlines()[0]
-#     templateText = templateText[templateText.find('\n')+1:]     # find line break and return all from there - i.e. remove first line
-# 
-#     # personalise
-#     emailPathPersonal = emailPath + "email_personal.html"
-# 
-#     # get all recipients
-#     results = getNameEmail(condition)
-#     message("About to send %s emails from %s" % (len(results), condition))
-#     if attach != '':
-#         attach = " -a %s " % attach
-#     for result in results:
-#         emailText = templateText.replace("[name]", "%s" % result["Name"])
-#         emailAddress = "%s" % result["email"]
-#         emailFile = open(emailPathPersonal, "w+")
-#         emailFile.write(emailText)
-#         emailFile.close()
-#         call('mutt -F "'+emailRCFilePath+'" -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
-# 
 
 def formatBox(col1, col2):
     return "\t\t\t|\t\t" + "{:<22}".format(col1) + "{:<20}".format(col2) + "|"

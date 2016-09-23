@@ -28,7 +28,7 @@ Criteria = {
         'Post trial':'Household.status > 5',
         'Panel':     'status = \'panel\'',
         'Updates':     'status = \'updates\'',
-        'Test':     'status = \'test\''
+        'Test':     'status = \'test1\''
         }
 table = tables[0]
 subsection = subsections[table][0]
@@ -37,51 +37,6 @@ attachment = ''
 
 dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")
-
-#     def connectDatabase(_dbHost):
-#     global dbConnection
-#     global dbHost
-#     dbHost = _dbHost
-#     try:
-#         dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName, cursorclass = MySQLdb.cursors.DictCursor)
-#         cursor = dbConnection.cursor()
-#     except:
-#         dbHost='localhost'
-#         dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName, cursorclass = MySQLdb.cursors.DictCursor)
-#         cursor = dbConnection.cursor()
-#     return cursor
-
-# def executeSQL(_sqlq):
-#     # to safeguard against dropped connections
-#     global cursor
-#     try:
-#         cursor.execute(_sqlq)
-#     except:
-#         message("Need to reconnect to datahase")
-#         cursor = connectDatabase(dbHost)
-#         cursor.execute(_sqlq)
-# 
-# def getSQL(_sqlq):
-#     # to safeguard against dropped connections
-#     global cursor
-#     try:
-#         cursor.execute(_sqlq)
-#     except:
-#         message("Need to reconnect to datahase")
-#         cursor = connectDatabase(dbHost)
-#         cursor.execute(_sqlq)
-#     return cursor.fetchall()
-#     # return list(cursor.fetchall())
-# 
-# def toggleDatabase(void):
-#     global cursor
-#     global dbHost
-#     if (dbHost == 'localhost'):
-#         dbHost = '109.74.196.205'
-#     else:
-#         dbHost = 'localhost'
-#     cursor = connectDatabase(dbHost)
-#     MeterApp._Forms['MAIN'].setMainMenu()
 
 def toggleTable(void):
     global subsection
@@ -101,51 +56,6 @@ def togglesubsection(void):
     subsection = subsections[table][modusNumber]
     MeterApp._Forms['MAIN'].setMainMenu()
 
-# def getNameEmail(criterium):
-#     global table
-#     if (table == "Contact"):
-#         sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email\
-#                 From Contact\
-#                 Join Household\
-#                 ON Household.Contact_idContact = Contact.idContact\
-#                 WHERE %s" % criterium
-#     else:
-#         sqlq = "Select *\
-#                 FROM %s\
-#                 WHERE %s" % (table,criterium)
-#     result = getSQL(sqlq)
-#     return result
-# 
-# def getRecipientCount(criterium):
-#     return len(getNameEmail(criterium))
-# 
-# 
-# def getNameOfContact(thisContactID):
-#     # get Contact name for a given Contact
-#     sqlq ="SELECT Name,Surname\
-#             FROM Contact \
-#             WHERE idContact = '" + thisContactID + "';"
-#     executeSQL(sqlq)
-#     result = cursor.fetchone()
-#     return str(result[0]) + ' ' + str(result[1])
-# 
-# def getStatus(householdID):
-#     # get the status for this household
-#     sqlq = "SELECT status FROM Household WHERE idHousehold = '" + householdID + "'"
-#     executeSQL(sqlq)
-#     return ("%s" % (cursor.fetchone()))
-# 
-# def getDateTimeFormated(dts):
-#     # DateTimeString as received from database: return 31 Jan 16
-#     # http://strftime.org/
-#     if (dts != 'None'):
-#         f = '%Y-%m-%d %H:%M:%S'
-#         this_dt = datetime.datetime.strptime(dts, f)
-#         return this_dt.strftime("%-d %b %y")
-#     else:
-#         return "None"
-
-
 def editMessage():
     # compose message
     # emailFilePath = emailPath + "email_many.html"
@@ -153,7 +63,8 @@ def editMessage():
 
 def sendTo(condition,attach):
     # compose message
-    emailRCFilePath = emailPath + ".emailrc"
+    # emailRCFilePath = emailPath + ".emailrc"
+    account = emailFilePath + "phil"
     templateFile = open(emailFilePath, "r")
     templateText = templateFile.read()
     templateFile.close()
@@ -169,24 +80,16 @@ def sendTo(condition,attach):
     message("About to send %s emails from %s" % (len(results), condition))
     if attach != '':
         attach = " -a %s " % attach
+    idField = "id%s" % table
     for result in results:
         emailText = templateText.replace("[name]", "%s" % result["Name"])
+        emailText = emailText.replace("[id]", "%s" % result[idField])
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")
         emailFile.write(emailText)
         emailFile.close()
-        call('mutt -F "'+emailRCFilePath+'" -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
-
-
-# def formatBox(col1, col2):
-#     return "\t\t\t|\t\t" + "{:<22}".format(col1) + "{:<20}".format(col2) + "|"
-# 
-# def formatList(col1, col2):
-#     return ["\t\t\t" + "{:<25}".format(col1) + "{:<30}".format(col2)]
-
-def message(msgStr):
-    # shorthand to display debug information
-    nps.notify_confirm(msgStr,editw=1)
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
+        # call('mutt -F "'+account+'" -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
 
 
 # ------------------------------------------------------------------------------
@@ -399,8 +302,6 @@ class MeterMail(nps.FormMuttActiveTraditionalWithMenus):
         self.parentApp.setNextForm(None)
         self.editing = False
         self.parentApp.switchFormNow()
-
-
 
 class MeterForms(nps.NPSAppManaged):
     def onStart(self):
