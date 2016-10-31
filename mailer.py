@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# SQL to mark all mailing list people who are also participants (to avoid duplication)
+# update Mailinglist m join Contact c on m.email = c.email set m.status = 'participant';
+
 import os
 import csv
 import MySQLdb
@@ -18,17 +21,19 @@ from meter_ini import *     # reads the database and file path information from 
 
 tables = ['Contact', 'Mailinglist']
 
-subsections = {'Contact': ['All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['early','cTest', 'All', 'No date', 'Pre trial', 'Post trial'],
                'Mailinglist': ['All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
         'All':       'email <> \'%@%\'',
-        'No date':   'Household.status < 2',
-        'Pre trial': 'Household.status > 1 AND Household.status < 6',
-        'Post trial':'Household.status > 5',
+        'No date':   'Household.status < 2 AND page_number > 0 AND email <> \'%@%\'',
+        'Pre trial': 'Household.status > 1 AND Household.status < 6 AND email <> \'%@%\'',
+        'Post trial':'Household.status > 5 AND page_number >0',
         'Panel':     'status = \'panel\'',
         'Updates':     'status = \'updates\'',
-        'Test':     'status = \'test1\''
+        'Test':     'status = \'test1\'',
+        'early':     'Contact.status = \'early\'',
+        'cTest':     'Contact.status = \'test1\''
         }
 table = tables[0]
 subsection = subsections[table][0]

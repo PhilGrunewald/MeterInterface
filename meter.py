@@ -17,6 +17,7 @@ import npyscreen as nps
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
 def connectDatabase(_dbHost):
+    global cursor
     global dbConnection
     global dbHost
     dbHost = _dbHost
@@ -31,6 +32,9 @@ def connectDatabase(_dbHost):
 
 def getHost():
     return dbHost
+
+def getConnection():
+    return dbConnection
 
 def connectDatabaseOLD(_dbHost):
     # remove
@@ -67,12 +71,13 @@ def getSQL(_sqlq):
     try:
         cursor.execute(_sqlq)
     except:
-        message("Need to reconnect to datahase")
+        message("Need to reconnect to datahase to get SQL")
         cursor = connectDatabase(dbHost)
         cursor.execute(_sqlq)
     return cursor.fetchall()
 
-def toggleDatabase(dbHost):
+def toggleDatabase():
+    global dbHost
     global cursor
     if (dbHost == 'localhost'):
         dbHost = '109.74.196.205'
@@ -81,7 +86,8 @@ def toggleDatabase(dbHost):
     cursor = connectDatabase(dbHost)
 
 def backup_database():
-    thisDate = dateTimeToday.strftime("%Y-%m-%d")
+    dateTimeToday = datetime.datetime.now()
+    thisDate = dateTimeToday.strftime("%Y_%m_%d")
     call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
          ' > ' + filePath + 'database/' + thisDate + '_' + dbName + '.sql', shell=True)
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
@@ -131,8 +137,8 @@ def getSecurityCode(householdID):
 
 def getHouseholdForMeta(_metaID):
     # count household in database matching the modus criteria
-    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = " + _metaID +";"
-    result = getSQL(sqlq)
+    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = %s;" % _metaID
+    result = getSQL(sqlq)[0]
     return ("%s" % result['Household_idHousehold'])
 
 def getStatus(householdID):

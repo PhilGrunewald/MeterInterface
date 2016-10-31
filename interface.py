@@ -106,7 +106,7 @@ def plot_data(_householdID):
     #       activities = json.loads(f.read())
 
     # GET ELECTRICTY READINGS
-    sqlq = "SELECT dt,watt FROM Electricity WHERE Meta_idMeta = "+ metaID +" AND idElectricity % 60 =0 AND watt > 20;"
+    sqlq = "SELECT dt,watt FROM Electricity_1min WHERE Meta_idMeta = %s;" % metaID
 
     result = getSQL(sqlq)
     watt=[]
@@ -321,6 +321,8 @@ def upload_1min_readings(hhID):
             Household_idHousehold =%s" % hhID
     EmetaIDs = getSQL(sqlq)
 
+    dbConnection = getConnection()
+
     for idMeta in EmetaIDs:
         sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % idMeta['idMeta']
         df_elec       = pd.read_sql(sqlq, con=dbConnection)
@@ -352,7 +354,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
         if (dataType == 'I'):
             sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
             executeSQL(sqlq)                             # create an entry
-            dbConnection.commit()
+            commit()
             individualID = cursor.lastrowid                  # get the id of the entry just made
             for row in csv_data:                             # populate columns
                 sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
@@ -372,8 +374,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
             `CollectionDate`='"+ collectionDate +"'\
             WHERE `idMeta`='" +metaID+"';"
     executeSQL(sqlq)
-    dbConnection.commit()
-    # nps.notify_confirm(dataType + " data for HH " +householdID+ " now in database")
+    commit()
 
 
 def getDeviceMetaIDs(householdID, deviceType):
@@ -394,6 +395,12 @@ def getParticipantCounters(householdID):
     return clist
 
 
+def getComment(householdID):
+    # get the status for this household
+    sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID 
+    result = getSQL(sqlq)[0]
+    Comment
+    return ("%s" % result['CONVERT(comment USING utf8)'])
 
 def getStatus(householdID):
     # get the status for this household
@@ -435,6 +442,17 @@ def getNextHousehold(void):
     if (result):
         householdID =  ("%s" % result['idHousehold'])
     MeterApp._Forms['MAIN'].setMainMenu()
+
+def updateDataQuality(idMeta,Quality):
+    # set Quality in Meta table
+    # called when compose_email('graph')
+    # XXX add for diaries
+    sqlq = "UPDATE Meta \
+            SET `Quality`= %s \
+            WHERE `idMeta` = %s;" % (Quality,idMeta)
+    executeSQL(sqlq)
+    commit()
+
 
 
 def updateHouseholdStatus(householdID, status):
@@ -485,11 +503,35 @@ def phone_id_setup(meterType):
         # only need this once per household
         print_letter()
         updateHouseholdStatus(householdID,5)
+    else:
+        # Booklet sticker
+
+        dt   = getHHdtChoice(householdID)
+        dt2  = dt + datetime.timedelta(days = 1)
+        date = dt.strftime("%-d %b")
+        day1 = dt.strftime("%a")
+        day2 = dt2.strftime("%a")
+
+        templateText = getTemplate(letterPath + "from_to.md")
+        templateText = templateText.replace("[day1]", day1)
+        templateText = templateText.replace("[day2]", day2)
+        templateText = templateText.replace("[date]", date)
+        templateText = templateText.replace("[id]", metaID)
+
+        printSticker(templateText,letterPath + "aMeter")
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
         "Phone was assigned ID " + metaID
     MeterApp._Forms['MAIN'].wStatus2.display()
     MeterApp._Forms['MAIN'].setMainMenu()
+
+def printSticker(text,fileName):
+    myFile = open("%s.md" % (fileName), "w")
+    myFile.write(text)
+    myFile.close()
+    call("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName), shell=True)
+    call('lp -d MeterLabel -o landscape ' + fileName + '.pdf', shell=True)
+
 
 def updateConfigFile(_id,_dateChoice):
     today = datetime.datetime.now()
@@ -501,8 +543,8 @@ def updateConfigFile(_id,_dateChoice):
     dateChoice_dt += datetime.timedelta(days=1)
     endDate   = dateChoice_dt.strftime("%Y-%m-%d")
     jstring = {"id": _id}
-    jstring.update({"start date": "%s" %startDate})
-    jstring.update({"end date": "%s" %endDate})  # XXX needs date + 1 Day
+    jstring.update({"start": "%s" %startDate})
+    jstring.update({"end": "%s" %endDate})  # XXX needs date + 1 Day
     times1 = [
             "17:30:00",
             "18:00:00",
@@ -515,9 +557,9 @@ def updateConfigFile(_id,_dateChoice):
             "18:30:00"]
     dts = []
     for time in times1:
-        dts.append("%s %s" %(jstring['start date'],time))
+        dts.append("%s %s" %(jstring['start'],time))
     for time in times2:
-        dts.append("%s %s" %(jstring['end date'],time))
+        dts.append("%s %s" %(jstring['end'],time))
     jstring.update({"times": dts})
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
@@ -531,10 +573,24 @@ def updateIDfile(_id):
     # XXX only needs doing once, but flashing doesn't seem to create this folder
     call('adb shell mkdir /sdcard/METER', shell=True)
     call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
+    ## Android 6 (Pixi4) requires:
+    # adb shell "date `date +%m%d%H%M%Y.%S`"
     call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
     # shut down phone (unless id is 0, i.e. the phone still needs setting up)
     if (_id != '0'):
         call('adb shell reboot -p',  shell=True)
+
+
+def setSerialNumber(SerialNumber):
+    # command typed number is set as serial number for current metaID
+    metaID = getMetaIDs(householdID,'E')
+    sqlq = "UPDATE Meta \
+            SET SerialNumber = '%s'\
+            WHERE idMeta = '%s'" % (SerialNumber,metaID)
+    message(sqlq)
+    executeSQL(sqlq)
+    commit()
+
 
 
 def aMeter_setup():
@@ -556,22 +612,23 @@ def root_phone():
             1) connect to WiFi\n\
             2) run KingoRoot\n\
             3) Flashify > Recovery image > choose a file \"/sdcard/recovery.img\" >yup (2min)\n\
-            4) Press <Home> (Do not reboot)\n\
-            5) Flash e/aMeter (this Menu)")
+            4) <OK> this message to flash\n\)")
+    flash_phone("E")
 
 def flash_phone(meterType):
-    # call('adb install -r ./apk/root.apk',  shell=True)
-    # call('adb install -r ./apk/Insecure.apk',  shell=True)
-    # call('adb install -r ./apk/Flashify.apk',  shell=True)
-    # call('adb push ./apk/recovery.img /sdcard/',  shell=True)
-    # nps.notify_confirm("Complete process\n1) connect to WiFi\n2) run KingoRoot\n3) in Insecure check adbd at boot\n4) Flashify > Recovery image > choose a file \"/sdcard/recovery.img\" >yup (2min)\n5) Press <Home> Flash e/aMeter (this Menu)")
-    # restore phone from Mater copy
+    # restore phone from Master copy
     if (meterType == 'E'):
         call('adb push ./flash_eMeter/ /sdcard/',  shell=True)
     elif (meterType == 'A'):
         call('adb push ./flash_aMeter/ /sdcard/',  shell=True)
     call('adb reboot recovery',  shell=True)
-    nps.notify_confirm("Phone restarting\n1) Restore \n2) Select \"... KitKat\" \n3) swipe (2min) \n4) Reboot System\n5) assign a/eMeter ID (this Menu)")
+    message("Phone restarting\n\
+            1) Restore \n\
+            2) Select \"... KitKat\" swipe (2min) \n\
+            3) Reboot System\n\
+            4) Reconnect USB (!)\n\
+            5) <OK> this message to configure ID")
+    updateIDfile('0')
 
 def eMeter_setup():
     # superseeded by flash_phone()
@@ -602,14 +659,22 @@ def getMetaIDs(hhID, deviceType):
     else:
         return ''
 
-def getDateChoice(householdID):
-    # return collection data as a string: Sun, 31 Dec
-    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s';" % householdID
+
+def getHHdtChoice(hhID):
+    # reads a sql date in format "2016-12-31" and returns datetime object
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s';" % hhID
     result = getSQL(sqlq)[0]
     dateStr = ("%s" % result['date_choice'])
     if (dateStr != 'None'):
         f = '%Y-%m-%d'
-        this_dt = datetime.datetime.strptime(dateStr, f)
+        return datetime.datetime.strptime(dateStr, f)
+    else:
+        return "None"
+
+def getDateChoice(hhID):
+    # return collection data as a string: "Sun, 31 Dec"
+    this_dt = getHHdtChoice(hhID)
+    if (this_dt != 'None'):
         return this_dt.strftime("%a, %-d %b")
     else:
         return "None"
@@ -684,6 +749,10 @@ def compose_email(type,edit=True):
     elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
+        updateDataQuality(metaID,1)
+    elif (type == 'fail'):
+        updateDataQuality(metaID,0)
+
     
     if (edit):
         call('vim ' + emailFilePath, shell=True)
@@ -709,13 +778,18 @@ def email_many():
     sqlq="SELECT Name,email FROM Mailinglist WHERE scope = 'test'"
     results = getSQL(sqlq)
     for result in results:
-        # nps.notify_confirm(str(result))
         emailText = templateText.replace("[name]", result['Name'])
         emailAddress = result['email']
         emailFile = open(emailPathPersonal, "w+")
         emailFile.write(emailText)
         emailFile.close()
         call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + ' < ' + emailPathPersonal, shell=True)
+
+def getTemplate(fileName):
+    templateFile = open(fileName, "r")
+    templateText = templateFile.read()
+    templateFile.close()
+    return templateText
 
 
 def print_letter():
@@ -733,19 +807,22 @@ def print_letter():
     thisName    = ("%s %s" % (result['Name'],result['Surname']))
     thisAddress = ("%s\n\n%s\n\n%s %s" % (result['Address1'],result['Address2'],result['Town'],result['Postcode']))
     thisAddress = thisAddress.replace("None\n\n", "")
-    thisDate    = getDateChoice(householdID)
 
-    letterFile = letterPath + contactID + "_letter"
-    letterTemplate = letterPath + "letter.md"
-    templateFile = open(letterTemplate, "r")
-    templateText = templateFile.read()
-    templateFile.close()
+    dt   = getHHdtChoice(householdID)
+    dt2  = dt + datetime.timedelta(days = 1)
+    date = dt.strftime("%-d %b")
+    weekday = dt.strftime("%A")
+    nextday = dt2.strftime("%A")
 
+    templateText = getTemplate(letterPath + "letter_narrow.md")
     templateText = templateText.replace("[address]", thisAddress)
     templateText = templateText.replace("[name]", thisName)
-    templateText = templateText.replace("[date]", thisDate)
     templateText = templateText.replace("[today]", todayDate)
+    templateText = templateText.replace("[date]", "%s" % date)
+    templateText = templateText.replace("[weekday]", "%s" % weekday)
+    templateText = templateText.replace("[nextday]", "%s" % nextday)
     templateText = templateText.replace("[participantCount]", participantCount)
+
     if (participantCount != "1"):
         templateText = templateText.replace("[s]", "s")
         templateText = templateText.replace("{multiple booklets}", " -- one for each household member above the age of eight. Do encourage the others to join you. The more people fill in their booklet, the better our understanding of electricity use becomes")
@@ -753,25 +830,27 @@ def print_letter():
         templateText = templateText.replace("[s]", "")
         templateText = templateText.replace("{multiple booklets}", "") 
 
-    myFile = open(filePath + "temp_letter.md", "w+")
+    myFile = open(letterPath + "temp_letter.md", "w+")
     myFile.write(templateText)
     myFile.close()
 
-    call('pandoc -V geometry:margin=1.3in -V fontsize=11pt ' + filePath + "temp_letter.md -o" + letterFile + ".pdf", shell=True)
-    # call('pandoc -V fontsize=11pt ' + filePath + "temp_letter.md -o" + letterFile + ".pdf", shell=True)
+    letterFile = letterPath + contactID + "_letter"
+
+    call('pandoc  --variable classoption=twocolumn -V geometry:margin=0.6in -V fontsize=11pt -s ' + letterPath + "temp_letter.md -o" + letterFile + ".pdf", shell=True)
+    call('lp -d Xerox_Phaser_3250 ' + letterFile + '.pdf', shell=True)
 
     # ADDRESS LABEL
     # produces postage label and personal letter
-    toAddress = thisName + "\n\n" + thisAddress
 
-    myFile = open(letterPath + "address.md", "a")
-    myFile.write(toAddress)
-    myFile.write("\\vspace{10 mm}\n\n")
-    myFile.close()
-    call('pandoc -V geometry:margin=0.8in ' + letterPath + "address.md -o" +
-         letterPath + "address.pdf ", shell=True)
-    call('lp -d Xerox_Phaser_3250 ' + letterFile + '.pdf', shell=True)
+    address = getTemplate(letterPath + "_address.md")
+    address = address.replace("[Name]",      thisName)
+    address = address.replace("[Address1]", "%s" % result['Address1'])
+    address = address.replace("[Address2]", "%s" % result['Address2'])
+    address = address.replace("[Town]",     "%s" % result['Town'])
+    address = address.replace("[Postcode]", "%s" % result['Postcode'])
+    address = address.replace("None", "")
 
+    printSticker(address,letterPath + "address")
 
 # ------------------------------------------------------------------------------
 # --------------------------FORMS-----------------------------------------------
@@ -888,7 +967,9 @@ class ActionControllerData(nps.MultiLineAction):
             self.parent.setMainMenu()
 
     def btnA(self, *args, **keywords):
-        pass
+        updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
+        #print_letter()
+        # pass
         # upload_1min_readings(householdID)
 
     def btnE(self, *args, **keywords):
@@ -949,17 +1030,15 @@ class ActionControllerData(nps.MultiLineAction):
 class ActionControllerSearch(nps.ActionControllerSimple):
     def create(self):
         self.add_action('^/.*', self.set_search, True)
-        self.add_action('^:\d.*', self.speak, True)
+        self.add_action('^:\d.*', self.set_serialNumber, False)
 
     def set_search(self, command_line, widget_proxy, live):
         self.parent.value.set_filter(command_line[1:])
         self.parent.wMain.values = self.parent.value.get()
         self.parent.wMain.display()
 
-    def speak(self, command_line, widget_proxy, live): # just for testing
-        self.parent.value.set_filter("travel")
-        self.parent.wMain.values = self.parent.value.get()
-        self.parent.wMain.display()
+    def set_serialNumber(self, command_line, widget_proxy, live): # just for testing
+        setSerialNumber(command_line[1:])
 
 
     # NEEDED???
@@ -1072,6 +1151,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
         self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
         self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
+        self.m2.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
 
         self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
         self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
@@ -1109,13 +1189,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         pass
 
     def toggleDatabase(self):
-        message(dbHost)
-        toggleDatabase(dbHost)
+        toggleDatabase()
         MeterApp._Forms['MAIN'].setMainMenu()
-
-    def toggleDishwasher(self):
-        Dishwasher[timeIndex] = 1
-        nps.notify_confirm('Dishwasher toggle is go for period ' + str(timeIndex))
 
     def identifyHousehold(self):
         global householdID 
@@ -1353,6 +1428,10 @@ class metaFileInformation(nps.Form):
         self.reject_dataType = []
         self.reject_duration = []
         self.reject_displayString = []
+
+        self.FileSelection.values = self.displayString
+        self.FileRejection.values = self.reject_displayString
+
         # set up file names
         global filePath
 
