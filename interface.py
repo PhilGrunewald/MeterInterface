@@ -400,9 +400,8 @@ def getComment(householdID):
     # get the status for this household
     sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID 
     result = getSQL(sqlq)[0]
-    CommentStr = "%s" % result['CONVERT(comment USING utf8)']
-    CommentStr = textwrap.fill(CommentStr,25)
-    return ("%s" % CommentStr)
+    CommentStr = "Comment: %s" % result['CONVERT(comment USING utf8)']
+    return textwrap.wrap(CommentStr,80)
 
 def getStatus(householdID):
     # get the status for this household
@@ -674,7 +673,7 @@ def getHHdtChoice(hhID):
         return "None"
 
 def getDateChoice(hhID):
-    # return collection data as a string: "Sun, 31 Dec"
+    # return collection date as a string: "Sun, 31 Dec"
     this_dt = getHHdtChoice(hhID)
     if (this_dt != 'None'):
         return this_dt.strftime("%a, %-d %b")
@@ -920,12 +919,8 @@ class ActionControllerData(nps.MultiLineAction):
             # items are padded out with spaces to produce neat columns. These are removed with .strip()
             dataArray   = selectedLine.split('\t')
             householdID = str(dataArray[0]).strip()
-            contactID   = str(dataArray[1]).strip()
-            str_date    = str(dataArray[2]).strip()
             self.parent.wStatus2.value =\
-                "Household changed to " + householdID +\
-                " for Contact " + contactID +\
-                " on " + str_date
+                "Household changed to " + householdID
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
@@ -1089,7 +1084,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     MenuText.append(formatBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
                     MenuText.append(formatBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
                     MenuText.append(formatBox("[A]nalyse", '' ))
-
             if (operationModus == 'Upcoming'):
                 MenuText.append(formatBox("[D]iaries:",  getDeviceMetaIDs(householdID,'A')))
                 MenuText.append(formatBox("[E]-Meter:",   getDeviceMetaIDs(householdID,'E')))
@@ -1097,6 +1091,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\t\t\t _____________________________________________")  
 
 
+        MenuText.extend(getComment(householdID))
         MenuText.append("\n")
         MenuText.append("Database: " + dbHost)
         MenuText.append("\n")
@@ -1230,13 +1225,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             result = getSQL(sqlq)
 
         elif (displayModus == "Households"):
-            result = ["{:<8}".format('HH ID') +\
-                       "{:<7}".format('CT ID') +\
-                       "{:<11}".format('Joined') +\
-                       "{:<20}".format('Name') +\
+            result = [
+                       "{:<8}".format('HH ID') +\
                        "{:<7}".format('Status') +\
-                       "{:<11}".format('Date') +\
-                       "{:<7}".format('#') +\
+                       "{:<20}".format('Name') +\
+                       "{:<13}".format('Date') +\
+                       "{:<3}".format('#') +\
                        "{:<25}".format('Comment') ]
 
             global operationModus
@@ -1248,17 +1242,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 thisHHid      = str(hh['idHousehold'])
                 thisTimeStamp = getDateTimeFormated(str(hh['timestamp']))
                 thisContact   = str(hh['Contact_idContact'])
-                thisDate      = str(hh['date_choice'])
+                thisDate      = getDateChoice(thisHHid)
                 thisComment   = str(hh['CONVERT(comment USING utf8)'])
-                thisComment   = textwrap.fill(thisComment,15)
                 thisStatus    = str(hh['status'])
                 result = result + [\
                         "{:<7}".format(thisHHid) + '\t'\
-                        "{:<7}".format(thisContact) + '\t'\
-                        "{:<11}".format(thisTimeStamp +'\t') +\
-                        "{:<20}".format(getNameOfContact(thisContact)) +\
                         "{:<7}".format(thisStatus) +\
-                        "{:<11}".format(thisDate) +\
+                        "{:<20}".format(getNameOfContact(thisContact)) +\
+                        "{:<13}".format(thisDate) +\
                         "{:<3}".format(str(getParticipantCount(thisHHid))) +\
                         "{:<25}".format(thisComment) ]
 
