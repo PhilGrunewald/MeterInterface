@@ -15,6 +15,7 @@ import json                   # used for reading activities.json
 import urllib                 # to read json from github
 import numpy as np            # used for mean
 import pandas as pd           # to reshape el readings
+import textwrap               # to wrap long comments
 
 from bokeh.embed import components
 from bokeh.resources import INLINE
@@ -399,8 +400,9 @@ def getComment(householdID):
     # get the status for this household
     sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID 
     result = getSQL(sqlq)[0]
-    Comment
-    return ("%s" % result['CONVERT(comment USING utf8)'])
+    CommentStr = "%s" % result['CONVERT(comment USING utf8)']
+    CommentStr = textwrap.fill(CommentStr,25)
+    return ("%s" % CommentStr)
 
 def getStatus(householdID):
     # get the status for this household
@@ -1248,6 +1250,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 thisContact   = str(hh['Contact_idContact'])
                 thisDate      = str(hh['date_choice'])
                 thisComment   = str(hh['CONVERT(comment USING utf8)'])
+                thisComment   = textwrap.fill(thisComment,15)
                 thisStatus    = str(hh['status'])
                 result = result + [\
                         "{:<7}".format(thisHHid) + '\t'\
