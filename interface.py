@@ -248,6 +248,8 @@ def plot_data(_householdID):
 
 def data_download():
     # pull files from phone
+    # 7 Nov 2016: previously downloaded 'files' to filepath
+    # Android 6(?) causes the 'METER folder' to be placed in filePath
     call('adb pull /sdcard/METER/ ' + filePath, shell=True)
     cmd = 'adb shell ls /sdcard/Meter/'
     s = subprocess.check_output(cmd.split())
@@ -497,10 +499,10 @@ def phone_id_setup(meterType):
            VALUES ('%s', '%s', '%s')" % (meterType,householdID,dateChoice)
     metaID = ("%s" % executeSQL(sqlq))
     commit()
-    updateConfigFile(metaID,dateChoice)
-    updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
+    updateConfigFile(metaID,dateChoice,meterType)
 
     if (meterType == 'E'):
+        updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
         # only need this once per household
         print_letter()
         updateHouseholdStatus(householdID,5)
@@ -534,15 +536,40 @@ def printSticker(text,fileName):
     call('lp -d MeterLabel -o landscape ' + fileName + '.pdf', shell=True)
 
 
-def updateConfigFile(_id,_dateChoice):
+def getDiaryByNumber(number):
+    # pick from the list of "A"-type Meta entries for this HH
+    sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '%s';" % householdID
+    results = getSQL(sqlq)
+
+    metaID = "%s" % results[int(number)-1]['idMeta']
+    phone_for_paper_diary(metaID)
+
+
+def phone_for_paper_diary(metaID):
+    # the id is typed on command line
+
+    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '%s'"  %metaID
+    result = getSQL(sqlq)[0]
+    householdID = ("%s" % result['Household_idHousehold'])
+
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'"  %householdID
+    result = getSQL(sqlq)[0]
+    dateChoice = ("%s" % result['date_choice'])
+    updateConfigFile(metaID,dateChoice,"P")
+    call("adb shell am force-stop org.energy_use.meter",  shell=True)
+
+def updateConfigFile(_id,_dateChoice,meterType):
     today = datetime.datetime.now()
-    dateFormat = '%Y-%m-%d'
+    dateFormat        = '%Y-%m-%d'
+    dateFormatAndroid = '%Y%m%d'
+
     dateChoice_dt = datetime.datetime.strptime(_dateChoice,dateFormat)
     if (dateChoice_dt > today):     # only for testing
         dateChoice_dt = today
     startDate = dateChoice_dt.strftime("%Y-%m-%d")
-    dateChoice_dt += datetime.timedelta(days=1)
-    endDate   = dateChoice_dt.strftime("%Y-%m-%d")
+    dateChoice_plus = dateChoice_dt
+    dateChoice_plus += datetime.timedelta(days=1)
+    endDate   = dateChoice_plus.strftime("%Y-%m-%d")
     jstring = {"id": _id}
     jstring.update({"start": "%s" %startDate})
     jstring.update({"end": "%s" %endDate})  # XXX needs date + 1 Day
@@ -561,7 +588,18 @@ def updateConfigFile(_id,_dateChoice):
         dts.append("%s %s" %(jstring['start'],time))
     for time in times2:
         dts.append("%s %s" %(jstring['end'],time))
-    jstring.update({"times": dts})
+    if (meterType == "P"):
+        # device for manual entry of paper diary
+        # needs no reminders
+        jstring.update({"times": []})
+        # set device time to the day of recording
+        dateChoice_dt += datetime.timedelta(hours=17)
+        startDateAdb = dateChoice_dt.strftime("%m%d%H%M%Y.%S")
+        setDate = "adb shell \"date -u %s\"" % startDateAdb
+        message(setDate)
+        call("adb shell \"date %s\"" % startDateAdb,  shell=True)
+    else:
+        jstring.update({"times": dts})
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
     config_file.close()
@@ -600,8 +638,6 @@ def aMeter_setup():
     # install AutoStart app
     call('adb install ~/Software/Android/AutoStart_2.1.apk',
          shell=True)
-    # configure phone for recording
-    phone_id_setup('A')
 
 def root_phone():
     call('adb install -r ./apk/root.apk',  shell=True)
@@ -1028,11 +1064,19 @@ class ActionControllerSearch(nps.ActionControllerSimple):
     def create(self):
         self.add_action('^/.*', self.set_search, True)
         self.add_action('^:\d.*', self.set_serialNumber, False)
+        self.add_action('^:d\d\d\d\d', self.paperDiary, False)
+        self.add_action('^:d\d$', self.paperDiaryNumber, False)
 
     def set_search(self, command_line, widget_proxy, live):
         self.parent.value.set_filter(command_line[1:])
         self.parent.wMain.values = self.parent.value.get()
         self.parent.wMain.display()
+
+    def paperDiary(self, command_line, widget_proxy, live): # entered as 4 digit
+        phone_for_paper_diary(command_line[2:])
+
+    def paperDiaryNumber(self, command_line, widget_proxy, live): # entered as single digit (for current HH)
+        getDiaryByNumber(command_line[2:])
 
     def set_serialNumber(self, command_line, widget_proxy, live): # just for testing
         setSerialNumber(command_line[1:])
@@ -1132,10 +1176,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
         self.m2.addItem(text='eMeter ID', onSelect=phone_id_setup, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=phone_id_setup, shortcut='a', arguments='A')
+        self.m2.addItem(text='aMeter for Paper Diary', onSelect=phone_id_setup, shortcut='p', arguments='P')
         # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
         self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
         self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
-        self.m2.addItem(text='aMeter config', onSelect=aMeter_setup, shortcut='C', arguments=None)
+        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
         self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
 
         self.m2 = self.add_menu(name="Work with data", shortcut="i")
@@ -1429,7 +1474,8 @@ class metaFileInformation(nps.Form):
         # set up file names
         global filePath
 
-        allCSVfiles = filePath + '*.csv'
+        # 7 Nov 2016 XXX allCSVfiles = filePath + '*.csv'
+        allCSVfiles = filePath + 'METER/*.csv'
         CSVfileList = glob.glob(allCSVfiles)
 
         for DataFile in CSVfileList:
