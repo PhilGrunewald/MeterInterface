@@ -314,26 +314,28 @@ def getReadingPeriods(_householdID,_condition,_duration):
     else:
         return "no meta entry"
 
-def upload_1min_readings(hhID):
+def upload_1min_readings(metaIDe):
     # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
     # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
 
-    sqlq="SELECT idMeta \
-            From Meta \
-            WHERE DataType = 'E' AND \
-            Household_idHousehold =%s" % hhID
-    EmetaIDs = getSQL(sqlq)
-
     dbConnection = getConnection()
+    sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % metaIDe
+    df_elec       = pd.read_sql(sqlq, con=dbConnection)
+    df_elec.index = pd.to_datetime(df_elec.dt)                           # index by time
+    df_elec_resampled = df_elec.resample('1min',label='left').median()   # downsample, label left such that time refers to the next minute
+    del df_elec_resampled['idElectricity']                               # remove index, so that a new one is auto-incremented
+    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
+    # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
 
-    for idMeta in EmetaIDs:
-        sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % idMeta['idMeta']
-        df_elec       = pd.read_sql(sqlq, con=dbConnection)
-        df_elec.index = pd.to_datetime(df_elec.dt)                           # index by time
-        df_elec_resampled = df_elec.resample('1min',label='left').median()   # downsample, label left such that time refers to the next minute
-        del df_elec_resampled['idElectricity']                               # remove index, so that a new one is auto-incremented
-        df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
-        # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
+def upload_10min_readings(metaIDe):
+    dbConnection = getConnection()
+    sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
+    df_elec       = pd.read_sql(sqlq, con=dbConnection)
+    df_elec.index = pd.to_datetime(df_elec.dt)                           # index by time
+    df_elec_resampled = df_elec.resample('10min',label='left').median()   # downsample, label left such that time refers to the next minute
+    del df_elec_resampled['idElectricity']                               # remove index, so that a new one is auto-incremented
+    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_10min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
+
 
 def uploadDataFile(fileName,dataType,_metaID,collectionDate):  
     global metaID
@@ -351,18 +353,19 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
         updateHouseholdStatus(householdID,6)
-        upload_1min_readings(householdID)
+        upload_1min_readings(metaID)
+        upload_10min_readings(metaID)
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
             sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
-            executeSQL(sqlq)                             # create an entry
+            individualID = executeSQL(sqlq)                             # create an entry
             commit()
-            individualID = cursor.lastrowid                  # get the id of the entry just made
             for row in csv_data:                             # populate columns
                 sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
                         WHERE idIndividual = '"+str(individualID)+"';"
                 executeSQL(sqlq)
+            message(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
                 sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
@@ -1000,9 +1003,9 @@ class ActionControllerData(nps.MultiLineAction):
             self.parent.setMainMenu()
 
     def btnA(self, *args, **keywords):
-        updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
+        # updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
         #print_letter()
-        # pass
+        pass
         # upload_1min_readings(householdID)
 
     def btnE(self, *args, **keywords):
