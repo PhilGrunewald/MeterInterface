@@ -9,6 +9,12 @@
 #action_highlighted action based on line selected (enter) depending on displayModus
 #statusUpdate       list of and setting of household status
 
+# ADB comands worth integrating
+# Check AUTOSTART setting
+# adb shell dumpsys | grep -A 2 "power off alarms dump"
+# Check Battery level
+# adb shell dumpsys battery | grep level 
+
 # For plotting
 import flask                  # serve python
 import json                   # used for reading activities.json
@@ -37,7 +43,7 @@ modi = [ 'Processed', 'Issued', 'Upcoming', 'Future' , 'No date yet']
 Criteria = {
         'Processed':    'status > 5 ORDER BY date_choice DESC',
         'Issued':       'status = 5',
-        'Upcoming':     'date_choice > CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
+        'Upcoming':     'date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
         'Future':       'date_choice > CURDATE()',
         'No date yet':  'date_choice < "2010-01-01"',
         'no reading':   'Watt < 10',
@@ -349,6 +355,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
 
 
     if (dataType == 'E'):
+        # os.system("scp " + dataFile + " phil@109.74.196.205:/var/lib/mysql-files")
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
@@ -524,7 +531,7 @@ def phone_id_setup(meterType):
         templateText = templateText.replace("[date]", date)
         templateText = templateText.replace("[id]", metaID)
 
-        printSticker(templateText,letterPath + "aMeter")
+        # printSticker(templateText,letterPath + "aMeter")
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
         "Phone was assigned ID " + metaID
@@ -598,14 +605,16 @@ def updateConfigFile(_id,_dateChoice,meterType):
         # set device time to the day of recording
         dateChoice_dt += datetime.timedelta(hours=17)
         startDateAdb = dateChoice_dt.strftime("%m%d%H%M%Y.%S")
-        setDate = "adb shell \"date -u %s\"" % startDateAdb
-        message(setDate)
+        call("adb root",  shell=True)
         call("adb shell \"date %s\"" % startDateAdb,  shell=True)
     else:
         jstring.update({"times": dts})
+        call("adb root",  shell=True)
+        call('adb shell "date `date +%m%d%H%M%Y.%S`"', shell=True)
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
     config_file.close()
+    call('adb shell "mkdir /sdcard/METER/"', shell=True)
     call('adb push ' + configFilePath + ' /sdcard/METER/', shell=True)
 
 def updateIDfile(_id):
@@ -658,9 +667,9 @@ def root_phone():
 def flash_phone(meterType):
     # restore phone from Master copy
     if (meterType == 'E'):
-        call('adb push ./flash_eMeter/ /sdcard/',  shell=True)
+        call('adb push ./flash_eMeter/TWRP/ /sdcard/',  shell=True)
     elif (meterType == 'A'):
-        call('adb push ./flash_aMeter/ /sdcard/',  shell=True)
+        call('adb push ./flash_aMeter/TWRP/ /sdcard/',  shell=True)
     call('adb reboot recovery',  shell=True)
     message("Phone restarting\n\
             1) Restore \n\
@@ -1012,7 +1021,7 @@ class ActionControllerData(nps.MultiLineAction):
         if (operationModus == 'Processed'):
             compose_email('graph')
         if (operationModus == 'Issued'):
-            compose_email('request_return')
+            compose_email('request_return2')
         elif (operationModus == 'Upcoming'):
             phone_id_setup('E')
 
@@ -1567,8 +1576,8 @@ class metaFileInformation(nps.Form):
                  '.csv ~/.Trash/', shell=True)
 
         # tidy up any left over files
-        call('mv ' + filePath + '*.csv ' + archivePath, shell=True)
-        call('mv ' + filePath + '*.meta ' + archivePath, shell=True)
+        call('mv ' + filePath + '/METER/*.csv ' + archivePath, shell=True)
+        call('mv ' + filePath + '/METER/*.meta ' + archivePath, shell=True)
 
         # switch to "Processed" and display the most recent addition
         global operationModus
