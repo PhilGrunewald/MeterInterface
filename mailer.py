@@ -21,20 +21,20 @@ from meter_ini import *     # reads the database and file path information from 
 
 tables = ['Contact', 'Mailinglist']
 
-subsections = {'Contact': ['early','xMas', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['Test', 'All', 'No date', 'Pre trial', 'Post trial'],
                'Mailinglist': ['All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
-        'All':       'email <> \'%@%\'',
-        'No date':   'Household.status < 2 AND page_number > 0 AND email <> \'%@%\'',
-        'Pre trial': 'Household.status > 1 AND Household.status < 6 AND email <> \'%@%\'',
-        'Post trial':'Household.status > 5 AND page_number >0',
+            'All':       'email <> \'%@%\'',
+        'No date':   'Household.status = 1',
+        'Pre trial': 'Household.status = 2',
+        'Post trial':'Household.status >= 3',
         'Panel':     'status = \'panel\'',
         'Updates':     'status = \'updates\'',
-        'Test':     'status = \'test1\'',
-        'early':     'Contact.status = \'early\'',
-        'xMas':   'Household.status > 1 AND page_number > 0 AND email <> \'%@%\'',
-        'xxx':     'Contact.status = \'test1\''
+        'Test':     'Contact.status = \'test\'',
+        'early':     'Contact.status = \'early\''
+        # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
+        # 'xxx':     'Contact.status = \'test1\''
         }
 table = tables[0]
 subsection = subsections[table][0]
@@ -89,6 +89,8 @@ def sendTo(condition,attach):
     idField = "id%s" % table
     for result in results:
         emailText = templateText.replace("[name]", "%s" % result["Name"])
+        emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
+        emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
         emailText = emailText.replace("[id]", "%s" % result[idField])
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")

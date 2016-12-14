@@ -94,11 +94,12 @@ def backup_database():
 
 def getNameEmail(table,criterium):
     if (table == "Contact"):
-        sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email\
+        email='\'%@%\''
+        sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
                 From Contact\
                 Join Household\
                 ON Household.Contact_idContact = Contact.idContact\
-                WHERE %s" % criterium
+                WHERE email like %s AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL) AND %s" % (email,criterium)
     else:
         sqlq = "Select *\
                 FROM %s\

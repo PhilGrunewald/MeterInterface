@@ -38,12 +38,13 @@ app = flask.Flask(__name__)
 app.config['DEBUG'] = True
 
 
-modi = [ 'Processed', 'Issued', 'Upcoming', 'Future' , 'No date yet']
+modi = [ 'Confirmed', 'Issued', 'Processed', 'Upcoming', 'Future' , 'No date yet']
 
 Criteria = {
+        'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY ORDER BY date_choice ASC',
+        'Confirmed':    'status = 4 ORDER BY date_choice ASC',
+        'Issued':       'status = 5 ORDER BY date_choice ASC',
         'Processed':    'status > 5 ORDER BY date_choice DESC',
-        'Issued':       'status = 5',
-        'Upcoming':     'date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
         'Future':       'date_choice > CURDATE()',
         'No date yet':  'date_choice < "2010-01-01"',
         'no reading':   'Watt < 10',
@@ -56,7 +57,7 @@ contactID = '0'
 metaID = '0'
 individual = '0'
 householdID = '0'
-HouseholdIDs = [ 0,0,0,0,0 ]                            # used to store last visited HH for each modus
+HouseholdIDs = [ 0,0,0,0,0,0 ]                            # used to store last visited HH for each modus
 dataType = 'E'
 participantCount = '0'
 aMeterCount = '0'
@@ -514,7 +515,7 @@ def phone_id_setup(meterType):
     if (meterType == 'E'):
         updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
         # only need this once per household
-        print_letter()
+        print_letter('parcel')
         updateHouseholdStatus(householdID,5)
     else:
         # Booklet sticker
@@ -531,7 +532,7 @@ def phone_id_setup(meterType):
         templateText = templateText.replace("[date]", date)
         templateText = templateText.replace("[id]", metaID)
 
-        # printSticker(templateText,letterPath + "aMeter")
+        printSticker(templateText,letterPath + "aMeter")
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
         "Phone was assigned ID " + metaID
@@ -795,6 +796,9 @@ def compose_email(type,edit=True):
 
     if (type == 'confirm'):
         updateHouseholdStatus(householdID, 3)
+    elif (type == 'reschedule'):
+        # I asked for a new date
+        updateHouseholdStatus(householdID, 31)
     elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
@@ -841,7 +845,7 @@ def getTemplate(fileName):
     return templateText
 
 
-def print_letter():
+def print_letter(letterType):
     # personal letter as pdf
     global householdID
     contactID = getContact(householdID)
@@ -863,7 +867,10 @@ def print_letter():
     weekday = dt.strftime("%A")
     nextday = dt2.strftime("%A")
 
-    templateText = getTemplate(letterPath + "letter_narrow.md")
+    if (letterType == "chase_eMeter"):
+        templateText = getTemplate(letterPath + "letter_chase_eMeter.md")
+    else:
+        templateText = getTemplate(letterPath + "letter_narrow.md")
     templateText = templateText.replace("[address]", thisAddress)
     templateText = templateText.replace("[name]", thisName)
     templateText = templateText.replace("[today]", todayDate)
@@ -1013,8 +1020,8 @@ class ActionControllerData(nps.MultiLineAction):
 
     def btnA(self, *args, **keywords):
         # updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
-        #print_letter()
-        pass
+        print_letter('chase_eMeter')
+        #pass
         # upload_1min_readings(householdID)
 
     def btnE(self, *args, **keywords):
@@ -1022,7 +1029,7 @@ class ActionControllerData(nps.MultiLineAction):
             compose_email('graph')
         if (operationModus == 'Issued'):
             compose_email('request_return2')
-        elif (operationModus == 'Upcoming'):
+        elif (operationModus == 'Confirmed'):
             phone_id_setup('E')
 
     def btnP(self, *args, **keywords):
@@ -1140,7 +1147,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     MenuText.append(formatBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
                     MenuText.append(formatBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
                     MenuText.append(formatBox("[A]nalyse", '' ))
-            if (operationModus == 'Upcoming'):
+            if (operationModus == 'Confirmed'):
                 MenuText.append(formatBox("[D]iaries:",  getDeviceMetaIDs(householdID,'A')))
                 MenuText.append(formatBox("[E]-Meter:",   getDeviceMetaIDs(householdID,'E')))
                 MenuText.append(formatBox("[>] Next", '' ))
@@ -1201,6 +1208,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2 = self.add_menu(name="Emails", shortcut="e")
         self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
         self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
+        self.m2.addItem(text='Date reschedule', onSelect=compose_email, shortcut='d', arguments=['reschedule'])
         self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
         self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
         self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
@@ -1581,7 +1589,7 @@ class metaFileInformation(nps.Form):
 
         # switch to "Processed" and display the most recent addition
         global operationModus
-        operationModus = modi[0]
+        operationModus = modi[2] # display as "Processed"
         self.parentApp.setNextFormPrevious()
 
 
