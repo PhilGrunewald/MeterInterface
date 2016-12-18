@@ -93,8 +93,8 @@ def backup_database():
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
 
 def getNameEmail(table,criterium):
+    email='\'%@%\''
     if (table == "Contact"):
-        email='\'%@%\''
         sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
                 From Contact\
                 Join Household\
@@ -103,7 +103,7 @@ def getNameEmail(table,criterium):
     else:
         sqlq = "Select *\
                 FROM %s\
-                WHERE %s" % (table,criterium)
+                WHERE email like %s AND (status <> 'unsubscribed' OR status IS NULL) AND %s" % (table,email,criterium)
     result = getSQL(sqlq)
     return result
 

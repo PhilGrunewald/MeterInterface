@@ -21,7 +21,7 @@ from meter_ini import *     # reads the database and file path information from 
 
 tables = ['Contact', 'Mailinglist']
 
-subsections = {'Contact': ['Test', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
                'Mailinglist': ['All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
@@ -31,7 +31,8 @@ Criteria = {
         'Post trial':'Household.status >= 3',
         'Panel':     'status = \'panel\'',
         'Updates':     'status = \'updates\'',
-        'Test':     'Contact.status = \'test\'',
+        'TestC':     'Contact.status = \'test\'',
+        'Test':     'status = \'test\'',
         'early':     'Contact.status = \'early\''
         # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
         # 'xxx':     'Contact.status = \'test1\''
@@ -89,8 +90,8 @@ def sendTo(condition,attach):
     idField = "id%s" % table
     for result in results:
         emailText = templateText.replace("[name]", "%s" % result["Name"])
-        emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
-        emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
+        #    emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
+        #    emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
         emailText = emailText.replace("[id]", "%s" % result[idField])
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")
