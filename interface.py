@@ -13,7 +13,10 @@
 # Check AUTOSTART setting
 # adb shell dumpsys | grep -A 2 "power off alarms dump"
 # Check Battery level
+# Android 4
 # adb shell dumpsys battery | grep level 
+# Android 6
+
 # adb shell am force-stop org.energy_use.meter
 # What apps are running
 # adb shell ps
@@ -63,6 +66,8 @@ ScreenKey = '0'
 householdID = '0'
 
 SerialNumbers   = []
+    
+first_time = True
 
 def showHouseholds():
     MeterApp._Forms['MAIN'].display_selected_data('Households')
@@ -76,9 +81,6 @@ def showScreen(key):
     ScreenKey = str(key)
     householdID = Screen["%s"%key]['Household']
     MeterApp._Forms['MAIN'].setMainMenu()
-
-def messageBB(self):
-    message("I am BB")
 
 def getDateOfFirstEntry(thisFile,col):
     # Find the date string in a data file
@@ -197,7 +199,10 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
     global metaID
     global householdID
     metaID = _metaID
+
     householdID = getHouseholdForMeta(metaID)
+    # this household gets shown on the 'processed' screen
+    Screen['7']['Household'] = householdID
 
     # put file content into database
     dataFile = fileName + '.csv'
@@ -205,6 +210,10 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
 
     if (dataType == 'E'):
         # os.system("scp " + dataFile + " phil@109.74.196.205:/var/lib/mysql-files")
+
+        # XXX makes this the option IF dbHost is localhost
+        # sqlq = "LOAD DATA INFILE '" + dataFile + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
@@ -739,7 +748,7 @@ def print_letter(letterType):
 
     if (participantCount != "1"):
         templateText = templateText.replace("[s]", "s")
-        templateText = templateText.replace("{multiple booklets}", " -- one for each household member above the age of eight. Do encourage the others to join you. The more people fill in their booklet, the better our understanding of electricity use becomes")
+        templateText = templateText.replace("{multiple booklets}", " -- to help you identify them there are numbers on the back (1 for the oldest, 2 second oldest...). Do encourage the others to join you. The more people contribute, the better our understanding of electricity use becomes")
     else:
         templateText = templateText.replace("[s]", "")
         templateText = templateText.replace("{multiple booklets}", "") 
@@ -1011,7 +1020,6 @@ class ActionControllerSearch(nps.ActionControllerSimple):
 class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     ACTION_CONTROLLER = ActionControllerSearch
     MAIN_WIDGET_CLASS = ActionControllerData
-    first_time = True
     # myStatus = Screen[str(ScreenKey)]['Name']
     myStatus = "Welcome to the Meter Interface"
 
@@ -1019,12 +1027,93 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     global cursor
     cursor = connectDatabaseOLD(dbHost)
 
+    def beforeEditing(self):
+        # connect/reconnect
+        global cursor
+        cursor = connectDatabase(dbHost)
+
+
+        if first_time:
+            global first_time
+            first_time = False
+            self.initialise()
+            # load Screen
+            global Screen
+            Screen = self.getScreens()
+
+        # global ScreenKey
+        # mainScreenText = self.getMenuText()
+        # self.value.set_values(mainScreenText)
+
+
+        showScreen(ScreenKey)
+
+
+        self.wStatus1.value = "xMETER " + self.myStatus
+        self.wMain.values = self.value.get()
+        self.wMain.display()
+
+    def initialise(self):
+        # menu and sub-menues           #menu_bar
+
+        # global Screen
+        # Screen = self.getScreens()
+
+        # global dataType
+        self.m1 = self.add_menu(name="Data handling", shortcut="D")
+        self.m1.addItemsFromList([
+            ("Download from phone", data_download, "d"),
+            ("Review Meta Data", data_review, "r"),
+        ])
+        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
+        self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
+        self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
+        self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
+        self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
+        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
+        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
+        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
+        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
+
+        self.m2 = self.add_menu(name="Work with data", shortcut="i")
+
+        self.m2 = self.add_menu(name="Emails", shortcut="e")
+        self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
+        self.m2.addItem(text='Date reschedule', onSelect=compose_email, shortcut='d', arguments=['reschedule'])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
+        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
+        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
+        self.m2.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
+
+        self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm',False])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel',False])
+        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph',False])
+        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail',False])
+
+        self.m2 = self.add_menu(name="Database management", shortcut="m")
+        self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
+        self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
+        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
+        self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
+        self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
+        self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
+
+        self.m3 = self.add_menu(name="Exit", shortcut="X")
+        self.m3.addItem(text="Home", onSelect = MeterApp._Forms['MAIN'].setMainMenu,shortcut="h")
+        self.m3.addItem(text="Exit", onSelect = self.exit_application, shortcut="X")
+
     def getMenuText(self):
         #menu_text
         global householdID
+        # householdID = Screen[ScreenKey]['Household']
         householdID = str(householdID)
-
         contactID   = getContact(householdID)
+
         MenuText = []
         line     = "\t\t\t|_______________________________________|"
         longline = "\t\t\t|_________________________________________________________________|"
@@ -1078,7 +1167,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         return MenuText
 
     def email(self,key):
-        compose_email(Screen[ScreenKey]['EmailType'])
+        # compose_email(Screen[ScreenKey][chr(key)['EmailType'])
+        compose_email(Screen[ScreenKey]['Actions'][chr(key)]['arguments'])
 
     def showHouseholds(self,key):
         self.display_selected_data('Households')
@@ -1126,7 +1216,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             '0': {
                 'Name'      : 'Home',
                 'Criterium': 'status >=0',
-                'EmailType': 'blank',
                 'Household': '0',
                 'Actions': {
                     }
@@ -1134,11 +1223,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             '1': {
                 'Name':     'No date yet',
                 'Criterium': 'date_choice < "2010-01-01"',
-                'EmailType': 'date',
                 'Household': '0',
                 'Actions': {
                         'E': {
                             'Action': self.email,
+                            'arguments': 'date',
                             'Label': "Email dates"
                             },
                         'S': {
@@ -1158,11 +1247,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             '2':   {
                 'Name'     : 'Future',
                 'Criterium': 'date_choice > CURDATE()',
-                'EmailType': 'date',
                 'Household': '0',
                 'Actions': {
                         'E': {
                             'Action': self.email,
+                            'arguments': 'date',
                             'Label': "Email alternative dates"
                             },
                         'S': {
@@ -1182,12 +1271,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             '3': {
                 'Name'     : 'Upcoming',
                 'Criterium':    'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
-                'EmailType': 'confirm',
                 'Household': '0',
                 'Actions': {
                         'E': {
-                            'Action': self.email,
-                            'Label': "Email to confirm"
+                            'Action'    : self.email,
+                            'arguments' : 'confirm',
+                            'Label'     : "Email to confirm"
                             },
                         'S': {
                             'Action': self.showHouseholds,
@@ -1206,7 +1295,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             '4': {
                 'Name'      : 'Confirmed',
                  'Criterium':    'status = 4 ORDER BY date_choice ASC',
-                 'Email':     'sent',
                  'Household': '0',
                  'Actions': {
                         'D': {
@@ -1214,8 +1302,9 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                             'Label': "Device config"
                             },
                         'E': {
-                            'Action': self.email,
-                            'Label': "Email parcel sent"
+                            'Action'    : self.email,
+                            'arguments' : 'sent',
+                            'Label'     : "Email parcel sent"
                             },
                         'S': {
                             'Action': self.showHouseholds,
@@ -1258,11 +1347,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
              '6': {
                 'Name'      : 'Overdue',
                  'Criterium': 'status = 5 AND date_choice < CURDATE() - INTERVAL "21" DAY ORDER BY date_choice ASC',
-                 'Email':     'request_return',
                  'Household': '0',
                  'Actions': {
                         'E': {
                             'Action': self.email,
+                            'arguments': 'request_return',
                             'Label': "Email dates"
                             },
                         'S': {
@@ -1282,12 +1371,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
              '7': {
                 'Name'      : 'Processed',
                  'Criterium': 'status > 5 ORDER BY date_choice DESC',
-                 'EmailType':     'graph',
                  'Household': '0',
                  'Actions': {
                         'E': {
                             'Action': self.email,
-                            'Label': "Email dates"
+                            'arguments': 'graph',
+                            'Label': "Email graph"
                             },
                         'S': {
                             'Action': self.showHouseholds,
@@ -1325,77 +1414,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.wStatus2.value = "Commands:  %s" % commandStr
         self.wStatus2.display()
 
-
-    def beforeEditing(self):
-        # connect/reconnect
-        global cursor
-        cursor = connectDatabase(dbHost)
-
-        # load Screen
-        global Screen
-        Screen = self.getScreens()
-        # mainScreenText = self.getMenuText()
-        mainScreenText = ["Press '0' to start"]
-        self.value.set_values(mainScreenText)
-        self.wStatus1.value = "METER " + self.myStatus
-        self.wMain.values = self.value.get()
-        if self.first_time:
-            self.initialise()
-            self.first_time = False
-
-    def initialise(self):
-        # menu and sub-menues           #menu_bar
-
-        # global Screen
-        # Screen = self.getScreens()
-
-        global dataType
-        self.m1 = self.add_menu(name="Data handling", shortcut="D")
-        self.m1.addItemsFromList([
-            ("Download from phone", data_download, "d"),
-            ("Review Meta Data", data_review, "r"),
-        ])
-        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
-        self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
-        self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
-        self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
-        self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
-        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
-        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
-        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
-        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
-        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
-
-        self.m2 = self.add_menu(name="Work with data", shortcut="i")
-
-        self.m2 = self.add_menu(name="Emails", shortcut="e")
-        self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
-        self.m2.addItem(text='Date reschedule', onSelect=compose_email, shortcut='d', arguments=['reschedule'])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
-        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
-        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
-        self.m2.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
-
-        self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm',False])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel',False])
-        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph',False])
-        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail',False])
-
-        self.m2 = self.add_menu(name="Database management", shortcut="m")
-        self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
-        self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
-        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
-        self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
-        self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
-        self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
-
-        self.m3 = self.add_menu(name="Exit", shortcut="X")
-        self.m3.addItem(text="Home", onSelect = MeterApp._Forms['MAIN'].setMainMenu,shortcut="h")
-        self.m3.addItem(text="Exit", onSelect = self.exit_application, shortcut="X")
 
     
     def show_Tables(self, *args, **keywords):
@@ -1576,7 +1594,7 @@ class editHouseholdForm(nps.Form):
                     ( self.contactData[i].name,
                       self.contactData[i].value,
                       householdID )
-            message(sqlq)
+            # message(sqlq)
             executeSQL(sqlq)
         commit()
         self.parentApp.setNextFormPrevious()
@@ -1787,7 +1805,7 @@ class metaFileInformation(nps.Form):
         # switch to "Processed" and display the most recent addition
         global ScreenKey
         # ScreenKey = modi[2] # display as "Processed"
-        ScreenKey = "6" # display as "Processed"
+        ScreenKey = "7" # display as "Processed"
         self.parentApp.setNextFormPrevious()
 
 

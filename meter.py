@@ -116,11 +116,15 @@ def getHouseholdCount(condition):
     result = getSQL(sqlq)[0]
     return ("%s" % result['count(idHousehold)'])
 
-def getContact(householdID):
+def getContact(hhID):
     # return contactID for given household
-    sqlq = "SELECT Contact_idContact FROM Household WHERE idHousehold = '%s';" % householdID
-    result = getSQL(sqlq)[0]
-    return ("%s" % result['Contact_idContact'])
+    sqlq = "SELECT Contact_idContact FROM Household WHERE idHousehold = '%s';" % hhID
+    if (getSQL(sqlq)):
+        result = getSQL(sqlq)[0]
+        return ("%s" % result['Contact_idContact'])
+    else:
+        message("Contact for household %s not found" % hhID)
+        return '0'
 
 def getNameOfContact(thisContactID):
     # get Contact name for a given Contact
@@ -136,17 +140,40 @@ def getSecurityCode(householdID):
     result = getSQL(sqlq)[0]
     return ("%s" % result['security_code'])
 
+def householdExists(hhID):
+    sqlq = "SELECT * FROM Household WHERE idHousehold = %s;" % hhID
+    if (getSQL(sqlq)):
+        return True
+    else:
+        return False
+
+def getHouseholdForContact(contactID):
+    # find the first HH match for this cID - WARNING - there could be more than one!!!
+    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = %s;" % contactID
+    if (getSQL(sqlq)):
+        result = getSQL(sqlq)[0]
+        return ("%s" % result['idHousehold'])
+    else:
+        message("No contact with ID=%s found"% contactID)
+        return '0'
+        
+
 def getHouseholdForMeta(_metaID):
-    # count household in database matching the modus criteria
+    # find the one match of HH for this metaID
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = %s;" % _metaID
     result = getSQL(sqlq)[0]
     return ("%s" % result['Household_idHousehold'])
 
 def getStatus(householdID):
     # get the status for this household
-    sqlq = "SELECT status FROM Household WHERE idHousehold = '" + householdID + "'"
-    executeSQL(sqlq)
-    return ("%s" % (cursor.fetchone()))
+    sqlq = "SELECT status FROM Household WHERE idHousehold = '%s';" % householdID 
+    result = getSQL(sqlq)[0]
+    return ("%s" % result['status'])
+# def getStatus(householdID):
+#     # get the status for this household
+#     sqlq = "SELECT status FROM Household WHERE idHousehold = '" + householdID + "'"
+#     executeSQL(sqlq)
+#     return ("%s" % (cursor.fetchone()))
 
 def getDateTimeFormated(dts):
     # DateTimeString as received from database: return 31 Jan 16
@@ -160,7 +187,16 @@ def getDateTimeFormated(dts):
 
 
 def formatBox(col1, col2):
-    return "\t\t\t|\t\t" + "{:<22}".format(col1) + "{:<20}".format(col2) + "|"
+    return "\t\t\t|\t\t" + "{:<19}".format(col1) + "{:<18}".format(col2) + "|"
+
+def formatBoxList(List):
+    fList = []
+    for line in List:
+        fList.append("\t\t\t|\t\t" + "{:<63}".format(line) + "|")
+    return fList
+
+def formatBigBox(col1, col2):
+    return "\t\t\t|\t\t" + "{:<14}".format(col1) + "{:<49}".format(col2) + "|"
 
 def formatList(col1, col2):
     return ["\t\t\t" + "{:<25}".format(col1) + "{:<30}".format(col2)]
