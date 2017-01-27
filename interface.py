@@ -1695,40 +1695,9 @@ class newContactForm(nps.Form):
 class metaFileInformation(nps.Form):
     # The MetaForm
     # display all .meta files in /METER/
-    def create(self):
-        fileList = []
-        reject_fileList = []
-
-        selectIndex = []
-        selectCounter = 0
-        metaIDs = []
-        collectionDate = []
-        dataType = []
-        duration = []
-        displayString = []
-
-        reject_Index = []
-        reject_Counter = 0
-        reject_contactID = []
-        reject_collectionDate = []
-        reject_dataType = []
-        reject_duration = []
-        reject_displayString = []
-
-        self.FileSelection = self.add(nps.TitleMultiSelect, max_height=9,
-                                      value=selectIndex,
-                                      name="Which files should be uploaded?",
-                                      values=displayString,
-                                      scroll_exit=True)
-        self.FileRejection = self.add(nps.TitleMultiSelect, max_height=15,
-                                      value=reject_Index,
-                                      name="These files will be deleted (uncheck to save them)?",
-                                      values=reject_displayString, scroll_exit=True)
-
-    def beforeEditing(self):
-        self.fileList = []      # added to not carry over old file lists
+    def init(self):
+        self.fileList = []
         self.reject_fileList = []
-
         self.selectIndex = []
         self.selectCounter = 0
         self.metaIDs = []
@@ -1736,7 +1705,6 @@ class metaFileInformation(nps.Form):
         self.dataType = []
         self.duration = []
         self.displayString = []
-
         self.reject_Index = []
         self.reject_Counter = 0
         self.reject_contactID = []
@@ -1745,13 +1713,30 @@ class metaFileInformation(nps.Form):
         self.reject_duration = []
         self.reject_displayString = []
 
-        self.FileSelection.values = self.displayString
-        self.FileRejection.values = self.reject_displayString
+    def create(self):
+        self.init()
+        self.FileSelection = self.add(nps.TitleMultiSelect, max_height=9,
+                                      name="Which files should be uploaded?",
+                                      scroll_exit=True)
+        self.FileRejection = self.add(nps.TitleMultiSelect, max_height=15,
+                                      name="These files will be deleted (uncheck to save them)?",
+                                      scroll_exit=True)
+
+    def beforeEditing(self):
+        self.FileSelection.value = []
+        self.init()
 
         # set up file names
         global filePath
 
         # 7 Nov 2016 XXX allCSVfiles = filePath + '*.csv'
+
+
+        # BUG: empty list causes a "-1" entry to show next time...
+        # XXX 27 Jan 2017 ACTION
+        # remove all "id / config and debug files"
+        # if list is empty jump right out ... 
+
         allCSVfiles = filePath + 'METER/*.csv'
         allJSONfiles = filePath + 'METER/*.json'
         CSVfileList = glob.glob(allCSVfiles)
@@ -1835,6 +1820,7 @@ class metaFileInformation(nps.Form):
                                             ' hours')
                 self.reject_Counter += 1
         self.FileSelection.values = self.displayString
+        self.FileSelection.value = self.selectIndex
         self.FileRejection.values = self.reject_displayString
 
 
