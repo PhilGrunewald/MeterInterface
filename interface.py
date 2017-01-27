@@ -72,6 +72,13 @@ first_time = True
 def showHouseholds():
     MeterApp._Forms['MAIN'].display_selected_data('Households')
 
+def callShell(command):
+    # executes shell command and returns all text displayed
+    call("%s > .temp" % command, shell=True)
+    messageStr = ''
+    for line in open('.temp'):
+        messageStr += line
+    return messageStr
 
 def showScreen(key):
     global ScreenKey
@@ -108,6 +115,7 @@ def data_download(*self):
         call('adb pull /sdcard/METER/ ' + filePath, shell=True)
         cmd = 'adb shell ls /sdcard/Meter/'
         s = subprocess.check_output(cmd.split())
+        # message("%s"%s)
         call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.json', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
@@ -251,17 +259,18 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
     if (dataType == 'I'):
         dataType = 'A'
     sqlq = "UPDATE Meta SET \
-            `DataType`='"+ dataType +"', \
-            `CollectionDate`='"+ collectionDate +"'\
+            `DataType`='"+ dataType +"' \
             WHERE `idMeta`='" +metaID+"';"
-    message("%s"%sqlq)
+    # 18 Jan 2017 removed `CollectionDate`='"+ collectionDate +"'\
     commit()
     executeSQL(sqlq)
     commit()
 
 
 def getDeviceCount(householdID):
-    sqlq = "SELECT COUNT(*) FROM Meta WHERE Household_idHousehold = '%s';" % householdID
+    # return count of devices configured for this date
+    dateChoice = getHHdateChoice(householdID)
+    sqlq = "SELECT COUNT(*) FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s';" % (householdID,dateChoice)
     result = getSQL(sqlq)[0]
     return result['COUNT(*)']
 
@@ -269,6 +278,17 @@ def getDeviceCount(householdID):
 def getDeviceMetaIDs(householdID):
     # check if eMeter has been configured
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % householdID
+    results = getSQL(sqlq)
+    metaIDs = ''
+    if (results):
+        counter = 0
+        for result in results:
+            metaIDs = metaIDs + ("{:<6}".format("%s" %  result['idMeta']))
+    return metaIDs
+
+def getDevicesForDate(householdID,dateChoice):
+    # check if eMeter has been configured
+    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     results = getSQL(sqlq)
     metaIDs = ''
     if (results):
@@ -406,8 +426,8 @@ def printSticker(text,fileName):
     myFile = open("%s.md" % (fileName), "w")
     myFile.write(text)
     myFile.close()
-    call("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName), shell=True)
-    call('lp -d MeterLabel -o landscape ' + fileName + '.pdf', shell=True)
+    message(callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName)))
+    message(callShell('lp -d MeterLabel -o landscape ' + fileName + '.pdf'))
 
 
 def getDiaryByNumber(number):
@@ -430,7 +450,7 @@ def phone_for_paper_diary(metaID):
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
     updateConfigFile(metaID,dateChoice,"P")
-    call("adb shell am force-stop org.energy_use.meter",  shell=True)
+    callShell("adb shell am force-stop org.energy_use.meter")
 
 def updateConfigFile(_id,_dateChoice,meterType):
     today = datetime.datetime.now()
@@ -469,18 +489,18 @@ def updateConfigFile(_id,_dateChoice,meterType):
         # set device time to the day of recording
         dateChoice_dt += datetime.timedelta(hours=17)
         startDateAdb = dateChoice_dt.strftime("%m%d%H%M%Y.%S")
-        call("adb root",  shell=True)
-        call("adb shell \"date %s\"" % startDateAdb,  shell=True)
+        callShell("adb root")
+        callShell("adb shell \"date %s\"" % startDateAdb)
     else:
         jstring.update({"times": dts})
-        call("adb root",  shell=True)
-        call('adb shell "date `date +%m%d%H%M%Y.%S`"', shell=True)
+        callShell("adb root")
+        callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
     config_file.close()
-    call('adb shell "mkdir /sdcard/METER/"', shell=True)
-    call('adb push ' + configFilePath + ' /sdcard/METER/', shell=True)
-    call('adb shell am force-stop org.energy_use.meter', shell=True)
+    callShell('adb shell "mkdir /sdcard/METER/"')
+    callShell('adb push ' + configFilePath + ' /sdcard/METER/')
+    callShell('adb shell am force-stop org.energy_use.meter')
 
 
 def updateIDfile(_id):
@@ -488,14 +508,14 @@ def updateIDfile(_id):
     idFile.write(str(_id))
     idFile.close()
     # XXX only needs doing once, but flashing doesn't seem to create this folder
-    call('adb shell mkdir /sdcard/METER', shell=True)
-    call('adb push ' + idFilePath + ' /sdcard/METER/', shell=True)
+    callShell('adb shell mkdir /sdcard/METER')
+    callShell('adb push ' + idFilePath + ' /sdcard/METER/')
     ## Android 6 (Pixi4) requires:
     # adb shell "date `date +%m%d%H%M%Y.%S`"
-    call('adb shell date -s `date "+%Y%m%d.%H%M%S"`',  shell=True)
-    # shut down phone (unless id is 0, i.e. the phone still needs setting up)
+    callShell('adb shell date -s `date "+%Y%m%d.%H%M%S"`')
+    # shut down phone (unless id is 0)
     if (_id != '0'):
-        call('adb shell reboot -p',  shell=True)
+        callShell('adb shell reboot -p')
 
 
 def setSerialNumber(SerialNumber):
@@ -504,7 +524,6 @@ def setSerialNumber(SerialNumber):
     sqlq = "UPDATE Meta \
             SET SerialNumber = '%s'\
             WHERE idMeta = '%s'" % (SerialNumber,metaID)
-    message(sqlq)
     executeSQL(sqlq)
     commit()
 
@@ -512,17 +531,16 @@ def setSerialNumber(SerialNumber):
 
 def aMeter_setup():
     # compile and upload the cordova activity app
-    call('/Users/phil/Sites/MeterApp/platforms/android/cordova/run', shell=True)
+    callShell('/Users/phil/Sites/MeterApp/platforms/android/cordova/run')
     # install AutoStart app
-    call('adb install ~/Software/Android/AutoStart_2.1.apk',
-         shell=True)
+    callShell('adb install ~/Software/Android/AutoStart_2.1.apk')
 
 def root_phone():
-    call('adb install -r ./apk/root.apk',  shell=True)
-    # call('adb install -r ./apk/Insecure.apk',  shell=True)
+    callShell('adb install -r ./apk/root.apk')
+    # callShell('adb install -r ./apk/Insecure.apk')
     # to configure a phone, install insecure and tick the two boxes to root at start
-    call('adb install -r ./apk/Flashify.apk',  shell=True)
-    call('adb push ./apk/recovery.img /sdcard/',  shell=True)
+    callShell('adb install -r ./apk/Flashify.apk')
+    callShell('adb push ./apk/recovery.img /sdcard/')
     message("Complete process\n\
             1) connect to WiFi\n\
             2) run KingoRoot\n\
@@ -533,10 +551,10 @@ def root_phone():
 def flash_phone(meterType):
     # restore phone from Master copy
     if (meterType == 'E'):
-        call('adb push ./flash_eMeter/TWRP/ /sdcard/',  shell=True)
+        callShell('adb push ./flash_eMeter/TWRP/ /sdcard/')
     elif (meterType == 'A'):
-        call('adb push ./flash_aMeter/TWRP/ /sdcard/',  shell=True)
-    call('adb reboot recovery',  shell=True)
+        callShell('adb push ./flash_aMeter/TWRP/ /sdcard/')
+    callShell('adb reboot recovery')
     message("Phone restarting\n\
             1) Restore \n\
             2) Select \"... KitKat\" swipe (2min) \n\
@@ -574,6 +592,12 @@ def getMetaIDs(hhID, deviceType):
     else:
         return ''
 
+def getHHdateChoice(hhID):
+    # reads a sql date in format "2016-12-31"
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s';" % hhID
+    result = getSQL(sqlq)[0]
+    dateStr = ("%s" % result['date_choice'])
+    return dateStr
 
 def getHHdtChoice(hhID):
     # reads a sql date in format "2016-12-31" and returns datetime object
@@ -671,6 +695,7 @@ def compose_email(type,edit=True):
         updateHouseholdStatus(householdID, 7)
         updateDataQuality(metaID,1)
     elif (type == 'fail'):
+        updateHouseholdStatus(householdID, 10)
         updateDataQuality(metaID,0)
 
     
@@ -789,7 +814,7 @@ class ActionControllerData(nps.MultiLineAction):
                 'q': self.show_MainMenu,
                 'Q': self.parent.exit_application,
                 'P': data_download,
-                'A': self.show_EditContact,
+                'A': self.test
                 }
         global MasterKeysLabels
         MasterKeysLabels = {
@@ -797,6 +822,7 @@ class ActionControllerData(nps.MultiLineAction):
                 'q': ' Back',
                 'Q': 'uit',
                 'P': 'rocess',
+                'A': ' shell to messsage',
                 }
         self.add_handlers(MasterKeys)
 
@@ -918,6 +944,10 @@ class ActionControllerData(nps.MultiLineAction):
     def mute(self, *args):
         pass
 
+    def test(self, *args):
+        xx = callShell('ls')
+        message("%s"%xx)
+
     def updateActionKeys(self,ScreenKey):
         # redefine what keys do
         global ActionKeys
@@ -964,6 +994,9 @@ class ActionControllerData(nps.MultiLineAction):
 
     def show_EditContact(self, *args, **keywords):
         self.parent.parentApp.switchForm('EditContact')
+
+    def show_EditHousehold(self, *args, **keywords):
+        self.parent.parentApp.switchForm('EditHousehold')
 
     def show_NewContact(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewContact')
@@ -1049,7 +1082,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         showScreen(ScreenKey)
 
 
-        self.wStatus1.value = "xMETER " + self.myStatus
+        self.wStatus1.value = "METER " + self.myStatus
         self.wMain.values = self.value.get()
         self.wMain.display()
 
@@ -1098,6 +1131,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
         self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
+        self.m2.addItem(text='Edit contact', onSelect=self.show_EditContact, shortcut='C')
+        self.m2.addItem(text='Edit household', onSelect=self.show_EditHousehold, shortcut='H')
         self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
         self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
         self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
@@ -1152,11 +1187,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append(formatBigBox("Contact:",  getNameOfContact(contactID) + ' (' + contactID + ')'))
             line
             status = getStatus(householdID)
-            MenuText.append(formatBigBox("Date:", getDateChoice(householdID)))
+            date   = getDateChoice(householdID)
+            dt_date= getHHdateChoice(householdID)
+            MenuText.append(formatBigBox("Date:", date))
             MenuText.append(formatBigBox("Household:", householdID))
             MenuText.append(formatBigBox("Status:", status))
             MenuText.append(formatBigBox("People:", getDeviceRequirements(householdID)))
-            MenuText.append(formatBigBox("Devices:", getDeviceMetaIDs(householdID)))
+            # MenuText.append(formatBigBox("Devices:", getDeviceMetaIDs(householdID)))
+            MenuText.append(formatBigBox("Devices:", getDevicesForDate(householdID,dt_date)))
 
             if (status > 5):
                 MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
@@ -1185,9 +1223,9 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # recount after new device configured
         deviceCount = getDeviceCount(householdID)
         if (deviceCount < participantCount):
-            Screen[ScreenKey]['Actions']['D']['Label'] = "Configure A%s"% (deviceCount+1)
+            Screen['4']['Actions']['D']['Label'] = "Configure A%s"% (deviceCount+1)
         else:
-            Screen[ScreenKey]['Actions']['D']['Label'] = "Configure eMeter"
+            Screen['4']['Actions']['D']['Label'] = "Configure eMeter"
 
     def nextHH(self,key):
         # get the next hh matching the modus criteria
@@ -1428,6 +1466,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def list_contacts(self):
         MeterApp._Forms['MAIN'].display_selected_data("Contact")
+
+
+    def show_EditContact(self, *args, **keywords):
+        self.parentApp.switchForm('EditContact')
+
+    def show_EditHousehold(self, *args, **keywords):
+        self.parentApp.switchForm('EditHousehold')
+
 
     def IgnoreForNow(self):
         pass
@@ -1715,7 +1761,11 @@ class metaFileInformation(nps.Form):
             recordsInFile = sum(1 for line in open(DataFile))
             thisFileName = DataFile.split('.csv')[0]
             thisFileName = thisFileName.split('.json')[0]
-            if (recordsInFile > 80000):
+
+            if (recordsInFile < 1):
+                call('mv ' + thisFileName + '.meta ~/.Trash/', shell=True)
+                call('mv ' + thisFileName + '.csv ~/.Trash/', shell=True)
+            elif (recordsInFile > 80000):
                 global householdID
                 # only full 24 hour recordings are of interest
                 # (that would be 86400 seconds)
@@ -1801,6 +1851,7 @@ class metaFileInformation(nps.Form):
         # tidy up any left over files
         call('mv ' + filePath + '/METER/*.csv ' + archivePath, shell=True)
         call('mv ' + filePath + '/METER/*.meta ' + archivePath, shell=True)
+        call('mv ' + filePath + '/METER/*_act.json ' + archivePath, shell=True)
 
         # switch to "Processed" and display the most recent addition
         global ScreenKey
