@@ -286,6 +286,26 @@ def getDeviceMetaIDs(householdID):
             metaIDs = metaIDs + ("{:<6}".format("%s" %  result['idMeta']))
     return metaIDs
 
+def getDevicesReadings(householdID,dateChoice):
+    # check if eMeter has been configured
+    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
+    results = getSQL(sqlq)
+    Counts = ''
+    if (results):
+        counter = 0
+        for result in results:
+            if (result['DataType'] == 'E'):
+                sqlq = "SELECT COUNT(*) From Electricity_10min WHERE Meta_idMeta = '%s' AND Watt > 20" % result['idMeta']
+                c_result = getSQL(sqlq)[0]
+                countInt = int(c_result['COUNT(*)']/6.0)
+            else:
+                sqlq = "SELECT COUNT(*) From Activities WHERE Meta_idMeta = '%s'" % result['idMeta']
+                c_result = getSQL(sqlq)[0]
+                countInt = c_result['COUNT(*)']
+            countStr = "{:<6}".format("%s" %  countInt)
+            Counts = Counts + countStr
+    return Counts
+
 def getDevicesForDate(householdID,dateChoice):
     # check if eMeter has been configured
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
@@ -881,7 +901,11 @@ class ActionControllerData(nps.MultiLineAction):
             # get digit in [] and call SwitchScreen with the Ascii (+48) 
             Key = selectedLine.split('[')[1]
             global ActionKeys
-            ActionKeys[Key[0]](int(Key[0])+48)
+            try:
+                ActionKeys[Key[0]](ord(Key[0]))
+            except:
+                message("No action for %s defined" % Key[0])
+            
 
         elif (self.parent.myStatus == 'Contact'):
             dataArray = selectedLine.split('\t')
@@ -938,7 +962,7 @@ class ActionControllerData(nps.MultiLineAction):
             Key = selectedLine.split('[')[1]
             global ActionKeys
             # XXX get ASCII value to pass - thus avoid int conversion
-            ActionKeys[Key[0]](666)
+            ActionKeys[Key[0]](ord(Key[0]))
 
 
     def mute(self, *args):
@@ -963,9 +987,10 @@ class ActionControllerData(nps.MultiLineAction):
         self.add_handlers(ActionKeys)
 
     def SwitchScreen(self, *args, **keywords):
-        KeyNumber=int(args[0])-48
-        self.updateActionKeys("%s"%KeyNumber)
-        showScreen(KeyNumber)
+        # convert key number to character (48 -> '0')
+        Key = chr(args[0])
+        self.updateActionKeys("%s"%Key)
+        showScreen(Key)
 
     def show_MainMenu(self, *args, **keywords):
         self.parent.setMainMenu()
@@ -1195,7 +1220,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append(formatBigBox("People:", getDeviceRequirements(householdID)))
             # MenuText.append(formatBigBox("Devices:", getDeviceMetaIDs(householdID)))
             MenuText.append(formatBigBox("Devices:", getDevicesForDate(householdID,dt_date)))
-
+            MenuText.append(formatBigBox("Readings:", getDevicesReadings(householdID,dt_date)))
             if (status > 5):
                 MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
                 MenuText.append(formatBigBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
