@@ -85,10 +85,14 @@ def showScreen(key):
     global householdID
     Screen[ScreenKey]['Household'] = householdID
 
+
     ScreenKey = str(key)
     householdID = Screen["%s"%key]['Household']
     MeterApp._Forms['MAIN'].setMainMenu()
 
+
+
+    
 def getDateOfFirstEntry(thisFile,col):
     # Find the date string in a data file
     # expected format: ...,2016-02-22T17:00:00.000Z,...
@@ -724,6 +728,8 @@ def compose_email(type,edit=True):
         MeterApp._Forms['MAIN'].wMain.display() # XXX does not have the desired effect of removing the light 'vim' background
     else:
         call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+    # 29 Jan 2017 added to redraw screen after mailing
+    MeterApp._Forms['MAIN'].setMainMenu()
 
 def email_many():
     # compose message
@@ -897,14 +903,13 @@ class ActionControllerData(nps.MultiLineAction):
             global ActionKeys
             ActionKeys[selectedLine[1]]()
 
-        elif (self.parent.myStatus == 'Home'):
-            # get digit in [] and call SwitchScreen with the Ascii (+48) 
-            Key = selectedLine.split('[')[1]
-            global ActionKeys
-            try:
-                ActionKeys[Key[0]](ord(Key[0]))
-            except:
-                message("No action for %s defined" % Key[0])
+        # elif (self.parent.myStatus == 'Home'):
+        #     # get digit in [] and call SwitchScreen with the Ascii (+48) 
+        #     Key = selectedLine.split('[')[1]
+        #     try:
+        #         ActionKeys[Key[0]](ord(Key[0]))
+        #     except:
+        #         message("No action for %s defined" % Key[0])
             
 
         elif (self.parent.myStatus == 'Contact'):
@@ -960,9 +965,10 @@ class ActionControllerData(nps.MultiLineAction):
         else:
             # check if command key is present in format [x]
             Key = selectedLine.split('[')[1]
-            global ActionKeys
-            # XXX get ASCII value to pass - thus avoid int conversion
-            ActionKeys[Key[0]](ord(Key[0]))
+            try:
+                ActionKeys[Key[0]](ord(Key[0]))
+            except:
+                message("No action for %s defined" % Key[0])
 
 
     def mute(self, *args):
@@ -1091,8 +1097,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         cursor = connectDatabase(dbHost)
 
 
+        global first_time
         if first_time:
-            global first_time
             first_time = False
             self.initialise()
             # load Screen
@@ -1113,9 +1119,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def initialise(self):
         # menu and sub-menues           #menu_bar
-
-        # global Screen
-        # Screen = self.getScreens()
 
         # global dataType
         self.m1 = self.add_menu(name="Data handling", shortcut="D")
@@ -1169,10 +1172,18 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def getMenuText(self):
         #menu_text
-        global householdID
-        # householdID = Screen[ScreenKey]['Household']
-        householdID = str(householdID)
+
+        try:
+            self.getHH()
+        except:
+            Screen[ScreenKey]['Index'] = 1
+            self.getHH()
+
+        # global householdID
+        # householdID = str(householdID)
         contactID   = getContact(householdID)
+        # global Screen
+        # Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
 
         MenuText = []
         line     = "\t\t\t|_______________________________________|"
@@ -1208,7 +1219,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         if (householdID != "0"):
             # Show Household information
-            MenuText.append( "\t\t\t _Household information___________________________________________")
+            MenuText.append( "\t\t\t _Household information  (%3s/%3s) _______________________________"% (Screen[ScreenKey]['Index'], getHouseholdCount(Screen[ScreenKey]['Criterium'])))
             MenuText.append(formatBigBox("Contact:",  getNameOfContact(contactID) + ' (' + contactID + ')'))
             line
             status = getStatus(householdID)
@@ -1252,27 +1263,45 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         else:
             Screen['4']['Actions']['D']['Label'] = "Configure eMeter"
 
-    def nextHH(self,key):
-        # get the next hh matching the modus criteria
-        global householdID
-        sqlq = "SELECT idHousehold FROM Household WHERE idHousehold > %s AND %s;" % (householdID,Screen[ScreenKey]['Criterium'])
+
+    def getHHindex(self,HouseholdID):
+        # find at what position in the list the current hh is
+        sqlq = "SELECT rank \
+                FROM ( \
+                    SELECT idHousehold, date_choice,\
+                    @rownum := @rownum + 1 AS rank\
+                        FROM Household, (SELECT @rownum := 0) r\
+                        WHERE %s \
+                    ) `selection` WHERE idHousehold = %s" % (Screen[ScreenKey]['Criterium'],HouseholdID)
         if (getSQL(sqlq)):
             result = getSQL(sqlq)[0]
-            householdID =  ("%s" % result['idHousehold'])
+            return ("%d" % int(result['rank']))
         else:
-            householdID = 0
+            return 0
+
+    def nextHH(self,key):
+        # get the next hh matching the modus criteria
+        global Screen
+        Screen[ScreenKey]['Index'] += 1
+        self.getHH()
         self.setMainMenu()
+
 
     def prevHH(self,key):
         # get the next hh matching the modus criteria
-        global householdID
-        sqlq = "SELECT idHousehold FROM Household WHERE idHousehold < %s AND %s;" % (householdID,Screen[ScreenKey]['Criterium'])
-        if (getSQL(sqlq)):
-            result = getSQL(sqlq)[0]
-            householdID =  ("%s" % result['idHousehold'])
-        else:
-            householdID = 0
+        global Screen
+        if (Screen[ScreenKey]['Index'] > 1):
+            Screen[ScreenKey]['Index'] -= 1
+        self.getHH()
         self.setMainMenu()
+
+    def getHH(self):
+        # set householdID to indexed household and show
+        global householdID
+        sqlq = "SELECT idHousehold FROM Household WHERE %s LIMIT %s,1;" % (Screen[ScreenKey]['Criterium'],Screen[ScreenKey]['Index']-1)
+        result = getSQL(sqlq)[0]
+        householdID =  ("%s" % result['idHousehold'])
+
 
     def getScreens(self):
         Screen = {
@@ -1287,6 +1316,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 'Name':     'No date yet',
                 'Criterium': 'date_choice < "2010-01-01"',
                 'Household': '0',
+                'Index'    :  0,
                 'Actions': {
                         'E': {
                             'Action': self.email,
@@ -1357,7 +1387,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                  },
             '4': {
                 'Name'      : 'Confirmed',
-                 'Criterium':    'status = 4 ORDER BY date_choice ASC',
+                 'Criterium':    'status = 4 ORDER BY date_choice,idHousehold ASC',
                  'Household': '0',
                  'Actions': {
                         'D': {
@@ -1871,9 +1901,33 @@ class metaFileInformation(nps.Form):
         self.parentApp.setNextFormPrevious()
 
 
+class MeterTheme(nps.ThemeManager):
+    default_colors = {
+    'DEFAULT'     : 'WHITE_BLACK',
+    'FORMDEFAULT' : 'GREEN_BLACK',
+    'NO_EDIT'     : 'BLUE_BLACK',
+    'STANDOUT'    : 'CYAN_BLACK',
+    'CURSOR'      : 'GREEN_BLACK',
+    'CURSOR_INVERSE': 'BLACK_WHITE',
+    'LABEL'       : 'GREEN_BLACK',
+    'LABELBOLD'   : 'WHITE_BLACK',
+    'CONTROL'     : 'YELLOW_BLACK',
+    'IMPORTANT'   : 'GREEN_BLACK',
+    'SAFE'        : 'GREEN_BLACK',
+    'WARNING'     : 'YELLOW_BLACK',
+    'DANGER'      : 'RED_BLACK',
+    'CRITICAL'    : 'BLACK_RED',
+    'GOOD'        : 'GREEN_BLACK',
+    'GOODHL'      : 'GREEN_BLACK',
+    'VERYGOOD'    : 'BLACK_GREEN',
+    'CAUTION'     : 'YELLOW_BLACK',
+    'CAUTIONHL'   : 'BLACK_YELLOW',
+    }
+
 class MeterForms(nps.NPSAppManaged):
     def onStart(self):
-        # nps.setTheme(npyscreen.Themes.ColorfulTheme)
+        #nps.setTheme(nps.Themes.ColorfulTheme)
+        nps.setTheme(MeterTheme)
         self.addForm('MAIN', MeterMain, lines=36)
         self.addForm('NewContact', newContactForm, name='New Contact')
         self.addForm('EditContact', editContactForm, name='Edit Contact')
