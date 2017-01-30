@@ -1173,11 +1173,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def getMenuText(self):
         #menu_text
 
-        try:
-            self.getHH()
-        except:
-            Screen[ScreenKey]['Index'] = 1
-            self.getHH()
+        # try:
+        Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
+        #     self.getHH()
+        # except:
+        #     Screen[ScreenKey]['Index'] = 1
+        #     self.getHH()
+
+        # Screen[ScreenKey]['Index'] = 1
 
         # global householdID
         # householdID = str(householdID)
@@ -1299,8 +1302,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # set householdID to indexed household and show
         global householdID
         sqlq = "SELECT idHousehold FROM Household WHERE %s LIMIT %s,1;" % (Screen[ScreenKey]['Criterium'],Screen[ScreenKey]['Index']-1)
-        result = getSQL(sqlq)[0]
-        householdID =  ("%s" % result['idHousehold'])
+        try:
+            result = getSQL(sqlq)[0]
+            householdID =  ("%s" % result['idHousehold'])
+        except:
+            householdID = '0'
+
 
 
     def getScreens(self):
