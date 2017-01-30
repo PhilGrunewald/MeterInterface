@@ -450,8 +450,8 @@ def printSticker(text,fileName):
     myFile = open("%s.md" % (fileName), "w")
     myFile.write(text)
     myFile.close()
-    message(callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName)))
-    message(callShell('lp -d MeterLabel -o landscape ' + fileName + '.pdf'))
+    callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName))
+    callShell('lp -d MeterLabel -o landscape ' + fileName + '.pdf')
 
 
 def getDiaryByNumber(number):
@@ -840,7 +840,6 @@ class ActionControllerData(nps.MultiLineAction):
                 'q': self.show_MainMenu,
                 'Q': self.parent.exit_application,
                 'P': data_download,
-                'A': self.test
                 }
         global MasterKeysLabels
         MasterKeysLabels = {
@@ -848,7 +847,6 @@ class ActionControllerData(nps.MultiLineAction):
                 'q': ' Back',
                 'Q': 'uit',
                 'P': 'rocess',
-                'A': ' shell to messsage',
                 }
         self.add_handlers(MasterKeys)
 
@@ -902,15 +900,6 @@ class ActionControllerData(nps.MultiLineAction):
             self.parent.wMain.display()
             global ActionKeys
             ActionKeys[selectedLine[1]]()
-
-        # elif (self.parent.myStatus == 'Home'):
-        #     # get digit in [] and call SwitchScreen with the Ascii (+48) 
-        #     Key = selectedLine.split('[')[1]
-        #     try:
-        #         ActionKeys[Key[0]](ord(Key[0]))
-        #     except:
-        #         message("No action for %s defined" % Key[0])
-            
 
         elif (self.parent.myStatus == 'Contact'):
             dataArray = selectedLine.split('\t')
@@ -973,10 +962,6 @@ class ActionControllerData(nps.MultiLineAction):
 
     def mute(self, *args):
         pass
-
-    def test(self, *args):
-        xx = callShell('ls')
-        message("%s"%xx)
 
     def updateActionKeys(self,ScreenKey):
         # redefine what keys do
@@ -1173,20 +1158,15 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def getMenuText(self):
         #menu_text
 
-        # try:
-        Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
-        #     self.getHH()
-        # except:
-        #     Screen[ScreenKey]['Index'] = 1
-        #     self.getHH()
+        if (householdID != '0'):
+            # a hh is assigned
+            Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
+        else:
+            # get the 1st in the list
+            Screen[ScreenKey]['Index'] = 1
+            self.getHH()
 
-        # Screen[ScreenKey]['Index'] = 1
-
-        # global householdID
-        # householdID = str(householdID)
         contactID   = getContact(householdID)
-        # global Screen
-        # Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
 
         MenuText = []
         line     = "\t\t\t|_______________________________________|"
@@ -1702,7 +1682,6 @@ class editHouseholdForm(nps.Form):
                     ( self.contactData[i].name,
                       self.contactData[i].value,
                       householdID )
-            # message(sqlq)
             executeSQL(sqlq)
         commit()
         self.parentApp.setNextFormPrevious()
