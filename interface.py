@@ -22,26 +22,26 @@
 # adb shell ps
 
 # For plotting
-import flask                  # serve python
+# import flask                  # serve python
 import json                   # used for reading activities.json
 import urllib                 # to read json from github
 import numpy as np            # used for mean
 import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
-from bokeh.embed import components
-from bokeh.resources import INLINE
-from bokeh.util.string import encode_utf8
-
-from bokeh.plotting import figure, curdoc, vplot, show
-from bokeh.plotting import figure, show, output_file
-from bokeh.models import Range1d, Circle
+# from bokeh.embed import components
+# from bokeh.resources import INLINE
+# from bokeh.util.string import encode_utf8
+# 
+# from bokeh.plotting import figure, curdoc, vplot, show
+# from bokeh.plotting import figure, show, output_file
+# from bokeh.models import Range1d, Circle
 
 from meter import *         # db connection and npyscreen features
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
-app = flask.Flask(__name__)
-app.config['DEBUG'] = True
+# app = flask.Flask(__name__)
+# app.config['DEBUG'] = True
 
 
 # modi = [ 'Home', 'Confirmed', 'Issued', 'Processed', 'Upcoming', 'Future' , 'No date yet']
