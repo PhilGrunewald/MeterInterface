@@ -525,6 +525,7 @@ def updateConfigFile(_id,_dateChoice,meterType):
     callShell('adb shell "mkdir /sdcard/METER/"')
     callShell('adb push ' + configFilePath + ' /sdcard/METER/')
     callShell('adb shell am force-stop org.energy_use.meter')
+    callShell('adb install -r ./apk/aMeter.apk')
 
 
 def updateIDfile(_id):
@@ -1031,6 +1032,7 @@ class ActionControllerSearch(nps.ActionControllerSimple):
         self.add_action('^:d\d\d\d\d', self.paperDiary, False)
         self.add_action('^:c\d\d', self.setContact, False)
         self.add_action('^:h\d', self.setHousehold, False)
+        self.add_action('^:m\d', self.setMetaID, False)
         self.add_action('^:d\d$', self.paperDiaryNumber, False)
 
     def set_search(self, command_line, widget_proxy, live):
@@ -1049,6 +1051,11 @@ class ActionControllerSearch(nps.ActionControllerSimple):
     def setContact(self, command_line, widget_proxy, live): # entered as 4 digit
         global householdID
         householdID = getHouseholdForContact(command_line[2:])
+        self.parent.setMainMenu()
+
+    def setMetaID(self, command_line, widget_proxy, live): # entered as 4 digit
+        global householdID
+        householdID = getHouseholdForMeta(command_line[2:])
         self.parent.setMainMenu()
 
     def paperDiary(self, command_line, widget_proxy, live): # entered as 4 digit

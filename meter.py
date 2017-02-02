@@ -161,8 +161,12 @@ def getHouseholdForContact(contactID):
 def getHouseholdForMeta(_metaID):
     # find the one match of HH for this metaID
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = %s;" % _metaID
-    result = getSQL(sqlq)[0]
-    return ("%s" % result['Household_idHousehold'])
+    if (getSQL(sqlq)):
+        result = getSQL(sqlq)[0]
+        return ("%s" % result['Household_idHousehold'])
+    else:
+        message("Meta ID %s not found"%_metaID)
+        return '0'
 
 def getStatus(householdID):
     # get the status for this household
