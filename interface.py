@@ -292,7 +292,8 @@ def getDeviceMetaIDs(householdID):
 
 def getDevicesReadings(householdID,dateChoice):
     # check if eMeter has been configured
-    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
+    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
+    # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     results = getSQL(sqlq)
     Counts = ''
     if (results):
@@ -515,7 +516,9 @@ def updateConfigFile(_id,_dateChoice,meterType):
         dateChoice_dt += datetime.timedelta(hours=17)
         startDateAdb = dateChoice_dt.strftime("%m%d%H%M%Y.%S")
         callShell("adb root")
-        callShell("adb shell \"date %s\"" % startDateAdb)
+        bob = callShell("adb shell \"date %s\"" % startDateAdb)
+        message("adb shell \"date %s\"" % startDateAdb)
+        message(bob)
     else:
         jstring.update({"times": dts})
         callShell("adb root")
