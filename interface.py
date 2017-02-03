@@ -312,7 +312,8 @@ def getDevicesReadings(householdID,dateChoice):
 
 def getDevicesForDate(householdID,dateChoice):
     # check if eMeter has been configured
-    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
+    # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
+    sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
     results = getSQL(sqlq)
     metaIDs = ''
     if (results):
