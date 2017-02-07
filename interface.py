@@ -424,7 +424,8 @@ def device_config(meterType):
     if (meterType == 'E'):
         updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
         # only need this once per household
-        print_letter('parcel')
+        # print_letter('parcel')
+        print_address()
         updateHouseholdStatus(householdID,5)
     else:
         # Booklet sticker
@@ -767,6 +768,24 @@ def getTemplate(fileName):
     templateFile.close()
     return templateText
 
+def print_address():
+    # formated address label
+    global householdID
+    contactID = getContact(householdID)
+
+    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
+    result = getSQL(sqlq)[0]
+    thisName    = ("%s %s" % (result['Name'],result['Surname']))
+
+    address = getTemplate(letterPath + "_address.md")
+    address = address.replace("[Name]",      thisName)
+    address = address.replace("[Address1]", "%s" % result['Address1'])
+    address = address.replace("[Address2]", "%s" % result['Address2'])
+    address = address.replace("[Town]",     "%s" % result['Town'])
+    address = address.replace("[Postcode]", "%s" % result['Postcode'])
+    address = address.replace("None", "")
+
+    printSticker(address,letterPath + "address")
 
 def print_letter(letterType):
     # personal letter as pdf
