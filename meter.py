@@ -89,7 +89,7 @@ def backup_database():
     dateTimeToday = datetime.datetime.now()
     thisDate = dateTimeToday.strftime("%Y_%m_%d")
     call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
-         ' > ' + filePath + 'database/' + thisDate + '_' + dbName + '.sql', shell=True)
+         ' > ' + './Data/database/' + thisDate + '_' + dbName + '.sql', shell=True)
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
 
 def getNameEmail(table,criterium):
