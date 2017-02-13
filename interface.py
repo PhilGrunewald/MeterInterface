@@ -482,11 +482,10 @@ def phone_for_paper_diary(metaID):
 def updateConfigFile(_id,_dateChoice,meterType):
     today = datetime.datetime.now()
     dateFormat        = '%Y-%m-%d'
-    dateFormatAndroid = '%Y%m%d'
 
     dateChoice_dt = datetime.datetime.strptime(_dateChoice,dateFormat)
-    if (dateChoice_dt > today):     # only for testing
-        dateChoice_dt = today
+    # if (dateChoice_dt > today):     # only for testing
+    #     dateChoice_dt = today
     startDate = dateChoice_dt.strftime("%Y-%m-%d")
     dateChoice_plus = dateChoice_dt
     dateChoice_plus += datetime.timedelta(days=1)
@@ -684,6 +683,7 @@ def compose_email(type,edit=True):
     templateText = templateFile.read()
     templateFile.close()
     templateText = templateText.replace("[householdID]", householdID)
+    templateText = templateText.replace("[contactID]", contactID)
     templateText = templateText.replace("[name]", thisName)
     templateText = templateText.replace("[address]", thisAddress)
     templateText = templateText.replace("[date]", thisDate)
@@ -1188,9 +1188,9 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def getMenuText(self):
         #menu_text
 
-        if (householdID != '0'):
+        if (householdID != '0'): 
             # a hh is assigned
-            Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
+            Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID)) 
         else:
             # get the 1st in the list
             Screen[ScreenKey]['Index'] = 1
@@ -1433,12 +1433,17 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
              '5': {
                 'Name'      : 'Issued',
                  'Criterium': 'status = 5 ORDER BY date_choice ASC',
-                 'Email':     'request_return',
                  'Household': '0',
                  'Actions': {
+                        'D': {
+                            'Action': self.email,
+                            'arguments' : 'date',
+                            'Label': "Email new dates"
+                            },
                         'E': {
                             'Action': self.email,
-                            'Label': "Email dates"
+                            'arguments' : 'request_return',
+                            'Label': "Email return reminder"
                             },
                         'S': {
                             'Action': self.showHouseholds,
@@ -1821,7 +1826,7 @@ class metaFileInformation(nps.Form):
             if (recordsInFile < 1):
                 call('mv ' + thisFileName + '.meta ~/.Trash/', shell=True)
                 call('mv ' + thisFileName + '.csv ~/.Trash/', shell=True)
-            elif (recordsInFile > 80000):
+            elif (recordsInFile > 40000): # was 80000
                 global householdID
                 # only full 24 hour recordings are of interest
                 # (that would be 86400 seconds)
