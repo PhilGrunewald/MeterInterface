@@ -399,15 +399,34 @@ def updateHouseholdStatus(householdID, status):
     commit()
 
 
+def getDeviceSerialNumber(meterType):
+    # download the sn from device - if none present, set one up
+    callShell("rm %s" % snFilePath)
+    callShell("adb pull /sdcard/METER/sn.txt %s" % snFilePath)
+    if (os.path.isfile(snFilePath)):
+        with open(snFilePath, 'r') as f:
+            sn = f.readline()
+    else:
+        if (meterType == 'E'):
+            # enter sn in window - must be >1000 to not mix up with aMeter
+            sn = '-1'
+        else:
+            # aMeters get auto increment numbers from 1..1000 (?)
+            sqlq = "SELECT MAX(SerialNumber)+1 AS sn FROM Meta WHERE SerialNumber <1000"
+            result = getSQL(sqlq)[0]
+            sn = ("%s" % result['sn'])
+            with open(snFilePath, "w") as f:
+                f.write(sn)
+            callShell("adb push %s /sdcard/METER/" % snFilePath)
+    return sn
+    
+
 def device_config(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
     # global metaID
     global householdID
-    # 1) get household ID (assuming a 1:1 relationship!)
-    # sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '"\
-    #     + str(contactID) + "'"
-    # executeSQL(sqlq)
-    # householdID = ("%s" % cursor.fetchone())
+    # 1) get the serial number from this device (if given - else '-1' until form completed)
+    sn = getDeviceSerialNumber(meterType)
 
     # 2) create a meta id entry for an 'eMeter'
 
@@ -415,11 +434,16 @@ def device_config(meterType):
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
 
-    sqlq = "INSERT INTO Meta(DataType, Household_idHousehold, CollectionDate) \
-           VALUES ('%s', '%s', '%s')" % (meterType,householdID,dateChoice)
+    sqlq = "INSERT INTO Meta(DataType, SerialNumber, Household_idHousehold, CollectionDate) \
+               VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID,dateChoice)
     metaID = ("%s" % executeSQL(sqlq))
     commit()
     updateConfigFile(metaID,dateChoice,meterType)
+
+    if (sn == '-1'):
+        # pass current metaID to for to make the update
+        MeterApp._Forms['snEntry'].meta = metaID
+        MeterApp.switchForm('snEntry')
 
     if (meterType == 'E'):
         updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
@@ -864,6 +888,7 @@ class ActionControllerData(nps.MultiLineAction):
                 'q': self.show_MainMenu,
                 'Q': self.parent.exit_application,
                 'P': data_download,
+                'A': self.show_snEntry,
                 }
         global MasterKeysLabels
         MasterKeysLabels = {
@@ -1040,6 +1065,9 @@ class ActionControllerData(nps.MultiLineAction):
 
     def show_NewContact(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewContact')
+                
+    def show_snEntry(self, *args, **keywords):
+        device_config("A")
 
     def formated_data_type(self, vl):
         return "%s (%s)" % (vl[1], str(vl[0]))
@@ -1202,6 +1230,9 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         line     = "\t\t\t|_______________________________________|"
         longline = "\t\t\t|_________________________________________________________________|"
 
+
+        # XXX !!!
+
         if (Screen[ScreenKey]['Name'] == 'Home'):
             # HOME Screen
             # Show METER logo
@@ -1331,9 +1362,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 },
             '1': {
                 'Name':     'No date yet',
-                'Criterium': 'date_choice < "2010-01-01"',
+                'Criterium': 'status = 1',
                 'Household': '0',
-                'Index'    :  0,
                 'Actions': {
                         'E': {
                             'Action': self.email,
@@ -1921,6 +1951,28 @@ class metaFileInformation(nps.Form):
         ScreenKey = "7" # display as "Processed"
         self.parentApp.setNextFormPrevious()
 
+class snEntry(nps.ActionPopup):
+    # pops up to collect a serial number
+
+    def create(self):
+        self.meta = 0 # will be assigned externally by device_config()
+        self.sn = self.add(nps.TitleText, name="Serial number for %s:" % self.meta, value="")
+
+    def beforeEditing(self):
+        self.sn.name = "%s" % self.meta
+        message(self.sn.name)
+
+    def on_ok(self):
+        with open(snFilePath, "w") as f:
+            f.write(self.sn.value)
+        callShell("adb push %s /sdcard/METER/" % snFilePath)
+        sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value,self.meta)
+        message(sqlq)
+        executeSQL(sqlq)
+        commit()
+        
+    def afterEditing(self):
+        self.parentApp.setNextFormPrevious()
 
 class MeterTheme(nps.ThemeManager):
     default_colors = {
@@ -1954,6 +2006,7 @@ class MeterForms(nps.NPSAppManaged):
         self.addForm('EditContact', editContactForm, name='Edit Contact')
         self.addForm('EditHousehold', editHouseholdForm, name='Edit Household')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
+        self.snForm = self.addForm('snEntry', snEntry, name='New Serial Number')
 
 if __name__ == "__main__":
     MeterApp = MeterForms()
