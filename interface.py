@@ -1,20 +1,20 @@
 #!/usr/bin/python
 
 # Shortcuts:
-#-----------
-#action_keys        single key commands
-#menu_text          main screen text
-#menu_bar           the pop up menu
-#display_data       display data depending on displayModus
-#action_highlighted action based on line selected (enter) depending on displayModus
-#statusUpdate       list of and setting of household status
+# -----------
+#   #action_keys        single key commands
+#   #menu_text          main screen text
+#   #menu_bar           the pop up menu
+#   #display_data       display data depending on displayModus
+#   #action_highlighted action based on line selected (enter) depending on displayModus
+#   #statusUpdate       list of and setting of household status
 
 # ADB comands worth integrating
 # Check AUTOSTART setting
 # adb shell dumpsys | grep -A 2 "power off alarms dump"
 # Check Battery level
 # Android 4
-# adb shell dumpsys battery | grep level 
+# adb shell dumpsys battery | grep level
 # Android 6
 
 # adb shell am force-stop org.energy_use.meter
@@ -22,55 +22,44 @@
 # adb shell ps
 
 # For plotting
-# import flask                  # serve python
 import json                   # used for reading activities.json
-import urllib                 # to read json from github
-import numpy as np            # used for mean
+# import numpy as np          # used for mean
 import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 # from bokeh.embed import components
 # from bokeh.resources import INLINE
 # from bokeh.util.string import encode_utf8
-# 
+
 # from bokeh.plotting import figure, curdoc, vplot, show
 # from bokeh.plotting import figure, show, output_file
 # from bokeh.models import Range1d, Circle
 
 from meter import *         # db connection and npyscreen features
-from meter_ini import *     # reads the database and file path information from meter_ini.py
+import meter_ini     # reads the database and file path information
 
-# app = flask.Flask(__name__)
-# app.config['DEBUG'] = True
-
-
-# modi = [ 'Home', 'Confirmed', 'Issued', 'Processed', 'Upcoming', 'Future' , 'No date yet']
-modi = [ 'aHome', 'Confirmed', 'No date yet']
-
-Criteria = {
-        'Home':     'status >= 0',
-        'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY ORDER BY date_choice ASC',
-        'Confirmed':    'status = 4 ORDER BY date_choice ASC',
-        'Issued':       'status = 5 ORDER BY date_choice ASC',
-        'Processed':    'status > 5 ORDER BY date_choice DESC',
-        'Future':       'date_choice > CURDATE()',
-        'No date yet':  'date_choice < "2010-01-01"',
-        'no reading':   'Watt < 10',
-        'high reading': 'Watt > 500'
-        }
+Criteria = {'Home':         'status >= 0',
+            'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY ORDER BY date_choice ASC',
+            'Confirmed':    'status = 4 ORDER BY date_choice ASC',
+            'Issued':       'status = 5 ORDER BY date_choice ASC',
+            'Processed':    'status > 5 ORDER BY date_choice DESC',
+            'Future':       'date_choice > CURDATE()',
+            'No date yet':  'date_choice < "2010-01-01"',
+            'no reading':   'Watt < 10',
+            'high reading': 'Watt > 500'
+            }
 
 Screen = {}
 ActionKeys = {}
 ScreenKey = '0'
-
 householdID = '0'
 
-SerialNumbers   = []
-    
 first_time = True
+
 
 def showHouseholds():
     MeterApp._Forms['MAIN'].display_selected_data('Households')
+
 
 def callShell(command):
     # executes shell command and returns all text displayed
@@ -80,20 +69,17 @@ def callShell(command):
         messageStr += line
     return messageStr
 
+
 def showScreen(key):
     global ScreenKey
     global householdID
     Screen[ScreenKey]['Household'] = householdID
-
-
     ScreenKey = str(key)
-    householdID = Screen["%s"%key]['Household']
+    householdID = Screen["%s" % key]['Household']
     MeterApp._Forms['MAIN'].setMainMenu()
 
 
-
-    
-def getDateOfFirstEntry(thisFile,col):
+def getDateOfFirstEntry(thisFile, col):
     # Find the date string in a data file
     # expected format: ...,2016-02-22T17:00:00.000Z,...
     # in the second column
@@ -103,6 +89,7 @@ def getDateOfFirstEntry(thisFile,col):
     thisDate = dateTime[0:10]
     return thisDate
 
+
 def getMetaData(MetaFile, ItemName):
     # extract content from meta file (or any other file)
     content = ""
@@ -110,6 +97,7 @@ def getMetaData(MetaFile, ItemName):
         if ItemName in line:
             content = line.split(ItemName + ": ", 1)[1]
     return content.strip()
+
 
 def data_download(*self):
     # pull files from phone
@@ -123,91 +111,107 @@ def data_download(*self):
         call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.json', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
-        updateIDfile('0')              # set to 0 to avoid confusion if phone comes on again
+        updateIDfile('0')  # set to 0 to ignore if phone comes on again
         MeterApp.switchForm('MetaForm')
     except:
         message("No device detected")
 
+
 def data_review():
     MeterApp.switchForm('MetaForm')
+
 
 def get_time_period(timestr):
     # convert into one of 144 10minute periods of the day
     factors = [6, 0.1, 0.00167]
-    return sum([a*b for a, b in zip(factors, map(int, timestr.split(':')))])
+    return sum([a * b for a, b in zip(factors, map(int, timestr.split(':')))])
+
 
 def period_hhmm(intPeriod):
-    dateTimeValue = datetime.datetime(1,1,1,4,0,0) + datetime.timedelta(minutes = (intPeriod-1) * 10)
+    dateTimeAddition = datetime.timedelta(minutes=(intPeriod - 1) * 10)
+    dateTimeValue = datetime.datetime(1, 1, 1, 4, 0, 0) + dateTimeAddition
     return str(dateTimeValue.time())[0:5]
+
 
 def next_period(thisTime):
     # advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00'
-    return thisTime + datetime.timedelta(minutes = 10)
-    
-def time_in_seconds(timestr): # not used - just kept for reference...
+    return thisTime + datetime.timedelta(minutes=10)
+
+
+def time_in_seconds(timestr):
+    # not used - just kept for reference...
     # '00:01:01' -> 61
     factors = [3600, 60, 1]
-    return sum([a*b for a, b in zip(factors, map(int, timestr.split(':')))])
+    return sum([a * b for a, b in zip(factors, map(int, timestr.split(':')))])
 
-def getReadingPeriods(_householdID,_condition,_duration):
+
+def getReadingPeriods(_householdID, _condition, _duration):
     # returns start and end of consequitive records matching the condition
     # used to identify how long 'no readings' were taken, or 'high readings'
-    metaID = getMetaIDs(_householdID,'E')        # only fetches the first (should only be one...)
+    metaID = getMetaIDs(_householdID, 'E')        # only fetches the first
     if (metaID != ''):
         sqlq = "SELECT idElectricity FROM Electricity WHERE %s\
-                AND Meta_idMeta = %s ORDER BY dt;" % (_condition,metaID)
+                AND Meta_idMeta = %s ORDER BY dt;" % (_condition, metaID)
         eIDs = getSQL(sqlq)
         if eIDs:
-            prevID   =  int("%s" % eIDs[0]['idElectricity'])
-            startIDs = [prevID]
-            endIDs   = []
-            durations= []
-        
+            prevID    = int("%s" % eIDs[0]['idElectricity'])
+            startIDs  = [prevID]
+            endIDs    = []
+            durations = []
+
             for eID in eIDs:
                 eID = int("%d" % eID['idElectricity'])
-                if (eID != (prevID+1)):
+                if (eID != (prevID + 1)):
                     endIDs.append(prevID)
                     startIDs.append(eID)
                 prevID = eID
             endIDs.append(prevID)
 
             for i in range(len(endIDs)):
-                duration = endIDs[i]-startIDs[i]
+                duration = endIDs[i] - startIDs[i]
                 if (duration > _duration):
-                    durations.append(duration/60)
+                    durations.append(duration / 60)
             if (len(durations) > 5):
                 return len(durations)
             else:
-                return durations   
+                return durations
         else:
             return "none"
     else:
         return "no meta entry"
 
+
 def upload_1min_readings(metaIDe):
     # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
     # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
-
     dbConnection = getConnection()
     sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % metaIDe
-    df_elec       = pd.read_sql(sqlq, con=dbConnection)
-    df_elec.index = pd.to_datetime(df_elec.dt)                           # index by time
-    df_elec_resampled = df_elec.resample('1min',label='left').median()   # downsample, label left such that time refers to the next minute
-    del df_elec_resampled['idElectricity']                               # remove index, so that a new one is auto-incremented
-    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
+    df_elec = pd.read_sql(sqlq, con=dbConnection)
+    df_elec.index = pd.to_datetime(df_elec.dt)        # index by time
+    # downsample, label left such that time refers to the next minute
+    df_elec_resampled = df_elec.resample('1min', label='left').median()
+    # remove index, so that a new one is auto-incremented
+    del df_elec_resampled['idElectricity']
+    # pandas is brutal, if not append it rewrites the table!!
+    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
     # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
+
 
 def upload_10min_readings(metaIDe):
     dbConnection = getConnection()
     sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
-    df_elec       = pd.read_sql(sqlq, con=dbConnection)
-    df_elec.index = pd.to_datetime(df_elec.dt)                           # index by time
-    df_elec_resampled = df_elec.resample('10min',label='left').median()   # downsample, label left such that time refers to the next minute
-    del df_elec_resampled['idElectricity']                               # remove index, so that a new one is auto-incremented
-    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_10min', if_exists='append', flavor='mysql') # pandas is brutal, if not append it rewrites the table!!
+    df_elec = pd.read_sql(sqlq, con=dbConnection)
+    # index by time
+    df_elec.index = pd.to_datetime(df_elec.dt)
+    # downsample, label left such that time refers to the next minute
+    df_elec_resampled = df_elec.resample('10min', label='left').median()
+    # remove index, so that a new one is auto-incremented
+    del df_elec_resampled['idElectricity']
+    # pandas is brutal, if not append it rewrites the table!!
+    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_10min', if_exists='append', flavor='mysql')
 
 
-def uploadDataFile(fileName,dataType,_metaID,collectionDate):  
+def uploadDataFile(fileName, dataType, _metaID, collectionDate):
     global metaID
     global householdID
     metaID = _metaID
@@ -229,43 +233,40 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
-        updateHouseholdStatus(householdID,6)
+        updateHouseholdStatus(householdID, 6)
         upload_1min_readings(metaID)
         upload_10min_readings(metaID)
     elif (dataType == 'A'):
         # handle the xxxx_act.json file
-        with open("%s.json"%fileName) as json_data:
-             activities = json.load(json_data)
+        with open("%s.json" % fileName) as json_data:
+            activities = json.load(json_data)
         for activity in activities:
             keyStr = "`, `".join(activities[activity].keys())
             valStr = "', '".join(activities[activity].values())
-            sqlq = "INSERT INTO Activities(`%s`) VALUES('%s')"%(keyStr,valStr)
+            sqlq = "INSERT INTO Activities(`%s`) VALUES('%s')" % (keyStr, valStr)
             executeSQL(sqlq)
-            collectionDate = activities[activity]['dt_activity'][0:10]
-
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
-            sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('"+str(metaID)+"')"
+            sqlq = "INSERT INTO Individual(Meta_idMeta) VALUES('" + str(metaID) + "')"
             individualID = executeSQL(sqlq)                             # create an entry
             commit()
             for row in csv_data:                             # populate columns
                 sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
-                        WHERE idIndividual = '"+str(individualID)+"';"
+                        WHERE idIndividual = '" + str(individualID) + "';"
                 executeSQL(sqlq)
         if (dataType == 'A'):
             for row in csv_data:                                                       # insert each line into Activities
                 sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
-                        VALUES('"+row[0]+"', '"+row[1]+"', '"+row[2]+"', '"+row[3]+"', '"+row[4]+"', '"+row[5]+"', '"+row[6]+"', '"+row[7]+"', '"+row[8]+"', '"+row[9]+"')"
+                        VALUES('" + row[0] + "', '" + row[1] + "', '" + row[2] + "', '" + row[3] + "', '" + row[4] + "', '" + row[5] + "', '" + row[6] + "', '" + row[7] + "', '" + row[8] + "', '" + row[9] + "')"
                 executeSQL(sqlq)
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
     if (dataType == 'I'):
         dataType = 'A'
     sqlq = "UPDATE Meta SET \
-            `DataType`='"+ dataType +"' \
-            WHERE `idMeta`='" +metaID+"';"
-    # 18 Jan 2017 removed `CollectionDate`='"+ collectionDate +"'\
+            `DataType`='" + dataType + "' \
+            WHERE `idMeta`='" + metaID + "';"
     commit()
     executeSQL(sqlq)
     commit()
@@ -274,7 +275,7 @@ def uploadDataFile(fileName,dataType,_metaID,collectionDate):
 def getDeviceCount(householdID):
     # return count of devices configured for this date
     dateChoice = getHHdateChoice(householdID)
-    sqlq = "SELECT COUNT(*) FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s';" % (householdID,dateChoice)
+    sqlq = "SELECT COUNT(*) FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s';" % (householdID, dateChoice)
     result = getSQL(sqlq)[0]
     return result['COUNT(*)']
 
@@ -285,43 +286,43 @@ def getDeviceMetaIDs(householdID):
     results = getSQL(sqlq)
     metaIDs = ''
     if (results):
-        counter = 0
         for result in results:
-            metaIDs = metaIDs + ("{:<6}".format("%s" %  result['idMeta']))
+            metaIDs = metaIDs + ("{:<6}".format("%s" % result['idMeta']))
     return metaIDs
 
-def getDevicesReadings(householdID,dateChoice):
+
+def getDevicesReadings(householdID, dateChoice):
     # check if eMeter has been configured
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
     # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     results = getSQL(sqlq)
     Counts = ''
     if (results):
-        counter = 0
         for result in results:
             if (result['DataType'] == 'E'):
                 sqlq = "SELECT COUNT(*) From Electricity_10min WHERE Meta_idMeta = '%s' AND Watt > 20" % result['idMeta']
                 c_result = getSQL(sqlq)[0]
-                countInt = int(c_result['COUNT(*)']/6.0)
+                countInt = int(c_result['COUNT(*)'] / 6.0)
             else:
                 sqlq = "SELECT COUNT(*) From Activities WHERE Meta_idMeta = '%s'" % result['idMeta']
                 c_result = getSQL(sqlq)[0]
                 countInt = c_result['COUNT(*)']
-            countStr = "{:<6}".format("%s" %  countInt)
+            countStr = "{:<6}".format("%s" % countInt)
             Counts = Counts + countStr
     return Counts
 
-def getDevicesForDate(householdID,dateChoice):
+
+def getDevicesForDate(householdID, dateChoice):
     # check if eMeter has been configured
     # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
     results = getSQL(sqlq)
     metaIDs = ''
     if (results):
-        counter = 0
         for result in results:
-            metaIDs = metaIDs + ("{:<6}".format("%s" %  result['idMeta']))
+            metaIDs = metaIDs + ("{:<6}".format("%s" % result['idMeta']))
     return metaIDs
+
 
 def getDeviceRequirements(householdID):
     # formated list of counters and 'E' for people/eMeter
@@ -332,15 +333,17 @@ def getDeviceRequirements(householdID):
     clist = clist + ("{:<6}".format("E"))
     return clist
 
+
 def xgetDeviceMetaIDs(householdID, deviceType):
     # check if eMeter has been configured
-    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType,householdID)
+    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType, householdID)
     results = getSQL(sqlq)
     metaIDs = ''
     if (results):
         for result in results:
             metaIDs = metaIDs + ("{:<6}".format("%s" % result['idMeta']))
     return metaIDs
+
 
 def xgetParticipantCounters(householdID):
     counters = getParticipantCount(householdID)
@@ -352,30 +355,31 @@ def xgetParticipantCounters(householdID):
 
 def getComment(householdID):
     # get the status for this household
-    sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID 
+    sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID
     result = getSQL(sqlq)[0]
     CommentStr = "Comment: %s" % result['CONVERT(comment USING utf8)']
-    return textwrap.wrap(CommentStr,63)
+    return textwrap.wrap(CommentStr, 63)
 
 
 def getParticipantCount(householdID):
     # get number of diaries required
-    sqlq ="SELECT age_group2, age_group3, age_group4, age_group5, age_group6\
+    sqlq = "SELECT age_group2, age_group3, age_group4, age_group5, age_group6\
             FROM Household \
             WHERE idHousehold = '" + householdID + "';"
     result = getSQL(sqlq)[0]
     return int(result['age_group2']) + int(result['age_group3']) + int(result['age_group4']) + int(result['age_group5']) + int(result['age_group6'])
 
 
-def updateDataQuality(idMeta,Quality):
+def updateDataQuality(idMeta, Quality):
     # set Quality in Meta table
     # called when compose_email('graph')
     # XXX add for diaries
     sqlq = "UPDATE Meta \
             SET `Quality`= %s \
-            WHERE `idMeta` = %s;" % (Quality,idMeta)
+            WHERE `idMeta` = %s;" % (Quality, idMeta)
     executeSQL(sqlq)
     commit()
+
 
 def updateHouseholdStatus(householdID, status):
     # update status of household                            #statusUpdate
@@ -383,9 +387,9 @@ def updateHouseholdStatus(householdID, status):
     # only case 3,5,6 and 7 dealt with here. others from php forms.
     # 0 : hhq incomplete                hhq.php
     # 1 : hhq complete but no date      hhq.php
-    # 2 : date selected                 hhq.php 
+    # 2 : date selected                 hhq.php
     # 3 : 2 week warning sent           compose_email('confirm')
-    # 31: delay requested 
+    # 31: delay requested
     # 4 : date confirmed                confirm.php
     # 5 : kit sent                      device_config()
     # 6 : data uploaded                 uploadDataFile()
@@ -393,7 +397,7 @@ def updateHouseholdStatus(householdID, status):
     # 8 : participant made annotations
     # 10: no el data recorder
     sqlq = "UPDATE Household \
-            SET `status`="+ str(status) +"\
+            SET `status`=" + str(status) + "\
             WHERE `idHousehold` ='" + str(householdID) + "';"
     executeSQL(sqlq)
     commit()
@@ -419,7 +423,7 @@ def getDeviceSerialNumber(meterType):
                 f.write(sn)
             callShell("adb push %s /sdcard/METER/" % snFilePath)
     return sn
-    
+
 
 def device_config(meterType):
     # 2 Nov 15 - assumes that the apps are already installed
@@ -430,15 +434,15 @@ def device_config(meterType):
 
     # 2) create a meta id entry for an 'eMeter'
 
-    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'"  %householdID
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'" % householdID
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
 
     sqlq = "INSERT INTO Meta(DataType, SerialNumber, Household_idHousehold, CollectionDate) \
-               VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID,dateChoice)
+               VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID, dateChoice)
     metaID = ("%s" % executeSQL(sqlq))
     commit()
-    updateConfigFile(metaID,dateChoice,meterType)
+    updateConfigFile(metaID, dateChoice, meterType)
 
     if (sn == '-1'):
         # pass current metaID to for to make the update
@@ -446,16 +450,17 @@ def device_config(meterType):
         MeterApp.switchForm('snEntry')
 
     if (meterType == 'E'):
-        updateIDfile(metaID) # XXX currently douplicated with config file - eMeter could use json file, too...
+        updateIDfile(metaID)  # XXX currently douplicated with config file - eMeter could use json file, too...
         # only need this once per household
         # print_letter('parcel')
         print_address()
-        updateHouseholdStatus(householdID,5)
+        updateHouseholdStatus(householdID, 5)
+        if ((metaID != '0') & (sn != '-1')):
+            callShell('adb shell reboot -p')
     else:
         # Booklet sticker
-
         dt   = getHHdtChoice(householdID)
-        dt2  = dt + datetime.timedelta(days = 1)
+        dt2  = dt + datetime.timedelta(days=1)
         date = dt.strftime("%-d %b")
         day1 = dt.strftime("%a")
         day2 = dt2.strftime("%a")
@@ -466,18 +471,19 @@ def device_config(meterType):
         templateText = templateText.replace("[date]", date)
         templateText = templateText.replace("[id]", metaID)
 
-        printSticker(templateText,letterPath + "aMeter")
+        printSticker(templateText, letterPath + "aMeter")
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
         "Phone was assigned ID " + metaID
     MeterApp._Forms['MAIN'].wStatus2.display()
     MeterApp._Forms['MAIN'].setMainMenu()
 
-def printSticker(text,fileName):
+
+def printSticker(text, fileName):
     myFile = open("%s.md" % (fileName), "w")
     myFile.write(text)
     myFile.close()
-    callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName,fileName))
+    callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s %s.md -o %s.pdf" % (fileName, fileName))
     callShell('lp -d MeterLabel -o landscape ' + fileName + '.pdf')
 
 
@@ -486,52 +492,49 @@ def getDiaryByNumber(number):
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '%s';" % householdID
     results = getSQL(sqlq)
 
-    metaID = "%s" % results[int(number)-1]['idMeta']
+    metaID = "%s" % results[int(number) - 1]['idMeta']
     phone_for_paper_diary(metaID)
 
 
 def phone_for_paper_diary(metaID):
     # the id is typed on command line
 
-    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '%s'"  %metaID
+    sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '%s'" % metaID
     result = getSQL(sqlq)[0]
     householdID = ("%s" % result['Household_idHousehold'])
 
-    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'"  %householdID
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'" % householdID
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
-    updateConfigFile(metaID,dateChoice,"P")
+    updateConfigFile(metaID, dateChoice, "P")
     callShell("adb shell am force-stop org.energy_use.meter")
 
-def updateConfigFile(_id,_dateChoice,meterType):
-    today = datetime.datetime.now()
-    dateFormat        = '%Y-%m-%d'
 
-    dateChoice_dt = datetime.datetime.strptime(_dateChoice,dateFormat)
-    # if (dateChoice_dt > today):     # only for testing
-    #     dateChoice_dt = today
+def updateConfigFile(_id, _dateChoice, meterType):
+    dateFormat = '%Y-%m-%d'
+    dateChoice_dt = datetime.datetime.strptime(_dateChoice, dateFormat)
     startDate = dateChoice_dt.strftime("%Y-%m-%d")
     dateChoice_plus = dateChoice_dt
     dateChoice_plus += datetime.timedelta(days=1)
-    endDate   = dateChoice_plus.strftime("%Y-%m-%d")
+    endDate = dateChoice_plus.strftime("%Y-%m-%d")
     jstring = {"id": _id}
-    jstring.update({"start": "%s" %startDate})
-    jstring.update({"end": "%s" %endDate})  # XXX needs date + 1 Day
+    jstring.update({"start": "%s" % startDate})
+    jstring.update({"end": "%s" % endDate})  # XXX needs date + 1 Day
     times1 = [
-            "17:30:00",
-            "18:00:00",
-            "18:30:00"]
+        "17:30:00",
+        "18:00:00",
+        "18:30:00"]
     times2 = [
-            "08:00:00",
-            "08:30:00",
-            "17:30:00",
-            "18:00:00",
-            "18:30:00"]
+        "08:00:00",
+        "08:30:00",
+        "17:30:00",
+        "18:00:00",
+        "18:30:00"]
     dts = []
     for time in times1:
-        dts.append("%s %s" %(jstring['start'],time))
+        dts.append("%s %s" % (jstring['start'], time))
     for time in times2:
-        dts.append("%s %s" %(jstring['end'],time))
+        dts.append("%s %s" % (jstring['end'], time))
     if (meterType == "P"):
         # device for manual entry of paper diary
         # needs no reminders
@@ -563,23 +566,20 @@ def updateIDfile(_id):
     # XXX only needs doing once, but flashing doesn't seem to create this folder
     callShell('adb shell mkdir /sdcard/METER')
     callShell('adb push ' + idFilePath + ' /sdcard/METER/')
-    ## Android 6 (Pixi4) requires:
+    # Android 6 (Pixi4) requires:
     # adb shell "date `date +%m%d%H%M%Y.%S`"
     callShell('adb shell date -s `date "+%Y%m%d.%H%M%S"`')
     # shut down phone (unless id is 0)
-    if (_id != '0'):
-        callShell('adb shell reboot -p')
 
 
 def setSerialNumber(SerialNumber):
     # command typed number is set as serial number for current metaID
-    metaID = getMetaIDs(householdID,'E')
+    metaID = getMetaIDs(householdID, 'E')
     sqlq = "UPDATE Meta \
             SET SerialNumber = '%s'\
-            WHERE idMeta = '%s'" % (SerialNumber,metaID)
+            WHERE idMeta = '%s'" % (SerialNumber, metaID)
     executeSQL(sqlq)
     commit()
-
 
 
 def aMeter_setup():
@@ -587,6 +587,7 @@ def aMeter_setup():
     callShell('/Users/phil/Sites/MeterApp/platforms/android/cordova/run')
     # install AutoStart app
     callShell('adb install ~/Software/Android/AutoStart_2.1.apk')
+
 
 def root_phone():
     callShell('adb install -r ./apk/root.apk')
@@ -600,6 +601,7 @@ def root_phone():
             3) Flashify > Recovery image > choose a file \"/sdcard/recovery.img\" >yup (2min)\n\
             4) <OK> this message to flash\n\)")
     flash_phone("E")
+
 
 def flash_phone(meterType):
     # restore phone from Master copy
@@ -615,6 +617,7 @@ def flash_phone(meterType):
             4) Reconnect USB (!)\n\
             5) <OK> this message to configure ID")
     updateIDfile('0')
+
 
 def eMeter_setup():
     # superseeded by flash_phone()
@@ -636,14 +639,16 @@ def eMeter_setup():
     # configure phone for recording
     device_config('E')
 
+
 def getMetaIDs(hhID, deviceType):
     # check if eMeter has been configured
-    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType,hhID)
+    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType, hhID)
     result = getSQL(sqlq)
     if (result):
         return ("%s" % result[0]['idMeta'])
     else:
         return ''
+
 
 def getHHdateChoice(hhID):
     # reads a sql date in format "2016-12-31"
@@ -651,6 +656,7 @@ def getHHdateChoice(hhID):
     result = getSQL(sqlq)[0]
     dateStr = ("%s" % result['date_choice'])
     return dateStr
+
 
 def getHHdtChoice(hhID):
     # reads a sql date in format "2016-12-31" and returns datetime object
@@ -663,6 +669,7 @@ def getHHdtChoice(hhID):
     else:
         return "None"
 
+
 def getDateChoice(hhID):
     # return collection date as a string: "Sun, 31 Dec"
     this_dt = getHHdtChoice(hhID)
@@ -670,6 +677,7 @@ def getDateChoice(hhID):
         return this_dt.strftime("%a, %-d %b")
     else:
         return "None"
+
 
 def getDateTimeFormated(dts):
     # DateTimeString as received from database: return 31 Jan 16
@@ -681,20 +689,20 @@ def getDateTimeFormated(dts):
     else:
         return "None"
 
-def compose_email(type,edit=True):
+
+def compose_email(type, edit=True):
     # Contact participant with editabel email
     # edit = False -> send immediately
     global householdID
     # get contact details
     contactID = getContact(householdID)
-    metaID    = getMetaIDs(householdID,'E')
+    metaID    = getMetaIDs(householdID, 'E')
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email \
             FROM Contact \
             WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    
     thisName    = ("%s %s" % (result['Name'], result['Surname']))
-    thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'],result['Address2'],result['Town'],result['Postcode']))
+    thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None </br>", "")
     thisDate    = getDateChoice(householdID)
     thisEmail   = ("%s" % (result['email']))
@@ -723,7 +731,7 @@ def compose_email(type,edit=True):
         templateText = templateText.replace("[s]", "")
         templateText = templateText.replace("[ies]", "y")
         templateText = templateText.replace("[people]", "person")
-        templateText = templateText.replace("{multiple booklets}", "") 
+        templateText = templateText.replace("{multiple booklets}", "")
 
     if (edit):
         # needs email in line 1, Cc in line 2 and Subject in line 3
@@ -732,7 +740,7 @@ def compose_email(type,edit=True):
     else:
         # only keep the body of the text -> remove line 1 (Subject)
         subjectLine = templateText.splitlines()[0]
-        templateText = templateText[templateText.find('\n')+1:]     # find line break and return all from there - i.e. remove first line
+        templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
 
     emailFilePath = emailPath + "tempEmail.htmail"
     emailFile = open(emailFilePath, "w+")
@@ -747,19 +755,19 @@ def compose_email(type,edit=True):
     elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
-        updateDataQuality(metaID,1)
+        updateDataQuality(metaID, 1)
     elif (type == 'fail'):
         updateHouseholdStatus(householdID, 10)
-        updateDataQuality(metaID,0)
+        updateDataQuality(metaID, 0)
 
-    
     if (edit):
         call('vim ' + emailFilePath, shell=True)
-        MeterApp._Forms['MAIN'].wMain.display() # XXX does not have the desired effect of removing the light 'vim' background
+        MeterApp._Forms['MAIN'].wMain.display()  # XXX does not have the desired effect of removing the light 'vim' background
     else:
         call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
     # 29 Jan 2017 added to redraw screen after mailing
     MeterApp._Forms['MAIN'].setMainMenu()
+
 
 def email_many():
     # compose message
@@ -772,11 +780,11 @@ def email_many():
     templateFile.close()
 
     subjectLine = templateText.splitlines()[0]
-    templateText = templateText[templateText.find('\n')+1:]     # find line break and return all from there - i.e. remove first line
+    templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
 
     # personalise
     emailPathPersonal = emailPath + "email_personal.html"
-    sqlq="SELECT Name,email FROM Mailinglist WHERE scope = 'test'"
+    sqlq = "SELECT Name, email FROM Mailinglist WHERE scope = 'test'"
     results = getSQL(sqlq)
     for result in results:
         emailText = templateText.replace("[name]", result['Name'])
@@ -786,11 +794,13 @@ def email_many():
         emailFile.close()
         call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + ' < ' + emailPathPersonal, shell=True)
 
+
 def getTemplate(fileName):
     templateFile = open(fileName, "r")
     templateText = templateFile.read()
     templateFile.close()
     return templateText
+
 
 def print_address():
     # formated address label
@@ -799,7 +809,7 @@ def print_address():
 
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    thisName    = ("%s %s" % (result['Name'],result['Surname']))
+    thisName    = ("%s %s" % (result['Name'], result['Surname']))
 
     address = getTemplate(letterPath + "_address.md")
     address = address.replace("[Name]",      thisName)
@@ -809,7 +819,8 @@ def print_address():
     address = address.replace("[Postcode]", "%s" % result['Postcode'])
     address = address.replace("None", "")
 
-    printSticker(address,letterPath + "address")
+    printSticker(address, letterPath + "address")
+
 
 def print_letter(letterType):
     # personal letter as pdf
@@ -823,12 +834,12 @@ def print_letter(letterType):
 
     sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    thisName    = ("%s %s" % (result['Name'],result['Surname']))
-    thisAddress = ("%s\n\n%s\n\n%s %s" % (result['Address1'],result['Address2'],result['Town'],result['Postcode']))
+    thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    thisAddress = ("%s\n\n%s\n\n%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None\n\n", "")
 
     dt   = getHHdtChoice(householdID)
-    dt2  = dt + datetime.timedelta(days = 1)
+    dt2  = dt + datetime.timedelta(days=1)
     date = dt.strftime("%-d %b")
     weekday = dt.strftime("%A")
     nextday = dt2.strftime("%A")
@@ -850,7 +861,7 @@ def print_letter(letterType):
         templateText = templateText.replace("{multiple booklets}", " -- to help you identify them there are numbers on the back (1 for the oldest, 2 second oldest...). Do encourage the others to join you. The more people contribute, the better our understanding of electricity use becomes")
     else:
         templateText = templateText.replace("[s]", "")
-        templateText = templateText.replace("{multiple booklets}", "") 
+        templateText = templateText.replace("{multiple booklets}", "")
 
     myFile = open(letterPath + "temp_letter.md", "w+")
     myFile.write(templateText)
@@ -872,11 +883,12 @@ def print_letter(letterType):
     address = address.replace("[Postcode]", "%s" % result['Postcode'])
     address = address.replace("None", "")
 
-    printSticker(address,letterPath + "address")
+    printSticker(address, letterPath + "address")
 
 # ------------------------------------------------------------------------------
 # --------------------------FORMS-----------------------------------------------
 # ------------------------------------------------------------------------------
+
 
 class ActionControllerData(nps.MultiLineAction):
     # action key shortcuts                                      #action_keys
@@ -884,19 +896,19 @@ class ActionControllerData(nps.MultiLineAction):
         super(ActionControllerData, self).__init__(*args, **keywords)
         global MasterKeys
         MasterKeys = {
-                '0': self.SwitchScreen,
-                'q': self.show_MainMenu,
-                'Q': self.parent.exit_application,
-                'P': data_download,
-                'A': self.show_snEntry,
-                }
+            '0': self.SwitchScreen,
+            'q': self.show_MainMenu,
+            'Q': self.parent.exit_application,
+            'P': data_download,
+            'A': self.show_snEntry,
+        }
         global MasterKeysLabels
         MasterKeysLabels = {
-                '0': ' Home',
-                'q': ' Back',
-                'Q': 'uit',
-                'P': 'rocess',
-                }
+            '0': ' Home',
+            'q': ' Back',
+            'Q': 'uit',
+            'P': 'rocess',
+        }
         self.add_handlers(MasterKeys)
 
         # global MenuActionKeys
@@ -938,10 +950,9 @@ class ActionControllerData(nps.MultiLineAction):
         # message("%s"% self.add_handlers)
         # self.add_handlers(MenuActionKeys)
 
-
     def actionHighlighted(self, selectedLine, keypress):
         # choose action based on the display status and selected line           #action_highlighted
-        global householdID 
+        global householdID
 
         if (self.parent.myStatus == 'Main'):
             self.parent.wMain.values = ['Selection: ', selectedLine,
@@ -968,7 +979,6 @@ class ActionControllerData(nps.MultiLineAction):
             self.parent.wStatus2.display()
             self.parent.setMainMenu()
 
-
         elif (self.parent.myStatus == 'Meta'):
             dataArray = selectedLine.split('\t\t')
             global metaID
@@ -989,7 +999,6 @@ class ActionControllerData(nps.MultiLineAction):
 
         elif (self.parent.myStatus == 'Individual'):
             dataArray = selectedLine.split('\t')
-            individual  = str(dataArray[0])
             self.parent.wStatus2.value =\
                 "Individual changed to " + str(dataArray[2]) + " from household " + str(dataArray[0])
             self.parent.wStatus2.display()
@@ -1008,11 +1017,10 @@ class ActionControllerData(nps.MultiLineAction):
             except:
                 message("No action for %s defined" % Key[0])
 
-
     def mute(self, *args):
         pass
 
-    def updateActionKeys(self,ScreenKey):
+    def updateActionKeys(self, ScreenKey):
         # redefine what keys do
         global ActionKeys
         for key in ActionKeys:
@@ -1029,7 +1037,7 @@ class ActionControllerData(nps.MultiLineAction):
     def SwitchScreen(self, *args, **keywords):
         # convert key number to character (48 -> '0')
         Key = chr(args[0])
-        self.updateActionKeys("%s"%Key)
+        self.updateActionKeys("%s" % Key)
         showScreen(Key)
 
     def show_MainMenu(self, *args, **keywords):
@@ -1037,14 +1045,12 @@ class ActionControllerData(nps.MultiLineAction):
 
     def aMeter_id_setup(self, *args, **keywords):
         device_config('A')
-        
+
     def showHouseholds(self, *args, **keywords):
         self.parent.display_selected_data('Households')
 
     def data_download(self, *args, **keywords):
         data_download()
-
-
 
     def show_Contact(self, *args, **keywords):
         self.parent.myStatus = 'Contact'
@@ -1065,7 +1071,7 @@ class ActionControllerData(nps.MultiLineAction):
 
     def show_NewContact(self, *args, **keywords):
         self.parent.parentApp.switchForm('NewContact')
-                
+
     def show_snEntry(self, *args, **keywords):
         device_config("A")
 
@@ -1091,33 +1097,32 @@ class ActionControllerSearch(nps.ActionControllerSimple):
         self.parent.wMain.values = self.parent.value.get()
         self.parent.wMain.display()
 
-    def setHousehold(self, command_line, widget_proxy, live): # entered as 4 digit
+    def setHousehold(self, command_line, widget_proxy, live):  # entered as 4 digit
         if (householdExists(command_line[2:])):
             global householdID
             householdID = command_line[2:]
             self.parent.setMainMenu()
         else:
-            message("No household ID=%s found"%command_line[2:])
+            message("No household ID=%s found" % command_line[2:])
 
-    def setContact(self, command_line, widget_proxy, live): # entered as 4 digit
+    def setContact(self, command_line, widget_proxy, live):  # entered as 4 digit
         global householdID
         householdID = getHouseholdForContact(command_line[2:])
         self.parent.setMainMenu()
 
-    def setMetaID(self, command_line, widget_proxy, live): # entered as 4 digit
+    def setMetaID(self, command_line, widget_proxy, live):  # entered as 4 digit
         global householdID
         householdID = getHouseholdForMeta(command_line[2:])
         self.parent.setMainMenu()
 
-    def paperDiary(self, command_line, widget_proxy, live): # entered as 4 digit
+    def paperDiary(self, command_line, widget_proxy, live):  # entered as 4 digit
         phone_for_paper_diary(command_line[2:])
 
-    def paperDiaryNumber(self, command_line, widget_proxy, live): # entered as single digit (for current HH)
+    def paperDiaryNumber(self, command_line, widget_proxy, live):  # entered as single digit (for current HH)
         getDiaryByNumber(command_line[2:])
 
-    def set_serialNumber(self, command_line, widget_proxy, live): # just for testing
+    def set_serialNumber(self, command_line, widget_proxy, live):  # just for testing
         setSerialNumber(command_line[1:])
-
 
     # NEEDED???
     def setMainMenu(self, command_line, widget_proxy, live):
@@ -1130,7 +1135,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     # myStatus = Screen[str(ScreenKey)]['Name']
     myStatus = "Welcome to the Meter Interface"
 
-
     global cursor
     cursor = connectDatabaseOLD(dbHost)
 
@@ -1139,7 +1143,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         global cursor
         cursor = connectDatabase(dbHost)
 
-
         global first_time
         if first_time:
             first_time = False
@@ -1147,15 +1150,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             # load Screen
             global Screen
             Screen = self.getScreens()
-
-        # global ScreenKey
-        # mainScreenText = self.getMenuText()
-        # self.value.set_values(mainScreenText)
-
-
         showScreen(ScreenKey)
-
-
         self.wStatus1.value = "METER " + self.myStatus
         self.wMain.values = self.value.get()
         self.wMain.display()
@@ -1193,11 +1188,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
 
         self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank',False])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm',False])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel',False])
-        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph',False])
-        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail',False])
+        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank', False])
+        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm', False])
+        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel', False])
+        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph', False])
+        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
@@ -1210,15 +1205,15 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
 
         self.m3 = self.add_menu(name="Exit", shortcut="X")
-        self.m3.addItem(text="Home", onSelect = MeterApp._Forms['MAIN'].setMainMenu,shortcut="h")
-        self.m3.addItem(text="Exit", onSelect = self.exit_application, shortcut="X")
+        self.m3.addItem(text="Home", onSelect=MeterApp._Forms['MAIN'].setMainMenu, shortcut="h")
+        self.m3.addItem(text="Exit", onSelect=self.exit_application, shortcut="X")
 
     def getMenuText(self):
-        #menu_text
+        # #menu_text
 
-        if (householdID != '0'): 
+        if (householdID != '0'):
             # a hh is assigned
-            Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID)) 
+            Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
         else:
             # get the 1st in the list
             Screen[ScreenKey]['Index'] = 1
@@ -1230,9 +1225,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         line     = "\t\t\t|_______________________________________|"
         longline = "\t\t\t|_________________________________________________________________|"
 
-
-        # XXX !!!
-
         if (Screen[ScreenKey]['Name'] == 'Home'):
             # HOME Screen
             # Show METER logo
@@ -1241,21 +1233,21 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\n")
 
             # Show screen options
-            MenuText.append("\t\t\t _Screen options________________________")  
+            MenuText.append("\t\t\t _Screen options________________________")
             for key in sorted(Screen):
                 # display all screens
-                MenuText.append(formatBox("[%s] %s:" % (key,Screen[key]['Name']), "(%s)" % (getHouseholdCount(Screen[key]['Criterium']))))
+                MenuText.append(formatBox("[%s] %s:" % (key, Screen[key]['Name']), "(%s)" % (getHouseholdCount(Screen[key]['Criterium']))))
             MenuText.append(line)
             MenuText.append("\n")
 
         if (Screen[ScreenKey]['Actions']):
             # Show keys available
             MenuText.append("\n")
-            MenuText.append("\t\t\t _Commands______________________________")  
+            MenuText.append("\t\t\t _Commands______________________________")
             # MenuText.append (formatBox("",""))
             for ActionKey in sorted(Screen[ScreenKey]['Actions']):
                 # show avalable commands
-                MenuText.append (formatBox("[%s] %s" % (ActionKey, Screen[ScreenKey]['Actions'][ActionKey]['Label']),''))
+                MenuText.append(formatBox("[%s] %s" % (ActionKey, Screen[ScreenKey]['Actions'][ActionKey]['Label']), ''))
             MenuText.append(line)
             MenuText.append("\n")
 
@@ -1263,35 +1255,35 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         if (householdID != "0"):
             # Show Household information
-            MenuText.append( "\t\t\t _Household information  (%3s/%3s) _______________________________"% (Screen[ScreenKey]['Index'], getHouseholdCount(Screen[ScreenKey]['Criterium'])))
+            MenuText.append("\t\t\t _Household information  (%3s/%3s) _______________________________" % (Screen[ScreenKey]['Index'], getHouseholdCount(Screen[ScreenKey]['Criterium'])))
             MenuText.append(formatBigBox("Contact:",  getNameOfContact(contactID) + ' (' + contactID + ')'))
             line
-            status = getStatus(householdID)
-            date   = getDateChoice(householdID)
-            dt_date= getHHdateChoice(householdID)
+            status  = getStatus(householdID)
+            date    = getDateChoice(householdID)
+            dt_date = getHHdateChoice(householdID)
             MenuText.append(formatBigBox("Date:", date))
             MenuText.append(formatBigBox("Household:", householdID))
             MenuText.append(formatBigBox("Status:", status))
             MenuText.append(formatBigBox("People:", getDeviceRequirements(householdID)))
             # MenuText.append(formatBigBox("Devices:", getDeviceMetaIDs(householdID)))
-            MenuText.append(formatBigBox("Devices:", getDevicesForDate(householdID,dt_date)))
-            MenuText.append(formatBigBox("Readings:", getDevicesReadings(householdID,dt_date)))
+            MenuText.append(formatBigBox("Devices:", getDevicesForDate(householdID, dt_date)))
+            MenuText.append(formatBigBox("Readings:", getDevicesReadings(householdID, dt_date)))
             if (status > 5):
-                MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID,Criteria['no reading'],60))) # last parameter is min duration to report
-                MenuText.append(formatBigBox("High:", getReadingPeriods(householdID,Criteria['high reading'],60))) # last parameter is min duration to report
+                MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID, Criteria['no reading'], 60)))  # last parameter is min duration to report
+                MenuText.append(formatBigBox("High:", getReadingPeriods(householdID, Criteria['high reading'], 60)))  # last parameter is min duration to report
             MenuText.extend(formatBoxList(getComment(householdID)))
             MenuText.append(longline)
         MenuText.append("\n")
         return MenuText
 
-    def email(self,key):
+    def email(self, key):
         # compose_email(Screen[ScreenKey][chr(key)['EmailType'])
         compose_email(Screen[ScreenKey]['Actions'][chr(key)]['arguments'])
 
-    def showHouseholds(self,key):
+    def showHouseholds(self, key):
         self.display_selected_data('Households')
 
-    def deviceConfig(self,key):
+    def deviceConfig(self, key):
         deviceCount = int(getDeviceCount(householdID))
         participantCount = int(getParticipantCount(householdID))
         if (deviceCount < participantCount):
@@ -1303,12 +1295,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # recount after new device configured
         deviceCount = getDeviceCount(householdID)
         if (deviceCount < participantCount):
-            Screen['4']['Actions']['D']['Label'] = "Configure A%s"% (deviceCount+1)
+            Screen['4']['Actions']['D']['Label'] = "Configure A%s" % (deviceCount + 1)
         else:
             Screen['4']['Actions']['D']['Label'] = "Configure eMeter"
 
-
-    def getHHindex(self,HouseholdID):
+    def getHHindex(self, HouseholdID):
         # find at what position in the list the current hh is
         sqlq = "SELECT rank \
                 FROM ( \
@@ -1316,22 +1307,21 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     @rownum := @rownum + 1 AS rank\
                         FROM Household, (SELECT @rownum := 0) r\
                         WHERE %s \
-                    ) `selection` WHERE idHousehold = %s" % (Screen[ScreenKey]['Criterium'],HouseholdID)
+                    ) `selection` WHERE idHousehold = %s" % (Screen[ScreenKey]['Criterium'], HouseholdID)
         if (getSQL(sqlq)):
             result = getSQL(sqlq)[0]
             return ("%d" % int(result['rank']))
         else:
             return 0
 
-    def nextHH(self,key):
+    def nextHH(self, key):
         # get the next hh matching the modus criteria
         global Screen
         Screen[ScreenKey]['Index'] += 1
         self.getHH()
         self.setMainMenu()
 
-
-    def prevHH(self,key):
+    def prevHH(self, key):
         # get the next hh matching the modus criteria
         global Screen
         if (Screen[ScreenKey]['Index'] > 1):
@@ -1342,202 +1332,200 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def getHH(self):
         # set householdID to indexed household and show
         global householdID
-        sqlq = "SELECT idHousehold FROM Household WHERE %s LIMIT %s,1;" % (Screen[ScreenKey]['Criterium'],Screen[ScreenKey]['Index']-1)
+        sqlq = "SELECT idHousehold FROM Household WHERE %s LIMIT %s,1;" % (Screen[ScreenKey]['Criterium'], Screen[ScreenKey]['Index'] - 1)
         try:
             result = getSQL(sqlq)[0]
-            householdID =  ("%s" % result['idHousehold'])
+            householdID = ("%s" % result['idHousehold'])
         except:
             householdID = '0'
-
-
 
     def getScreens(self):
         Screen = {
             '0': {
-                'Name'      : 'Home',
+                'Name':      'Home',
                 'Criterium': 'status >=0',
                 'Household': '0',
                 'Actions': {
-                    }
-                },
+                }
+            },
             '1': {
                 'Name':     'No date yet',
                 'Criterium': 'status = 1',
                 'Household': '0',
                 'Actions': {
-                        'E': {
-                            'Action': self.email,
-                            'arguments': 'date',
-                            'Label': "Email dates"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                },
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'date',
+                        'Label': "Email dates"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
             '2':   {
-                'Name'     : 'Future',
+                'Name':      'Future',
                 'Criterium': 'date_choice > CURDATE()',
                 'Household': '0',
                 'Actions': {
-                        'E': {
-                            'Action': self.email,
-                            'arguments': 'date',
-                            'Label': "Email alternative dates"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                },
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'date',
+                        'Label': "Email alternative dates"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
             '3': {
-                'Name'     : 'Upcoming',
-                'Criterium':    'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
+                'Name':      'Upcoming',
+                'Criterium': 'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
                 'Household': '0',
                 'Actions': {
-                        'E': {
-                            'Action'    : self.email,
-                            'arguments' : 'confirm',
-                            'Label'     : "Email to confirm"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                 },
+                    'E': {
+                        'Action':    self.email,
+                        'arguments': 'confirm',
+                        'Label':     "Email to confirm"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
             '4': {
-                'Name'      : 'Confirmed',
-                 'Criterium':    'status = 4 ORDER BY date_choice,idHousehold ASC',
-                 'Household': '0',
-                 'Actions': {
-                        'D': {
-                            'Action': self.deviceConfig,
-                            'Label': "Device config"
-                            },
-                        'E': {
-                            'Action'    : self.email,
-                            'arguments' : 'sent',
-                            'Label'     : "Email parcel sent"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select Household"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                 },
-             '5': {
-                'Name'      : 'Issued',
-                 'Criterium': 'status = 5 ORDER BY date_choice ASC',
-                 'Household': '0',
-                 'Actions': {
-                        'D': {
-                            'Action': self.email,
-                            'arguments' : 'date',
-                            'Label': "Email new dates"
-                            },
-                        'E': {
-                            'Action': self.email,
-                            'arguments' : 'request_return',
-                            'Label': "Email return reminder"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                 },
-             '6': {
-                'Name'      : 'Overdue',
-                 'Criterium': 'status = 5 AND date_choice < CURDATE() - INTERVAL "21" DAY ORDER BY date_choice ASC',
-                 'Household': '0',
-                 'Actions': {
-                        'E': {
-                            'Action': self.email,
-                            'arguments': 'request_return',
-                            'Label': "Email dates"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                 },
-             '7': {
-                'Name'      : 'Processed',
-                 'Criterium': 'status > 5 ORDER BY date_choice DESC',
-                 'Household': '0',
-                 'Actions': {
-                        'E': {
-                            'Action': self.email,
-                            'arguments': 'graph',
-                            'Label': "Email graph"
-                            },
-                        'S': {
-                            'Action': self.showHouseholds,
-                            'Label': "Select"
-                            },
-                        '<': {
-                            'Action': self.prevHH,
-                            'Label': "Prev"
-                            },
-                        '>': {
-                            'Action': self.nextHH,
-                            'Label': "Next"
-                            },
-                    }
-                 }
+                'Name': 'Confirmed',
+                'Criterium':    'status = 4 ORDER BY date_choice,idHousehold ASC',
+                'Household': '0',
+                'Actions': {
+                    'D': {
+                        'Action': self.deviceConfig,
+                        'Label': "Device config"
+                    },
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'sent',
+                        'Label': "Email parcel sent"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select Household"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
+            '5': {
+                'Name': 'Issued',
+                'Criterium': 'status = 5 ORDER BY date_choice ASC',
+                'Household': '0',
+                'Actions': {
+                    'D': {
+                        'Action': self.email,
+                        'arguments': 'date',
+                        'Label': "Email new dates"
+                    },
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'request_return',
+                        'Label': "Email return reminder"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
+            '6': {
+                'Name': 'Overdue',
+                'Criterium': 'status = 5 AND date_choice < CURDATE() - INTERVAL "21" DAY ORDER BY date_choice ASC',
+                'Household': '0',
+                'Actions': {
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'request_return',
+                        'Label': "Email dates"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
+            },
+            '7': {
+                'Name': 'Processed',
+                'Criterium': 'status > 5 ORDER BY date_choice DESC',
+                'Household': '0',
+                'Actions': {
+                    'E': {
+                        'Action': self.email,
+                        'arguments': 'graph',
+                        'Label': "Email graph"
+                    },
+                    'S': {
+                        'Action': self.showHouseholds,
+                        'Label': "Select"
+                    },
+                    '<': {
+                        'Action': self.prevHH,
+                        'Label': "Prev"
+                    },
+                    '>': {
+                        'Action': self.nextHH,
+                        'Label': "Next"
+                    },
+                }
             }
+        }
         return Screen
 
     def setMainMenu(self):
@@ -1555,12 +1543,10 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # Show permanent commands in bottom status line
         commandStr = ''
         for ActionKey in sorted(MasterKeysLabels):
-            commandStr = ("%s   [%s]%s" % (commandStr,ActionKey, MasterKeysLabels[ActionKey]))
+            commandStr = ("%s   [%s]%s" % (commandStr, ActionKey, MasterKeysLabels[ActionKey]))
         self.wStatus2.value = "Commands:  %s" % commandStr
         self.wStatus2.display()
 
-
-    
     def show_Tables(self, *args, **keywords):
         self.myStatus = 'Tables'
         self.display_tables()
@@ -1574,13 +1560,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def list_contacts(self):
         MeterApp._Forms['MAIN'].display_selected_data("Contact")
 
-
     def show_EditContact(self, *args, **keywords):
         self.parentApp.switchForm('EditContact')
 
     def show_EditHousehold(self, *args, **keywords):
         self.parentApp.switchForm('EditHousehold')
-
 
     def IgnoreForNow(self):
         pass
@@ -1607,33 +1591,31 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         elif (displayModus == "Households"):
             result = [
-                       "{:<8}".format('HH ID') +\
-                       "{:<7}".format('Status') +\
-                       "{:<20}".format('Name') +\
-                       "{:<13}".format('Date') +\
-                       "{:<3}".format('#') +\
-                       "{:<25}".format('Comment') ]
+                "{:<8}".format('HH ID') +
+                "{:<7}".format('Status') +
+                "{:<20}".format('Name') +
+                "{:<13}".format('Date') +
+                "{:<3}".format('#') +
+                "{:<25}".format('Comment')]
 
             global ScreenKey
-            fields ='idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status' 
-            sqlq = "SELECT " + fields + " FROM Household WHERE " + Screen[ScreenKey]['Criterium'] +";"
+            fields = 'idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status'
+            sqlq = "SELECT " + fields + " FROM Household WHERE " + Screen[ScreenKey]['Criterium'] + ";"
             # executeSQL(sqlq)
             hh_result = getSQL(sqlq)
             for hh in hh_result:
                 thisHHid      = str(hh['idHousehold'])
-                thisTimeStamp = getDateTimeFormated(str(hh['timestamp']))
                 thisContact   = str(hh['Contact_idContact'])
                 thisDate      = getDateChoice(thisHHid)
                 thisComment   = str(hh['CONVERT(comment USING utf8)'])
                 thisStatus    = str(hh['status'])
-                result = result + [\
-                        "{:<7}".format(thisHHid) + '\t'\
-                        "{:<7}".format(thisStatus) +\
-                        "{:<20}".format(getNameOfContact(thisContact)) +\
-                        "{:<13}".format(thisDate) +\
-                        "{:<3}".format(str(getParticipantCount(thisHHid))) +\
-                        "{:<25}".format(thisComment) ]
-
+                result = result + [
+                    "{:<7}".format(thisHHid) + '\t'
+                    "{:<7}".format(thisStatus) +
+                    "{:<20}".format(getNameOfContact(thisContact)) +
+                    "{:<13}".format(thisDate) +
+                    "{:<3}".format(str(getParticipantCount(thisHHid))) +
+                    "{:<25}".format(thisComment)]
 
         elif (displayModus == "Household"):
             sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = '" + contactID + "'"
@@ -1669,7 +1651,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # dbConnection.commit()
         # self.wStatus2.display()
 
-
     def formated_any(self, tupelItems):
         returnString = ""
         for item in tupelItems:
@@ -1702,6 +1683,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.editing = False
         self.parentApp.switchFormNow()
 
+
 class editContactForm(nps.Form):
     # gets fields from database, collects new entries
 
@@ -1713,19 +1695,20 @@ class editContactForm(nps.Form):
         result = getSQL(sqlq)[0]
         self.contactData = []
         for field in tabledata:
-            self.contactData.append(self.add(nps.TitleText, 
-                     name=field['Field'],
-                     value="%s"%result[field['Field']]))
+            self.contactData.append(self.add(nps.TitleText,
+                                      name=field['Field'],
+                                      value="%s" % result[field['Field']]))
 
     def afterEditing(self):
         for i in range(len(self.contactData)):
-            sqlq="UPDATE Contact SET `%s` = '%s' WHERE idContact = '%s'" %\
-                    ( self.contactData[i].name,
-                      self.contactData[i].value,
-                      self.contactID )
+            sqlq = "UPDATE Contact SET `%s` = '%s' WHERE idContact = '%s'" %\
+                (self.contactData[i].name,
+                    self.contactData[i].value,
+                    self.contactID)
             executeSQL(sqlq)
         commit()
         self.parentApp.setNextFormPrevious()
+
 
 class editHouseholdForm(nps.Form):
     # EditHousehold - Shows all entries for editing
@@ -1737,19 +1720,20 @@ class editHouseholdForm(nps.Form):
         result = getSQL(sqlq)[0]
         self.contactData = []
         for field in tabledata:
-            self.contactData.append(self.add(nps.TitleText, 
-                     name=field['Field'],
-                     value="%s"%result[field['Field']]))
+            self.contactData.append(self.add(nps.TitleText,
+                                             name=field['Field'],
+                                             value="%s" % result[field['Field']]))
 
     def afterEditing(self):
         for i in range(len(self.contactData)):
-            sqlq="UPDATE Household SET `%s` = '%s' WHERE idHousehold = '%s'" %\
-                    ( self.contactData[i].name,
-                      self.contactData[i].value,
-                      householdID )
+            sqlq = "UPDATE Household SET `%s` = '%s' WHERE idHousehold = '%s'" %\
+                (self.contactData[i].name,
+                 self.contactData[i].value,
+                 householdID)
             executeSQL(sqlq)
         commit()
         self.parentApp.setNextFormPrevious()
+
 
 class newContactForm(nps.Form):
     # gets fields from database, collects new entries
@@ -1764,7 +1748,7 @@ class newContactForm(nps.Form):
         for field in tabledata:
             self.ColumnName.append(field['Field'])
         self.ColumnName.pop()       # remove 'recorded' field (auto completed)
-        
+
         for item in range(0, len(self.ColumnName)):
             self.ColumnEntry.append(self.add(nps.TitleText,
                                     name=self.ColumnName[item]))
@@ -1776,20 +1760,20 @@ class newContactForm(nps.Form):
         global householdID
 
         # combine all column names into comma separated string with ``
-        sqlColumnString = "`"+self.ColumnName[0]+"`"
+        sqlColumnString = "`" + self.ColumnName[0] + "`"
         for item in self.ColumnName[1:]:
-            sqlColumnString = sqlColumnString + (",`"+item+"`")
+            sqlColumnString = sqlColumnString + (",`" + item + "`")
 
-        sqlEntryString = "'"+self.ColumnEntry[0].value+"'"
+        sqlEntryString = "'" + self.ColumnEntry[0].value + "'"
         for item in self.ColumnEntry[1:]:
-            sqlEntryString = sqlEntryString + (",'"+item.value+"'")
+            sqlEntryString = sqlEntryString + (",'" + item.value + "'")
 
         # create contact
         sqlq = "INSERT INTO `Contact`(" + sqlColumnString + ") \
-            VALUES ("+sqlEntryString+")"
+            VALUES (" + sqlEntryString + ")"
         contactID = executeSQL(sqlq)
         commit()
-        
+
         # create household
         sqlq = "INSERT INTO `Household`(Contact_idContact, security_code) \
             VALUES (%s, 123);" % contactID
@@ -1836,12 +1820,7 @@ class metaFileInformation(nps.Form):
         global filePath
 
         # 7 Nov 2016 XXX allCSVfiles = filePath + '*.csv'
-
-
         # BUG: empty list causes a "-1" entry to show next time...
-        # XXX 27 Jan 2017 ACTION
-        # remove all "id / config and debug files"
-        # if list is empty jump right out ... 
 
         allCSVfiles = filePath + 'METER/*.csv'
         allJSONfiles = filePath + 'METER/*.json'
@@ -1856,36 +1835,36 @@ class metaFileInformation(nps.Form):
             if (recordsInFile < 1):
                 call('mv ' + thisFileName + '.meta ~/.Trash/', shell=True)
                 call('mv ' + thisFileName + '.csv ~/.Trash/', shell=True)
-            elif (recordsInFile > 40000): # was 80000
+            elif (recordsInFile > 80000):
                 global householdID
                 # only full 24 hour recordings are of interest
                 # (that would be 86400 seconds)
 
                 # the split() takes the Watt column after first ',' before '\n'
-                meanPower =  sum(float(line.split(',')[1].split('\n')[0]) for line in open(DataFile)) / recordsInFile
+                meanPower = sum(float(line.split(',')[1].split('\n')[0]) for line in open(DataFile)) / recordsInFile
 
                 thisMeta = getMetaData(thisFileName + '.meta', "Meta ID")
-                householdID = getHouseholdForMeta(thisMeta) 
+                householdID = getHouseholdForMeta(thisMeta)
                 thisDateChoice = getDateChoice(householdID)
                 self.selectIndex.append(self.selectCounter)
                 self.fileList.append(thisFileName)
                 self.metaIDs.append(thisMeta)
 
                 self.collectionDate.append(getMetaData(thisFileName + '.meta', "Date"))
-                self.dataType.append(getMetaData(thisFileName+'.meta', "Data type"))
+                self.dataType.append(getMetaData(thisFileName + '.meta', "Data type"))
                 thisDuration = ("%.1f" % (recordsInFile / 3600.0))
 
                 self.displayString.append(str(self.selectCounter) + '. ID: ' +
                                      thisMeta + ' ' + self.dataType[-1] +
-                                     ' on ' + self.collectionDate[-1] + ' (' +thisDateChoice+ ') for ' +
-                                     thisDuration + ' h ('+ ("%.1f" % meanPower) +'W)')
+                                     ' on ' + self.collectionDate[-1] + ' (' + thisDateChoice + ') for ' +
+                                     thisDuration + ' h (' + ("%.1f" % meanPower) + 'W)')
                 self.selectCounter += 1
 
             elif ('act' in DataFile):
                 self.selectIndex.append(self.selectCounter)
                 self.fileList.append(thisFileName)
                 self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_act.csv'
-                self.collectionDate.append(getDateOfFirstEntry(DataFile,1))           # take date from first entry in column 1 (2nd col)
+                self.collectionDate.append(getDateOfFirstEntry(DataFile, 1))           # take date from first entry in column 1 (2nd col)
                 self.dataType.append("A")
                 self.duration.append(recordsInFile)
                 self.displayString.append(str(self.selectCounter) + '. ID: ' +
@@ -1899,7 +1878,7 @@ class metaFileInformation(nps.Form):
                 self.fileList.append(thisFileName)
                 self.metaIDs.append(os.path.basename(DataFile).split('_')[0])        # filename is metaID+'_ind.csv'
 
-                self.collectionDate.append(getDateOfFirstEntry(DataFile,0))           # take date from first entry in column 0 (1nd col)
+                self.collectionDate.append(getDateOfFirstEntry(DataFile, 0))           # take date from first entry in column 0 (1nd col)
                 self.dataType.append("I")
                 self.duration.append(recordsInFile)
                 self.displayString.append(str(self.selectCounter) + '. ID: ' +
@@ -1914,25 +1893,24 @@ class metaFileInformation(nps.Form):
                 self.reject_contactID.append(getMetaData(thisFileName +
                                         '.meta', "Contact ID"))
                 self.reject_collectionDate.append(getMetaData(thisFileName +
-                                             '.meta', "Date"))
+                                        '.meta', "Date"))
                 self.reject_dataType.append(getMetaData(thisFileName +
-                                       '.meta', "Data type"))
+                                        '.meta', "Data type"))
                 self.reject_duration.append(round(recordsInFile / 3600.0, 2))
                 self.reject_displayString.append(str(self.reject_Counter) + '.\t ID: ' +
-                                            self.reject_contactID[-1] + ' ' +
-                                            self.reject_dataType[-1] + ' on ' +
-                                            self.reject_collectionDate[-1] +
-                                            ' for ' + str(self.reject_duration[-1]) +
-                                            ' hours')
+                                        self.reject_contactID[-1] + ' ' +
+                                        self.reject_dataType[-1] + ' on ' +
+                                        self.reject_collectionDate[-1] +
+                                        ' for ' + str(self.reject_duration[-1]) +
+                                        ' hours')
                 self.reject_Counter += 1
         self.FileSelection.values = self.displayString
         self.FileSelection.value = self.selectIndex
         self.FileRejection.values = self.reject_displayString
 
-
     def afterEditing(self):
         for i in self.FileSelection.value:
-            uploadDataFile(self.fileList[i],self.dataType[i],self.metaIDs[i],self.collectionDate[i])   # insert to database
+            uploadDataFile(self.fileList[i], self.dataType[i], self.metaIDs[i], self.collectionDate[i])   # insert to database
 
         for FileIndex in self.FileRejection.value:                                      # delete all other files
             call('mv ' + self.reject_fileList[FileIndex] +
@@ -1947,15 +1925,15 @@ class metaFileInformation(nps.Form):
 
         # switch to "Processed" and display the most recent addition
         global ScreenKey
-        # ScreenKey = modi[2] # display as "Processed"
-        ScreenKey = "7" # display as "Processed"
+        ScreenKey = "7"  # display as "Processed"
         self.parentApp.setNextFormPrevious()
+
 
 class snEntry(nps.ActionPopup):
     # pops up to collect a serial number
 
     def create(self):
-        self.meta = 0 # will be assigned externally by device_config()
+        self.meta = 0  # will be assigned externally by device_config()
         self.sn = self.add(nps.TitleText, name="Serial number for %s:" % self.meta, value="")
 
     def beforeEditing(self):
@@ -1965,41 +1943,45 @@ class snEntry(nps.ActionPopup):
     def on_ok(self):
         with open(snFilePath, "w") as f:
             f.write(self.sn.value)
-        callShell("adb push %s /sdcard/METER/" % snFilePath)
-        sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value,self.meta)
+        snMsg = callShell("adb push %s /sdcard/METER/" % snFilePath)
+        message(snMsg)
+        callShell('adb shell reboot -p')
+        sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value, self.meta)
         message(sqlq)
         executeSQL(sqlq)
         commit()
-        
+
     def afterEditing(self):
         self.parentApp.setNextFormPrevious()
 
+
 class MeterTheme(nps.ThemeManager):
     default_colors = {
-    'DEFAULT'     : 'WHITE_BLACK',
-    'FORMDEFAULT' : 'GREEN_BLACK',
-    'NO_EDIT'     : 'BLUE_BLACK',
-    'STANDOUT'    : 'CYAN_BLACK',
-    'CURSOR'      : 'GREEN_BLACK',
-    'CURSOR_INVERSE': 'BLACK_WHITE',
-    'LABEL'       : 'GREEN_BLACK',
-    'LABELBOLD'   : 'WHITE_BLACK',
-    'CONTROL'     : 'YELLOW_BLACK',
-    'IMPORTANT'   : 'GREEN_BLACK',
-    'SAFE'        : 'GREEN_BLACK',
-    'WARNING'     : 'YELLOW_BLACK',
-    'DANGER'      : 'RED_BLACK',
-    'CRITICAL'    : 'BLACK_RED',
-    'GOOD'        : 'GREEN_BLACK',
-    'GOODHL'      : 'GREEN_BLACK',
-    'VERYGOOD'    : 'BLACK_GREEN',
-    'CAUTION'     : 'YELLOW_BLACK',
-    'CAUTIONHL'   : 'BLACK_YELLOW',
+        'DEFAULT':      'WHITE_BLACK',
+        'FORMDEFAULT':  'GREEN_BLACK',
+        'NO_EDIT':      'BLUE_BLACK',
+        'STANDOUT':     'CYAN_BLACK',
+        'CURSOR':       'GREEN_BLACK',
+        'CURSOR_INVERSE': 'BLACK_WHITE',
+        'LABEL':        'GREEN_BLACK',
+        'LABELBOLD':    'WHITE_BLACK',
+        'CONTROL':      'YELLOW_BLACK',
+        'IMPORTANT':    'GREEN_BLACK',
+        'SAFE':         'GREEN_BLACK',
+        'WARNING':      'YELLOW_BLACK',
+        'DANGER':       'RED_BLACK',
+        'CRITICAL':     'BLACK_RED',
+        'GOOD':         'GREEN_BLACK',
+        'GOODHL':       'GREEN_BLACK',
+        'VERYGOOD':     'BLACK_GREEN',
+        'CAUTION':      'YELLOW_BLACK',
+        'CAUTIONHL':    'BLACK_YELLOW',
     }
+
 
 class MeterForms(nps.NPSAppManaged):
     def onStart(self):
-        #nps.setTheme(nps.Themes.ColorfulTheme)
+        # nps.setTheme(nps.Themes.ColorfulTheme)
         nps.setTheme(MeterTheme)
         self.addForm('MAIN', MeterMain, lines=36)
         self.addForm('NewContact', newContactForm, name='New Contact')
@@ -2007,6 +1989,7 @@ class MeterForms(nps.NPSAppManaged):
         self.addForm('EditHousehold', editHouseholdForm, name='Edit Household')
         self.addForm('MetaForm', metaFileInformation, name='Meta Data')
         self.snForm = self.addForm('snEntry', snEntry, name='New Serial Number')
+
 
 if __name__ == "__main__":
     MeterApp = MeterForms()
