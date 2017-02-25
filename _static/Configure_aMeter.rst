@@ -76,7 +76,7 @@ Copy backup folder to local machine
 
 
 Setting up an eMeter (Pixi 3 - Android 4.2.2)
---------------------------------------------
+---------------------------------------------
 
 Assume device is rooted, Insecured
 
