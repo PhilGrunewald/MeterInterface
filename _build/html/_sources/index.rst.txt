@@ -10,7 +10,7 @@
     :align: right
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Documentation:
 
    README.rst
