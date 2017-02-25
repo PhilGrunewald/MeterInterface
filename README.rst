@@ -44,4 +44,4 @@ This module provides SQL functionality to connect, query and upload to the datab
 .. automodule:: meter
     :members:
 
-See `GitHub Documentation <html://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/>`__ for more information.
+See `GitHub Documentation <https://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/>`__ for more information.
