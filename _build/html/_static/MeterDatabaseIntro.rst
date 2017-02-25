@@ -33,7 +33,7 @@ Survey information is grouped into three tables:
 
 **Contact**: This is personal information with restricted access (all
 other data will become public). It is provided by participants when
-registering via http://www.energy-use.org/hhq.php.
+registering via `energy-use.org/hhq.php <http://www.energy-use.org/hhq.php>`_.
 
 **Household**: Socio-demographic information about household composition
 (number of people, ages, housetype, appliances, electricity bills
@@ -165,5 +165,5 @@ working MySQL version on your machine. Create a user and grant
 privileges to the data.
 
 To gain access to the live Meter database on
-`http://www.energy-use.org <www.energy-use.org>`__ you will need to be
+`www.energy-use.org <http://www.energy-use.org>`__ you will need to be
 granted access.

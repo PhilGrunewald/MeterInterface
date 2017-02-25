@@ -2,8 +2,8 @@ Configuring Devices
 ===================
 
 
-Prepare phone for root/flash
-----------------------------
+Prepare root/flash
+------------------
 
 Install packages (.apk)
 
@@ -63,7 +63,9 @@ Open "AppLock"
 Create Backup
 -------------
 
-`adb reboot recovery`
+.. code:: bash
+
+    adb reboot recovery
 
 - BACKUP
 - tick all
@@ -72,11 +74,15 @@ Create Backup
 
 Copy backup folder to local machine
 
-`adb pull /sdcard/TWRP ./TWRP`
+.. code:: bash
+
+    adb pull /sdcard/TWRP ./TWRP
 
 
-Setting up an eMeter (Pixi 3 - Android 4.2.2)
----------------------------------------------
+eMeter setup
+------------
+
+Requires: Pixi 3 - Android 4.2.2
 
 Assume device is rooted, Insecured
 
@@ -108,8 +114,10 @@ Open "Flashify"
     exit
     adb push id.txt /sdcard/METER
 
-Setting up an aMeter (Pixi 4 - Android 6)
------------------------------------------
+aMeter setup
+------------
+
+Requires: Pixi 4 - Android 6
 
 Start device > Settings 
 --> developer options 

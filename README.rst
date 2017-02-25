@@ -2,7 +2,8 @@ Meter study
 ===========
 
 .. image:: _static/meter_logo.png
-    :height: 200
+    :width: 300
+    :align: right
 
 The `Meter study <http://www.energy-use.org>`_ is a research project at the `University of Oxford's <http://ox.ac.uk>`_ Environmental Change Institute (`ECI <http://www.eci.ox.ac.uk/>`_) collecting data on household demographics, activities and electricity use. The aim is to better understand the timing of electricity use in households and identify potential routes towards flexibility in electricity use, which could support the emergence of more sustainable energy systems.
 
