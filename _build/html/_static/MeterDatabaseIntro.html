@@ -1,0 +1,275 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>The Meter Database &#8212; MeterInterface 2.7.10 documentation</title>
+    
+    <link rel="stylesheet" href="classic.css" type="text/css" />
+    <link rel="stylesheet" href="pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2.7.10',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="underscore.js"></script>
+    <script type="text/javascript" src="doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Creating the Master Device" href="Configure_aMeter.html" />
+    <link rel="prev" title="Meter study" href="../README.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Configure_aMeter.html" title="Creating the Master Device"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../README.html" title="Meter study"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">MeterInterface 2.7.10 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-meter-database">
+<h1>The Meter Database<a class="headerlink" href="#the-meter-database" title="Permalink to this headline">¶</a></h1>
+<p>This section explains</p>
+<ul class="simple">
+<li>the types of data collected as part of the Meter project;</li>
+<li>how these data are structured, stored and retrieved; and</li>
+<li>the tools used to manage the data.</li>
+</ul>
+<p>This is a live document. For the latest version, please visit
+<a class="reference external" href="https://github.com/PhilGrunewald/Meter/tree/master/docs">Meter/docs</a>.</p>
+<div class="section" id="what-data-are-collected">
+<h2>What data are collected?<a class="headerlink" href="#what-data-are-collected" title="Permalink to this headline">¶</a></h2>
+<p>Meter collects three types of data:</p>
+<ol class="arabic simple">
+<li>Household and individual survey information</li>
+<li>Individual activity information</li>
+<li>Electricity readings at household level</li>
+</ol>
+<p>Each of these data are explained in more detail here.</p>
+<div class="figure" id="id1">
+<img alt="Database schema for Meter Data" src="../_images/MeterSchema.png" />
+<p class="caption"><span class="caption-text">Database schema for Meter Data</span></p>
+</div>
+<div class="section" id="household-and-individual-survey-information">
+<h3>Household and individual survey information<a class="headerlink" href="#household-and-individual-survey-information" title="Permalink to this headline">¶</a></h3>
+<p>Survey information is grouped into three tables:</p>
+<p><strong>Contact</strong>: This is personal information with restricted access (all
+other data will become public). It is provided by participants when
+registering via <a class="reference external" href="http://www.energy-use.org/hhq.php">http://www.energy-use.org/hhq.php</a>.</p>
+<p><strong>Household</strong>: Socio-demographic information about household composition
+(number of people, ages, housetype, appliances, electricity bills
+income). This table also keeps the &#8216;date_choice&#8217; - the preferred date
+for the study, and &#8216;status&#8217; (see Section &#8216;Status progression&#8217;).</p>
+<p><strong>Individual</strong>: Collected on the study day via the booklet or app.
+Covers individual information, such as age, occupation, working hours,
+use of appliances...</p>
+</div>
+<div class="section" id="individual-activity-information">
+<h3>Individual activity information<a class="headerlink" href="#individual-activity-information" title="Permalink to this headline">¶</a></h3>
+<p>Recorded via booklet or app. Each entry contains:</p>
+<p><strong>Time</strong> (dt_activity): Freely chosen by participant (unlike in
+conventional Time-use research, where 10 minute windows are prescribed).
+Certain times of particular interest will be suggested in the app (e.g.
+5:30pm, 6pm, 8am). &#8216;dt&#8217; stands for DateTime in the format &#8216;2012-11-13
+23:59:59&#8217;.</p>
+<p><strong>Time recorded</strong> (dt_recorded): The time when the entry was made. In
+case of the app, entries can be back-dated (what did you do 20 minutes
+ago?). Booklets may be coded up days later. Entries made via the
+web-interface later still. This time stamp helps to identify &#8216;how
+devoiced&#8217; the entry is from the actual event.</p>
+<p><strong>Time use code</strong> (tuc): Numeric code based on an extended version of
+the Harmonised European Time-Use Survey codes (&#64;eurostat14). See field
+&#8216;ID&#8217; in
+<a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/blob/master/www/js/activities.json">activities.json</a>.</p>
+<p><strong>Activity</strong>: Plain text description of the activity. See field &#8216;title&#8217;
+in
+<a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/blob/master/www/js/activities.json">activities.json</a>.</p>
+<p><strong>Location</strong>: Numeric code for location:</p>
+<ol class="arabic simple">
+<li>home</li>
+<li>travelling</li>
+<li>work</li>
+<li>public place</li>
+<li>outdoors</li>
+<li>other</li>
+<li>not specified</li>
+</ol>
+<p><strong>Enjoyment</strong>: Numeric code for enjoyment:</p>
+<ol class="arabic simple">
+<li>not at all</li>
+<li>not very much</li>
+<li>neutral</li>
+<li>somewhat</li>
+<li>very much</li>
+<li>not specified</li>
+</ol>
+</div>
+<div class="section" id="electricity-readings">
+<h3>Electricity readings<a class="headerlink" href="#electricity-readings" title="Permalink to this headline">¶</a></h3>
+<p>Collected via current clamp connected to an Android phone using <a class="reference external" href="https://github.com/PhilGrunewald/DMon">DMon
+software</a>. Recordings are
+taken every second and stored in a csv file with two columns: a DateTime
+stamp &#8216;2012-11-13 23:59:59&#8217;) and the reading in Watt. The file name
+refers to the Meta table &#8216;idMeta&#8217; value followed by underscore and a
+sequential number for each time readings were started for this device
+with this &#8216;idMeta&#8217;. Often the xxxx_2.csv file contains the &#8216;real&#8217;
+readings, because the phone was started up for testing before shipment.
+A xxxx_03.csv file is created when starting up the phone to process the
+data.</p>
+<p>When uploading to the database this file is copied to the server first
+to speed up the database processing. Each reading is a row with an ID
+(idElectricity) the reference to the Meta entry (Meta_idMeta), the
+DateTime stamp and the reading value in Watt.</p>
+</div>
+</div>
+<div class="section" id="database-structure">
+<h2>Database structure<a class="headerlink" href="#database-structure" title="Permalink to this headline">¶</a></h2>
+<p>The Meta table is central to the data structure as shown in Figure 1.
+The name is perhaps an unfortunate left over from early trials with data
+structure. It could equally be called the &#8216;devices&#8217;, &#8216;instruments&#8217; or
+&#8216;study events&#8217;.</p>
+<p>Each row in this table has a unique ID (idMeta) and represents either a
+booklet or a phone that has been sent out. The entry is created as part
+of the equipment set up. Each household gets one entry for the
+electricity recorder (eMeter) they receive and one for each booklet or
+activity app. DataType for an eMeter is &#8216;E&#8217;, whereas a booklet or device
+with the activity app is labelled &#8216;A&#8217;.</p>
+<p>When devices are returned the CollectionDate, which is &#8216;NULL&#8217; until now
+is updated.</p>
+<p>Individual and Activity data share the same idMeta value, because they
+come from the same instrument and can thus be linked.
+Individual/Activity data and Electricity readings can be linked to their
+Household via the Household_idHousehold reference in their Meta entry
+and vice versa: To find all Activities for a given Household with the ID
+1234 one could use the following SQL statement:</p>
+<div class="code sql highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="n">idMeta</span>
+    <span class="n">FROM</span> <span class="n">Meta</span>
+    <span class="n">WHERE</span> <span class="n">Household_idHousehold</span> <span class="o">=</span> <span class="mi">1234</span> <span class="n">AND</span> <span class="n">DataType</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This will return one idMeta for each individual which has completed a
+study day. The activities can then be retrieved for each of these
+returned values. If 6789 was returned, the activity record can be
+accessed with:</p>
+<div class="code sql highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="n">dt_activity</span><span class="p">,</span><span class="n">activity</span>
+    <span class="n">FROM</span> <span class="n">Activities</span>
+    <span class="n">WHERE</span> <span class="n">Meta_idMeta</span> <span class="o">=</span> <span class="mi">6789</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This will produce a list of DateTime values and the description of the
+activity.</p>
+</div>
+<div class="section" id="further-information">
+<h2>Further information<a class="headerlink" href="#further-information" title="Permalink to this headline">¶</a></h2>
+<p>The data handing is principally conducted with the <a class="reference external" href="https://github.com/PhilGrunewald/Meter">Meter
+Interface</a>. This repository
+includes a dummy database file in
+<a class="reference external" href="https://github.com/PhilGrunewald/Meter/tree/master/dbDummy">/dbDummy</a>
+which can be used for experimenting. To set this up you require a
+working MySQL version on your machine. Create a user and grant
+privileges to the data.</p>
+<p>To gain access to the live Meter database on
+<a class="reference external" href="www.energy-use.org">http://www.energy-use.org</a> you will need to be
+granted access.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">The Meter Database</a><ul>
+<li><a class="reference internal" href="#what-data-are-collected">What data are collected?</a><ul>
+<li><a class="reference internal" href="#household-and-individual-survey-information">Household and individual survey information</a></li>
+<li><a class="reference internal" href="#individual-activity-information">Individual activity information</a></li>
+<li><a class="reference internal" href="#electricity-readings">Electricity readings</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#database-structure">Database structure</a></li>
+<li><a class="reference internal" href="#further-information">Further information</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../README.html"
+                        title="previous chapter">Meter study</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Configure_aMeter.html"
+                        title="next chapter">Creating the Master Device</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/_static/MeterDatabaseIntro.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Configure_aMeter.html" title="Creating the Master Device"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../README.html" title="Meter study"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">MeterInterface 2.7.10 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>

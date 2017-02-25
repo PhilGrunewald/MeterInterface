@@ -27,14 +27,6 @@ import json                   # used for reading activities.json
 import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
-# from bokeh.embed import components
-# from bokeh.resources import INLINE
-# from bokeh.util.string import encode_utf8
-
-# from bokeh.plotting import figure, curdoc, vplot, show
-# from bokeh.plotting import figure, show, output_file
-# from bokeh.models import Range1d, Circle
-
 from meter import *         # db connection and npyscreen features
 import meter_ini     # reads the database and file path information
 
@@ -62,7 +54,7 @@ def showHouseholds():
 
 
 def callShell(command):
-    # executes shell command and returns all text displayed
+    """ executes shell command and returns all text displayed """
     call("%s > .temp" % command, shell=True)
     messageStr = ''
     for line in open('.temp'):
@@ -71,6 +63,7 @@ def callShell(command):
 
 
 def showScreen(key):
+    """ populate screen based ScreenKey dict """
     global ScreenKey
     global householdID
     Screen[ScreenKey]['Household'] = householdID
@@ -80,7 +73,7 @@ def showScreen(key):
 
 
 def getDateOfFirstEntry(thisFile, col):
-    # Find the date string in a data file
+    """ Find the date string in a data file """
     # expected format: ...,2016-02-22T17:00:00.000Z,...
     # in the second column
     with open(thisFile, 'r') as f:
@@ -91,7 +84,7 @@ def getDateOfFirstEntry(thisFile, col):
 
 
 def getMetaData(MetaFile, ItemName):
-    # extract content from meta file (or any other file)
+    """ extract content from meta file (or any other file) """
     content = ""
     for line in open(MetaFile):
         if ItemName in line:
@@ -100,7 +93,7 @@ def getMetaData(MetaFile, ItemName):
 
 
 def data_download(*self):
-    # pull files from phone
+    """ pull files from phone """
     # 7 Nov 2016: previously downloaded 'files' to filepath
     # Android 6(?) causes the 'METER folder' to be placed in filePath
     try:
@@ -122,7 +115,7 @@ def data_review():
 
 
 def get_time_period(timestr):
-    # convert into one of 144 10minute periods of the day
+    """ convert into one of 144 10minute periods of the day """
     factors = [6, 0.1, 0.00167]
     return sum([a * b for a, b in zip(factors, map(int, timestr.split(':')))])
 
@@ -134,19 +127,19 @@ def period_hhmm(intPeriod):
 
 
 def next_period(thisTime):
-    # advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00'
+    """ advances datetime object by 10 minutes, e.g. '04:50:00' -> '05:00:00' """
     return thisTime + datetime.timedelta(minutes=10)
 
 
 def time_in_seconds(timestr):
-    # not used - just kept for reference...
+    """ not used - just kept for reference... """
     # '00:01:01' -> 61
     factors = [3600, 60, 1]
     return sum([a * b for a, b in zip(factors, map(int, timestr.split(':')))])
 
 
 def getReadingPeriods(_householdID, _condition, _duration):
-    # returns start and end of consequitive records matching the condition
+    """ returns start and end of consequitive records matching the condition """
     # used to identify how long 'no readings' were taken, or 'high readings'
     metaID = getMetaIDs(_householdID, 'E')        # only fetches the first
     if (metaID != ''):
@@ -182,6 +175,7 @@ def getReadingPeriods(_householdID, _condition, _duration):
 
 
 def upload_1min_readings(metaIDe):
+    """ use panas to resample readings """
     # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
     # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
     dbConnection = getConnection()
@@ -198,6 +192,7 @@ def upload_1min_readings(metaIDe):
 
 
 def upload_10min_readings(metaIDe):
+    """ use panas to resample readings """
     dbConnection = getConnection()
     sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
     df_elec = pd.read_sql(sqlq, con=dbConnection)
@@ -273,7 +268,7 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
 
 
 def getDeviceCount(householdID):
-    # return count of devices configured for this date
+    """ return count of devices configured for this date """
     dateChoice = getHHdateChoice(householdID)
     sqlq = "SELECT COUNT(*) FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s';" % (householdID, dateChoice)
     result = getSQL(sqlq)[0]
@@ -281,7 +276,7 @@ def getDeviceCount(householdID):
 
 
 def getDeviceMetaIDs(householdID):
-    # check if eMeter has been configured
+    """ check if eMeter has been configured """
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % householdID
     results = getSQL(sqlq)
     metaIDs = ''
@@ -292,7 +287,7 @@ def getDeviceMetaIDs(householdID):
 
 
 def getDevicesReadings(householdID, dateChoice):
-    # check if eMeter has been configured
+    """ check if eMeter has been configured """
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
     # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     results = getSQL(sqlq)
@@ -313,7 +308,7 @@ def getDevicesReadings(householdID, dateChoice):
 
 
 def getDevicesForDate(householdID, dateChoice):
-    # check if eMeter has been configured
+    """ check if eMeter has been configured """
     # sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' AND CollectionDate = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID,dateChoice)
     sqlq = "SELECT idMeta, DataType FROM Meta WHERE Household_idHousehold = '%s' ORDER BY Household_idHousehold,DataType;" % (householdID)
     results = getSQL(sqlq)
@@ -325,7 +320,7 @@ def getDevicesForDate(householdID, dateChoice):
 
 
 def getDeviceRequirements(householdID):
-    # formated list of counters and 'E' for people/eMeter
+    """ formated list of counters and 'E' for people/eMeter """
     counters = getParticipantCount(householdID)
     clist = ''
     for counter in range(counters):
@@ -335,7 +330,7 @@ def getDeviceRequirements(householdID):
 
 
 def xgetDeviceMetaIDs(householdID, deviceType):
-    # check if eMeter has been configured
+    """ check if eMeter has been configured """
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType, householdID)
     results = getSQL(sqlq)
     metaIDs = ''
@@ -354,7 +349,7 @@ def xgetParticipantCounters(householdID):
 
 
 def getComment(householdID):
-    # get the status for this household
+    """ get the status for this household """
     sqlq = "SELECT CONVERT(comment USING utf8) FROM Household WHERE idHousehold = '%s';" % householdID
     result = getSQL(sqlq)[0]
     CommentStr = "Comment: %s" % result['CONVERT(comment USING utf8)']
@@ -362,7 +357,7 @@ def getComment(householdID):
 
 
 def getParticipantCount(householdID):
-    # get number of diaries required
+    """ get number of diaries required """
     sqlq = "SELECT age_group2, age_group3, age_group4, age_group5, age_group6\
             FROM Household \
             WHERE idHousehold = '" + householdID + "';"
@@ -371,7 +366,7 @@ def getParticipantCount(householdID):
 
 
 def updateDataQuality(idMeta, Quality):
-    # set Quality in Meta table
+    """ set Quality in Meta table """
     # called when compose_email('graph')
     # XXX add for diaries
     sqlq = "UPDATE Meta \
@@ -382,7 +377,8 @@ def updateDataQuality(idMeta, Quality):
 
 
 def updateHouseholdStatus(householdID, status):
-    # update status of household                            #statusUpdate
+    """ update status of household """
+    # #statusUpdate
     status
     # only case 3,5,6 and 7 dealt with here. others from php forms.
     # 0 : hhq incomplete                hhq.php
@@ -404,7 +400,7 @@ def updateHouseholdStatus(householdID, status):
 
 
 def getDeviceSerialNumber(meterType):
-    # download the sn from device - if none present, set one up
+    """ download the sn from device - if none present, set one up """
     callShell("rm %s" % snFilePath)
     callShell("adb pull /sdcard/METER/sn.txt %s" % snFilePath)
     if (os.path.isfile(snFilePath)):
@@ -426,6 +422,7 @@ def getDeviceSerialNumber(meterType):
 
 
 def device_config(meterType):
+    """ assign meta id and copy config / id files to device """ 
     # 2 Nov 15 - assumes that the apps are already installed
     # global metaID
     global householdID
@@ -480,6 +477,7 @@ def device_config(meterType):
 
 
 def printSticker(text, fileName):
+    """ pandoc file into printabe format and send to printer """
     myFile = open("%s.md" % (fileName), "w")
     myFile.write(text)
     myFile.close()
@@ -488,7 +486,7 @@ def printSticker(text, fileName):
 
 
 def getDiaryByNumber(number):
-    # pick from the list of "A"-type Meta entries for this HH
+    """ pick from the list of "A"-type Meta entries for this HH """
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = 'A' AND Household_idHousehold = '%s';" % householdID
     results = getSQL(sqlq)
 
@@ -497,7 +495,7 @@ def getDiaryByNumber(number):
 
 
 def phone_for_paper_diary(metaID):
-    # the id is typed on command line
+    """ the id is typed on command line """
 
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = '%s'" % metaID
     result = getSQL(sqlq)[0]
@@ -511,6 +509,7 @@ def phone_for_paper_diary(metaID):
 
 
 def updateConfigFile(_id, _dateChoice, meterType):
+    """ write id information and created dates and times for follow up queries """
     dateFormat = '%Y-%m-%d'
     dateChoice_dt = datetime.datetime.strptime(_dateChoice, dateFormat)
     startDate = dateChoice_dt.strftime("%Y-%m-%d")
@@ -560,6 +559,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
 
 
 def updateIDfile(_id):
+    """ update device date and id information """
     idFile = open(idFilePath, 'w+')
     idFile.write(str(_id))
     idFile.close()
@@ -573,7 +573,7 @@ def updateIDfile(_id):
 
 
 def setSerialNumber(SerialNumber):
-    # command typed number is set as serial number for current metaID
+    """ command typed number is set as serial number for current metaID """
     metaID = getMetaIDs(householdID, 'E')
     sqlq = "UPDATE Meta \
             SET SerialNumber = '%s'\
@@ -583,13 +583,14 @@ def setSerialNumber(SerialNumber):
 
 
 def aMeter_setup():
-    # compile and upload the cordova activity app
+    """ compile and upload the cordova activity app """
     callShell('/Users/phil/Sites/MeterApp/platforms/android/cordova/run')
     # install AutoStart app
     callShell('adb install ~/Software/Android/AutoStart_2.1.apk')
 
 
 def root_phone():
+    """ push root and flash packages """
     callShell('adb install -r ./apk/root.apk')
     # callShell('adb install -r ./apk/Insecure.apk')
     # to configure a phone, install insecure and tick the two boxes to root at start
@@ -604,7 +605,7 @@ def root_phone():
 
 
 def flash_phone(meterType):
-    # restore phone from Master copy
+    """ restore phone from Master copy """
     if (meterType == 'E'):
         callShell('adb push ./flash_eMeter/TWRP/ /sdcard/')
     elif (meterType == 'A'):
@@ -620,7 +621,7 @@ def flash_phone(meterType):
 
 
 def eMeter_setup():
-    # superseeded by flash_phone()
+    """ superseeded by flash_phone() """
     # Compile and run device_config(E)
     # XXX call('ant debug -f ~/Software/Android/DMon/build.xml', shell=True)
     # remove old copy
@@ -641,7 +642,7 @@ def eMeter_setup():
 
 
 def getMetaIDs(hhID, deviceType):
-    # check if eMeter has been configured
+    """ check if eMeter has been configured """
     sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType, hhID)
     result = getSQL(sqlq)
     if (result):
@@ -651,7 +652,7 @@ def getMetaIDs(hhID, deviceType):
 
 
 def getHHdateChoice(hhID):
-    # reads a sql date in format "2016-12-31"
+    """ reads a sql date in format "2016-12-31" """
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s';" % hhID
     result = getSQL(sqlq)[0]
     dateStr = ("%s" % result['date_choice'])
@@ -659,7 +660,7 @@ def getHHdateChoice(hhID):
 
 
 def getHHdtChoice(hhID):
-    # reads a sql date in format "2016-12-31" and returns datetime object
+    """ reads a sql date in format "2016-12-31" and returns datetime object """
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s';" % hhID
     result = getSQL(sqlq)[0]
     dateStr = ("%s" % result['date_choice'])
@@ -671,7 +672,7 @@ def getHHdtChoice(hhID):
 
 
 def getDateChoice(hhID):
-    # return collection date as a string: "Sun, 31 Dec"
+    """ return collection date as a string: "Sun, 31 Dec" """
     this_dt = getHHdtChoice(hhID)
     if (this_dt != 'None'):
         return this_dt.strftime("%a, %-d %b")
@@ -680,7 +681,7 @@ def getDateChoice(hhID):
 
 
 def getDateTimeFormated(dts):
-    # DateTimeString as received from database: return 31 Jan 16
+    """ DateTimeString as received from database: return 31 Jan 16 """
     # http://strftime.org/
     if (dts != 'None'):
         f = '%Y-%m-%d %H:%M:%S'
@@ -691,7 +692,7 @@ def getDateTimeFormated(dts):
 
 
 def compose_email(type, edit=True):
-    # Contact participant with editabel email
+    """ Contact participant with editabel email """
     # edit = False -> send immediately
     global householdID
     # get contact details
@@ -770,7 +771,7 @@ def compose_email(type, edit=True):
 
 
 def email_many():
-    # compose message
+    """ compose message """
     emailFilePath = emailPath + "email_many.html"
     # give oportunity to edit the template
     call('vim ' + emailFilePath, shell=True)
@@ -803,7 +804,7 @@ def getTemplate(fileName):
 
 
 def print_address():
-    # formated address label
+    """ formated address label """
     global householdID
     contactID = getContact(householdID)
 
@@ -823,7 +824,7 @@ def print_address():
 
 
 def print_letter(letterType):
-    # personal letter as pdf
+    """ personal letter as pdf """
     global householdID
     contactID = getContact(householdID)
     participantCount = ("%s" % getParticipantCount(str(householdID)))
@@ -891,8 +892,10 @@ def print_letter(letterType):
 
 
 class ActionControllerData(nps.MultiLineAction):
-    # action key shortcuts                                      #action_keys
+    """ action key shortcuts """
+    # #action_keys
     def __init__(self, *args, **keywords):
+        """ set keys for all screens """
         super(ActionControllerData, self).__init__(*args, **keywords)
         global MasterKeys
         MasterKeys = {
@@ -951,7 +954,8 @@ class ActionControllerData(nps.MultiLineAction):
         # self.add_handlers(MenuActionKeys)
 
     def actionHighlighted(self, selectedLine, keypress):
-        # choose action based on the display status and selected line           #action_highlighted
+        """ choose action based on the display status and selected line """
+        # #action_highlighted
         global householdID
 
         if (self.parent.myStatus == 'Main'):
@@ -1018,10 +1022,11 @@ class ActionControllerData(nps.MultiLineAction):
                 message("No action for %s defined" % Key[0])
 
     def mute(self, *args):
+        """ does nothing """
         pass
 
     def updateActionKeys(self, ScreenKey):
-        # redefine what keys do
+        """ redefine what keys do """
         global ActionKeys
         for key in ActionKeys:
             # make all 'old' Action keys 'mute'
@@ -1035,7 +1040,7 @@ class ActionControllerData(nps.MultiLineAction):
         self.add_handlers(ActionKeys)
 
     def SwitchScreen(self, *args, **keywords):
-        # convert key number to character (48 -> '0')
+        """ convert key number to character (48 -> '0') """
         Key = chr(args[0])
         self.updateActionKeys("%s" % Key)
         showScreen(Key)
@@ -1083,6 +1088,7 @@ class ActionControllerData(nps.MultiLineAction):
 
 
 class ActionControllerSearch(nps.ActionControllerSimple):
+    """ search and command settings """
     def create(self):
         self.add_action('^/.*', self.set_search, True)
         self.add_action('^:\d.*', self.set_serialNumber, False)
@@ -1130,6 +1136,7 @@ class ActionControllerSearch(nps.ActionControllerSimple):
 
 
 class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
+    """ npyScreen from with mutt style features """
     ACTION_CONTROLLER = ActionControllerSearch
     MAIN_WIDGET_CLASS = ActionControllerData
     # myStatus = Screen[str(ScreenKey)]['Name']
@@ -1139,7 +1146,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     cursor = connectDatabaseOLD(dbHost)
 
     def beforeEditing(self):
-        # connect/reconnect
+        """ connect/reconnect """
         global cursor
         cursor = connectDatabase(dbHost)
 
@@ -1156,7 +1163,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.wMain.display()
 
     def initialise(self):
-        # menu and sub-menues           #menu_bar
+        """ menu and sub-menues """
+        # #menu_bar
 
         # global dataType
         self.m1 = self.add_menu(name="Data handling", shortcut="D")
@@ -1209,6 +1217,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m3.addItem(text="Exit", onSelect=self.exit_application, shortcut="X")
 
     def getMenuText(self):
+        """ get content based on current ScreenKey """
         # #menu_text
 
         if (householdID != '0'):
@@ -1277,7 +1286,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         return MenuText
 
     def email(self, key):
-        # compose_email(Screen[ScreenKey][chr(key)['EmailType'])
+        """ compose_email(Screen[ScreenKey][chr(key)['EmailType']) """
         compose_email(Screen[ScreenKey]['Actions'][chr(key)]['arguments'])
 
     def showHouseholds(self, key):
@@ -1300,7 +1309,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             Screen['4']['Actions']['D']['Label'] = "Configure eMeter"
 
     def getHHindex(self, HouseholdID):
-        # find at what position in the list the current hh is
+        """ find at what position in the list the current hh is """
         sqlq = "SELECT rank \
                 FROM ( \
                     SELECT idHousehold, date_choice,\
@@ -1685,7 +1694,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
 
 class editContactForm(nps.Form):
-    # gets fields from database, collects new entries
+    """ gets fields from database, collects new entries """
 
     def beforeEditing(self):
         sqlq = "SHOW columns from Contact;"
@@ -1711,7 +1720,7 @@ class editContactForm(nps.Form):
 
 
 class editHouseholdForm(nps.Form):
-    # EditHousehold - Shows all entries for editing
+    """ EditHousehold - Shows all entries for editing """
 
     def beforeEditing(self):
         sqlq = "SHOW columns from Household;"
@@ -1736,7 +1745,7 @@ class editHouseholdForm(nps.Form):
 
 
 class newContactForm(nps.Form):
-    # gets fields from database, collects new entries
+    """ gets fields from database, collects new entries """
     def create(self):
         # get Household fields
         self.ColumnName = []
@@ -1783,7 +1792,7 @@ class newContactForm(nps.Form):
 
 
 class metaFileInformation(nps.Form):
-    # The MetaForm
+    """ The MetaForm """
     # display all .meta files in /METER/
     def init(self):
         self.fileList = []
@@ -1930,7 +1939,7 @@ class metaFileInformation(nps.Form):
 
 
 class snEntry(nps.ActionPopup):
-    # pops up to collect a serial number
+    """ pops up to collect a serial number """
 
     def create(self):
         self.meta = 0  # will be assigned externally by device_config()
@@ -1956,6 +1965,7 @@ class snEntry(nps.ActionPopup):
 
 
 class MeterTheme(nps.ThemeManager):
+    """ defines colours """
     default_colors = {
         'DEFAULT':      'WHITE_BLACK',
         'FORMDEFAULT':  'GREEN_BLACK',
@@ -1980,6 +1990,7 @@ class MeterTheme(nps.ThemeManager):
 
 
 class MeterForms(nps.NPSAppManaged):
+    """ add Forms to the app """
     def onStart(self):
         # nps.setTheme(nps.Themes.ColorfulTheme)
         nps.setTheme(MeterTheme)
@@ -1992,6 +2003,7 @@ class MeterForms(nps.NPSAppManaged):
 
 
 if __name__ == "__main__":
+    """ start the app """
     MeterApp = MeterForms()
     MeterApp.run()
     exit()

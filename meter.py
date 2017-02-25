@@ -17,6 +17,7 @@ import npyscreen as nps
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
 def connectDatabase(_dbHost):
+    """ try to connect to server - else to local database """
     global cursor
     global dbConnection
     global dbHost
@@ -37,7 +38,7 @@ def getConnection():
     return dbConnection
 
 def connectDatabaseOLD(_dbHost):
-    # remove
+    """ remove """
     global dbConnection
     global dbHost
     dbHost = _dbHost
@@ -55,7 +56,7 @@ def commit():
     dbConnection.commit()
 
 def executeSQL(_sqlq):
-    # to safeguard against dropped connections
+    """ to safeguard against dropped connections """
     global cursor
     try:
         cursor.execute(_sqlq)
@@ -66,7 +67,7 @@ def executeSQL(_sqlq):
     return cursor.lastrowid
 
 def getSQL(_sqlq):
-    # to safeguard against dropped connections
+    """ to safeguard against dropped connections """
     global cursor
     try:
         cursor.execute(_sqlq)
@@ -77,6 +78,7 @@ def getSQL(_sqlq):
     return cursor.fetchall()
 
 def toggleDatabase():
+    """ switch between remote and local db """
     global dbHost
     global cursor
     if (dbHost == 'localhost'):
@@ -86,6 +88,7 @@ def toggleDatabase():
     cursor = connectDatabase(dbHost)
 
 def backup_database():
+    """ dump sql in local dated file """
     dateTimeToday = datetime.datetime.now()
     thisDate = dateTimeToday.strftime("%Y_%m_%d")
     call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
@@ -93,6 +96,7 @@ def backup_database():
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
 
 def getNameEmail(table,criterium):
+    """ returns name and email for matched """
     email='\'%@%\''
     if (table == "Contact"):
         sqlq = "SELECT * FROM (\
@@ -123,13 +127,13 @@ def getRecipientCount(table,criterium):
     return len(getNameEmail(table,criterium))
 
 def getHouseholdCount(condition):
-    # count household in database matching the modus criteria
+    """ count household in database matching the modus criteria """
     sqlq = "SELECT count(idHousehold) FROM Household WHERE " + condition +";"
     result = getSQL(sqlq)[0]
     return ("%s" % result['count(idHousehold)'])
 
 def getContact(hhID):
-    # return contactID for given household
+    """ return contactID for given household """
     sqlq = "SELECT Contact_idContact FROM Household WHERE idHousehold = '%s';" % hhID
     if (getSQL(sqlq)):
         result = getSQL(sqlq)[0]
@@ -139,7 +143,7 @@ def getContact(hhID):
         return '0'
 
 def getNameOfContact(thisContactID):
-    # get Contact name for a given Contact
+    """ get Contact name for a given Contact """
     sqlq ="SELECT Name,Surname\
             FROM Contact \
             WHERE idContact = '%s';" % thisContactID
@@ -147,12 +151,13 @@ def getNameOfContact(thisContactID):
     return str(result['Name']) + ' ' + str(result['Surname'])
 
 def getSecurityCode(householdID):
-    # get the security code for this household
+    """ get the security code for this household """
     sqlq = "SELECT security_code FROM Household WHERE idHousehold = '%s';" % householdID 
     result = getSQL(sqlq)[0]
     return ("%s" % result['security_code'])
 
 def householdExists(hhID):
+    """ true if record is found """
     sqlq = "SELECT * FROM Household WHERE idHousehold = %s;" % hhID
     if (getSQL(sqlq)):
         return True
@@ -160,7 +165,7 @@ def householdExists(hhID):
         return False
 
 def getHouseholdForContact(contactID):
-    # find the first HH match for this cID - WARNING - there could be more than one!!!
+    """ find the first HH match for this cID - WARNING - there could be more than one!!! """
     sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = %s;" % contactID
     if (getSQL(sqlq)):
         result = getSQL(sqlq)[0]
@@ -171,7 +176,7 @@ def getHouseholdForContact(contactID):
         
 
 def getHouseholdForMeta(_metaID):
-    # find the one match of HH for this metaID
+    """ find the one match of HH for this metaID """
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = %s;" % _metaID
     if (getSQL(sqlq)):
         result = getSQL(sqlq)[0]
@@ -181,7 +186,7 @@ def getHouseholdForMeta(_metaID):
         return '0'
 
 def getStatus(householdID):
-    # get the status for this household
+    """ get the status for this household """
     sqlq = "SELECT status FROM Household WHERE idHousehold = '%s';" % householdID 
     result = getSQL(sqlq)[0]
     return ("%s" % result['status'])
@@ -192,7 +197,7 @@ def getStatus(householdID):
 #     return ("%s" % (cursor.fetchone()))
 
 def getDateTimeFormated(dts):
-    # DateTimeString as received from database: return 31 Jan 16
+    """ DateTimeString as received from database: return 31 Jan 16 """
     # http://strftime.org/
     if (dts != 'None'):
         f = '%Y-%m-%d %H:%M:%S'
@@ -218,6 +223,6 @@ def formatList(col1, col2):
     return ["\t\t\t" + "{:<25}".format(col1) + "{:<30}".format(col2)]
 
 def message(msgStr):
-    # shorthand to display debug information
+    """ shorthand to display debug information """
     nps.notify_confirm(msgStr,editw=1)
 
