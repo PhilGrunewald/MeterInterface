@@ -20,10 +20,6 @@ v.27.2
 
    README.rst
 
-.. automodule:: interface
-    :members:
-
-
    _static/MeterDatabaseIntro.rst
 
    _static/Configure_aMeter.rst
