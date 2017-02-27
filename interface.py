@@ -237,7 +237,10 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
             activities = json.load(json_data)
         for activity in activities:
             keyStr = "`, `".join(activities[activity].keys())
-            valStr = "', '".join(activities[activity].values())
+            # escape single quotes from entries - they mess up SQL
+            actList = activities[activity].values()
+            actList = [act.replace("'", "\\'") for act in actList]
+            valStr = "', '".join(actList)
             sqlq = "INSERT INTO Activities(`%s`) VALUES('%s')" % (keyStr, valStr)
             executeSQL(sqlq)
     else:
