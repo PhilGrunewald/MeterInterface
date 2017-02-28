@@ -37,17 +37,17 @@ The forms support Mutt-style navigation and key bindings. Build on the `npyScree
 
     Noddle functions
 
-.. autoclass:: meter
+.. autoclass:: ./meter
     :members:
 
 .. class:: Noodle2
 
     Noddle functions 2
 
-.. automodule:: meter
+.. automodule:: /meter
     :members:
 
-.. automodule:: mailer
+.. automodule:: ../mailer
     :members:
 
 .. class:: Noodle3
