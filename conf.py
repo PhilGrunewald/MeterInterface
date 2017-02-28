@@ -24,7 +24,7 @@ import mock
  
 MOCK_MODULES = ['pandas', 'textwrap', 'json', 'meter_ini']
 for mod_name in MOCK_MODULES:
-sys.modules[mod_name] = mock.Mock()
+    sys.modules[mod_name] = mock.Mock()
 
 # -- General configuration ------------------------------------------------
 
