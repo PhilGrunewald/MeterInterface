@@ -710,7 +710,7 @@ def compose_email(type, edit=True):
     thisAddress = thisAddress.replace("None </br>", "")
     thisDate    = getDateChoice(householdID)
     thisEmail   = ("%s" % (result['email']))
-    CcEmail     = 'philipp.grunewald@ouce.ox.ac.uk'
+    CcEmail     = 'meter@energy.ox.ac.uk'
     thisAddress = thisAddress.replace("None</br>", "")
     participantCount = ("%s" % getParticipantCount(str(householdID)))
     # prepare the custom email
@@ -768,7 +768,7 @@ def compose_email(type, edit=True):
         call('vim ' + emailFilePath, shell=True)
         MeterApp._Forms['MAIN'].wMain.display()  # XXX does not have the desired effect of removing the light 'vim' background
     else:
-        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b meter@energy.ox.ac.uk < ' + emailFilePath, shell=True)
     # 29 Jan 2017 added to redraw screen after mailing
     MeterApp._Forms['MAIN'].setMainMenu()
 
