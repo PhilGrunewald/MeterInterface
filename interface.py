@@ -27,7 +27,7 @@ import json                   # used for reading activities.json
 import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
-# from meter import *         # db connection and npyscreen features
+from meter import *         # db connection and npyscreen features
 import meter_ini     # reads the database and file path information
 
 Criteria = {'Home':         'status >= 0',
