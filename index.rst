@@ -33,6 +33,11 @@ Meter Interface
 The Meter interface is a terminal based app to configure the research tools of the `Meter study <http://www.energy-use.org>`_ and support data handling with the MySQL database.
 The forms support Mutt-style navigation and key bindings. Build on the `npyScreen <http://npyscreen.readthedocs.io/>`_ package.
 
+.. class:: Noodle
+
+    Noddle functions
+
+
 .. automodule:: interface
     :members:
 
