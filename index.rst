@@ -19,7 +19,6 @@ v.1.2
    :maxdepth: 1
    :caption: Documentation:
 
-   README.rst
 
    _static/MeterDatabaseIntro.rst
 
@@ -27,35 +26,38 @@ v.1.2
 
 Meter Interface
 ===============
+README.rst
 
 .. image:: _static/MeterInterface.png
 
 The Meter interface is a terminal based app to configure the research tools of the `Meter study <http://www.energy-use.org>`_ and support data handling with the MySQL database.
 The forms support Mutt-style navigation and key bindings. Build on the `npyScreen <http://npyscreen.readthedocs.io/>`_ package.
 
-.. class:: Noodle
+.. class:: NoodleX
 
     Noddle functions
 
-.. autoclass:: ./meter
-    :members:
+#.. autoclass:: ./meter
+#    :members:
+#
+#.. class:: Noodle2
+#
+#    Noddle functions 2
+#
 
-.. class:: Noodle2
+.. automodule:: meter
+    :members: connectDatabase
 
-    Noddle functions 2
-
-.. automodule:: /meter
-    :members:
-
-.. automodule:: ../mailer
-    :members:
-
-.. class:: Noodle3
-
-    Noddle functions 3
-
-.. automodule:: interface
-    :members:
+#
+#.. automodule:: ../mailer
+#    :members:
+#
+#.. class:: Noodle3
+#
+#    Noddle functions 3
+#
+#.. automodule:: interface
+#    :members:
 
 
 Indices and tables
