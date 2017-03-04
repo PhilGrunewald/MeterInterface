@@ -456,7 +456,10 @@ def device_config(meterType):
         print_address()
         updateHouseholdStatus(householdID, 5)
         if ((metaID != '0') & (sn != '-1')):
-            callShell('adb shell reboot -p')
+            # callShell('adb shell reboot -p')
+            pass
+            # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
+            # call('adb shell reboot -p', shell=True)
     else:
         # Booklet sticker
         dt   = getHHdtChoice(householdID)
@@ -1955,9 +1958,12 @@ class snEntry(nps.ActionPopup):
     def on_ok(self):
         with open(snFilePath, "w") as f:
             f.write(self.sn.value)
-        snMsg = callShell("adb push %s /sdcard/METER/" % snFilePath)
-        message(snMsg)
-        callShell('adb shell reboot -p')
+        callShell("adb push %s /sdcard/METER/" % snFilePath)
+
+        # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
+        # call('adb shell reboot -p', shell=True)
+        # callShell('adb shell reboot -p')
+
         sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value, self.meta)
         message(sqlq)
         executeSQL(sqlq)
