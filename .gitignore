@@ -1,6 +1,5 @@
-meter_ini.py
-meter_ini.pyc
-meter.pyc
+meter_ini.*
+*.pyc
 letters/
 Data/
 apk/
