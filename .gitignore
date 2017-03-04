@@ -6,3 +6,4 @@ Data/
 apk/
 flash*/
 /emails/tempEmail.htmail
+.DS_store
