@@ -1,0 +1,629 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Meter study &#8212; MeterInterface 1.0.1a documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.1a',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The Meter Database" href="_static/MeterDatabaseIntro.html" />
+    <link rel="prev" title="Meter Documentation" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="_static/MeterDatabaseIntro.html" title="The Meter Database"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Meter Documentation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">MeterInterface 1.0.1a documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="meter-study">
+<h1>Meter study<a class="headerlink" href="#meter-study" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/meter_logo.png"><img alt="_images/meter_logo.png" class="align-right" src="_images/meter_logo.png" style="width: 300px;" /></a>
+<p>The <a class="reference external" href="http://www.energy-use.org">Meter study</a> is a research project at the <a class="reference external" href="http://ox.ac.uk">University of Oxford&#8217;s</a> Environmental Change Institute (<a class="reference external" href="http://www.eci.ox.ac.uk/">ECI</a>) collecting data on household demographics, activities and electricity use. The aim is to better understand the timing of electricity use in households and identify potential routes towards flexibility in electricity use, which could support the emergence of more sustainable energy systems.</p>
+</div>
+<div class="section" id="activity-recorder">
+<h1>Activity recorder<a class="headerlink" href="#activity-recorder" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/handheld.png"><img alt="_images/handheld.png" src="_images/handheld.png" style="height: 200px;" /></a>
+<p>The app to record activities is kept in the <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp">Meter App</a> repository. This has it&#8217;s own <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/tree/master/docs">documentation</a>.</p>
+</div>
+<div class="section" id="user-data-visualisation">
+<h1>User data visualisation<a class="headerlink" href="#user-data-visualisation" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/user_profile.png"><img alt="_images/user_profile.png" src="_images/user_profile.png" style="height: 200px;" /></a>
+<p>A D3 based visualisation of activity and electricity data for a single household. See <a class="reference external" href="https://github.com/PhilGrunewald/yourdata">Your data</a> repository.</p>
+</div>
+<div class="section" id="admin-interface">
+<h1>Admin interface<a class="headerlink" href="#admin-interface" title="Permalink to this headline">¶</a></h1>
+<img alt="_images/MeterInterface.png" src="_images/MeterInterface.png" />
+<p>The Meter interface is a terminal based app to configure the research tools of the <a class="reference external" href="http://www.energy-use.org">Meter study</a> and support data handling with the MySQL database.
+The forms support Mutt-style navigation and key bindings. Build on the <a class="reference external" href="http://npyscreen.readthedocs.io/">npyScreen</a> package.</p>
+<span class="target" id="module-interface"></span><dl class="class">
+<dt id="interface.ActionControllerData">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">ActionControllerData</code><span class="sig-paren">(</span><em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData" title="Permalink to this definition">¶</a></dt>
+<dd><p>action key shortcuts</p>
+<dl class="method">
+<dt id="interface.ActionControllerData.SwitchScreen">
+<code class="descname">SwitchScreen</code><span class="sig-paren">(</span><em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData.SwitchScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData.SwitchScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert key number to character (48 -&gt; &#8216;0&#8217;)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.ActionControllerData.actionHighlighted">
+<code class="descname">actionHighlighted</code><span class="sig-paren">(</span><em>selectedLine</em>, <em>keypress</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData.actionHighlighted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData.actionHighlighted" title="Permalink to this definition">¶</a></dt>
+<dd><p>choose action based on the display status and selected line</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.ActionControllerData.mute">
+<code class="descname">mute</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData.mute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData.mute" title="Permalink to this definition">¶</a></dt>
+<dd><p>does nothing</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.ActionControllerData.updateActionKeys">
+<code class="descname">updateActionKeys</code><span class="sig-paren">(</span><em>ScreenKey</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData.updateActionKeys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData.updateActionKeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>redefine what keys do</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.ActionControllerSearch">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">ActionControllerSearch</code><span class="sig-paren">(</span><em>parent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerSearch" title="Permalink to this definition">¶</a></dt>
+<dd><p>search and command settings</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.MeterForms">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">MeterForms</code><a class="reference internal" href="_modules/interface.html#MeterForms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterForms" title="Permalink to this definition">¶</a></dt>
+<dd><p>add Forms to the app</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.MeterMain">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">MeterMain</code><span class="sig-paren">(</span><em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain" title="Permalink to this definition">¶</a></dt>
+<dd><p>npyScreen from with mutt style features</p>
+<dl class="attribute">
+<dt id="interface.MeterMain.ACTION_CONTROLLER">
+<code class="descname">ACTION_CONTROLLER</code><a class="headerlink" href="#interface.MeterMain.ACTION_CONTROLLER" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#interface.ActionControllerSearch" title="interface.ActionControllerSearch"><code class="xref py py-class docutils literal"><span class="pre">ActionControllerSearch</span></code></a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="interface.MeterMain.MAIN_WIDGET_CLASS">
+<code class="descname">MAIN_WIDGET_CLASS</code><a class="headerlink" href="#interface.MeterMain.MAIN_WIDGET_CLASS" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#interface.ActionControllerData" title="interface.ActionControllerData"><code class="xref py py-class docutils literal"><span class="pre">ActionControllerData</span></code></a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.MeterMain.beforeEditing">
+<code class="descname">beforeEditing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain.beforeEditing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain.beforeEditing" title="Permalink to this definition">¶</a></dt>
+<dd><p>connect/reconnect</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.MeterMain.email">
+<code class="descname">email</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain.email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain.email" title="Permalink to this definition">¶</a></dt>
+<dd><p>compose_email(Screen[ScreenKey][chr(key)[&#8216;EmailType&#8217;])</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.MeterMain.getHHindex">
+<code class="descname">getHHindex</code><span class="sig-paren">(</span><em>HouseholdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain.getHHindex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain.getHHindex" title="Permalink to this definition">¶</a></dt>
+<dd><p>find at what position in the list the current hh is</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.MeterMain.getMenuText">
+<code class="descname">getMenuText</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain.getMenuText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain.getMenuText" title="Permalink to this definition">¶</a></dt>
+<dd><p>get content based on current ScreenKey</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="interface.MeterMain.initialise">
+<code class="descname">initialise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#MeterMain.initialise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterMain.initialise" title="Permalink to this definition">¶</a></dt>
+<dd><p>menu and sub-menues</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.MeterTheme">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">MeterTheme</code><a class="reference internal" href="_modules/interface.html#MeterTheme"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.MeterTheme" title="Permalink to this definition">¶</a></dt>
+<dd><p>defines colours</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.aMeter_setup">
+<code class="descclassname">interface.</code><code class="descname">aMeter_setup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#aMeter_setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.aMeter_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>compile and upload the cordova activity app</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.callShell">
+<code class="descclassname">interface.</code><code class="descname">callShell</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#callShell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.callShell" title="Permalink to this definition">¶</a></dt>
+<dd><p>executes shell command and returns all text displayed</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.compose_email">
+<code class="descclassname">interface.</code><code class="descname">compose_email</code><span class="sig-paren">(</span><em>type</em>, <em>edit=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#compose_email"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.compose_email" title="Permalink to this definition">¶</a></dt>
+<dd><p>Contact participant with editabel email</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.data_download">
+<code class="descclassname">interface.</code><code class="descname">data_download</code><span class="sig-paren">(</span><em>*self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#data_download"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.data_download" title="Permalink to this definition">¶</a></dt>
+<dd><p>pull files from phone</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.device_config">
+<code class="descclassname">interface.</code><code class="descname">device_config</code><span class="sig-paren">(</span><em>meterType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#device_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.device_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>assign meta id and copy config / id files to device</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.eMeter_setup">
+<code class="descclassname">interface.</code><code class="descname">eMeter_setup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#eMeter_setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.eMeter_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>superseeded by flash_phone()</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.editContactForm">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">editContactForm</code><span class="sig-paren">(</span><em>name=None</em>, <em>parentApp=None</em>, <em>framed=None</em>, <em>help=None</em>, <em>color='FORMDEFAULT'</em>, <em>widget_list=None</em>, <em>cycle_widgets=False</em>, <em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#editContactForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.editContactForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>gets fields from database, collects new entries</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.editHouseholdForm">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">editHouseholdForm</code><span class="sig-paren">(</span><em>name=None</em>, <em>parentApp=None</em>, <em>framed=None</em>, <em>help=None</em>, <em>color='FORMDEFAULT'</em>, <em>widget_list=None</em>, <em>cycle_widgets=False</em>, <em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#editHouseholdForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.editHouseholdForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>EditHousehold - Shows all entries for editing</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.email_many">
+<code class="descclassname">interface.</code><code class="descname">email_many</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#email_many"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.email_many" title="Permalink to this definition">¶</a></dt>
+<dd><p>compose message</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.flash_phone">
+<code class="descclassname">interface.</code><code class="descname">flash_phone</code><span class="sig-paren">(</span><em>meterType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#flash_phone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.flash_phone" title="Permalink to this definition">¶</a></dt>
+<dd><p>restore phone from Master copy</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getComment">
+<code class="descclassname">interface.</code><code class="descname">getComment</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getComment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getComment" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the status for this household</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDateChoice">
+<code class="descclassname">interface.</code><code class="descname">getDateChoice</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDateChoice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDateChoice" title="Permalink to this definition">¶</a></dt>
+<dd><p>return collection date as a string: &#8220;Sun, 31 Dec&#8221;</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDateOfFirstEntry">
+<code class="descclassname">interface.</code><code class="descname">getDateOfFirstEntry</code><span class="sig-paren">(</span><em>thisFile</em>, <em>col</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDateOfFirstEntry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDateOfFirstEntry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the date string in a data file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDateTimeFormated">
+<code class="descclassname">interface.</code><code class="descname">getDateTimeFormated</code><span class="sig-paren">(</span><em>dts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDateTimeFormated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDateTimeFormated" title="Permalink to this definition">¶</a></dt>
+<dd><p>DateTimeString as received from database: return 31 Jan 16</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDeviceCount">
+<code class="descclassname">interface.</code><code class="descname">getDeviceCount</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDeviceCount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDeviceCount" title="Permalink to this definition">¶</a></dt>
+<dd><p>return count of devices configured for this date</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDeviceMetaIDs">
+<code class="descclassname">interface.</code><code class="descname">getDeviceMetaIDs</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDeviceMetaIDs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDeviceMetaIDs" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if eMeter has been configured</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDeviceRequirements">
+<code class="descclassname">interface.</code><code class="descname">getDeviceRequirements</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDeviceRequirements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDeviceRequirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>formated list of counters and &#8216;E&#8217; for people/eMeter</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDeviceSerialNumber">
+<code class="descclassname">interface.</code><code class="descname">getDeviceSerialNumber</code><span class="sig-paren">(</span><em>meterType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDeviceSerialNumber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDeviceSerialNumber" title="Permalink to this definition">¶</a></dt>
+<dd><p>download the sn from device - if none present, set one up</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDevicesForDate">
+<code class="descclassname">interface.</code><code class="descname">getDevicesForDate</code><span class="sig-paren">(</span><em>householdID</em>, <em>dateChoice</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDevicesForDate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDevicesForDate" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if eMeter has been configured</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDevicesReadings">
+<code class="descclassname">interface.</code><code class="descname">getDevicesReadings</code><span class="sig-paren">(</span><em>householdID</em>, <em>dateChoice</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDevicesReadings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDevicesReadings" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if eMeter has been configured</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDiaryByNumber">
+<code class="descclassname">interface.</code><code class="descname">getDiaryByNumber</code><span class="sig-paren">(</span><em>number</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDiaryByNumber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDiaryByNumber" title="Permalink to this definition">¶</a></dt>
+<dd><p>pick from the list of &#8220;A&#8221;-type Meta entries for this HH</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getHHdateChoice">
+<code class="descclassname">interface.</code><code class="descname">getHHdateChoice</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getHHdateChoice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getHHdateChoice" title="Permalink to this definition">¶</a></dt>
+<dd><p>reads a sql date in format &#8220;2016-12-31&#8221;</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getHHdtChoice">
+<code class="descclassname">interface.</code><code class="descname">getHHdtChoice</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getHHdtChoice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getHHdtChoice" title="Permalink to this definition">¶</a></dt>
+<dd><p>reads a sql date in format &#8220;2016-12-31&#8221; and returns datetime object</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getMetaData">
+<code class="descclassname">interface.</code><code class="descname">getMetaData</code><span class="sig-paren">(</span><em>MetaFile</em>, <em>ItemName</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getMetaData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getMetaData" title="Permalink to this definition">¶</a></dt>
+<dd><p>extract content from meta file (or any other file)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getMetaIDs">
+<code class="descclassname">interface.</code><code class="descname">getMetaIDs</code><span class="sig-paren">(</span><em>hhID</em>, <em>deviceType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getMetaIDs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getMetaIDs" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if eMeter has been configured</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getParticipantCount">
+<code class="descclassname">interface.</code><code class="descname">getParticipantCount</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getParticipantCount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getParticipantCount" title="Permalink to this definition">¶</a></dt>
+<dd><p>get number of diaries required</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getReadingPeriods">
+<code class="descclassname">interface.</code><code class="descname">getReadingPeriods</code><span class="sig-paren">(</span><em>_householdID</em>, <em>_condition</em>, <em>_duration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getReadingPeriods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getReadingPeriods" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns start and end of consequitive records matching the condition</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.get_time_period">
+<code class="descclassname">interface.</code><code class="descname">get_time_period</code><span class="sig-paren">(</span><em>timestr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#get_time_period"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.get_time_period" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert into one of 144 10minute periods of the day</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.metaFileInformation">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">metaFileInformation</code><span class="sig-paren">(</span><em>name=None</em>, <em>parentApp=None</em>, <em>framed=None</em>, <em>help=None</em>, <em>color='FORMDEFAULT'</em>, <em>widget_list=None</em>, <em>cycle_widgets=False</em>, <em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#metaFileInformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.metaFileInformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>The MetaForm</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.newContactForm">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">newContactForm</code><span class="sig-paren">(</span><em>name=None</em>, <em>parentApp=None</em>, <em>framed=None</em>, <em>help=None</em>, <em>color='FORMDEFAULT'</em>, <em>widget_list=None</em>, <em>cycle_widgets=False</em>, <em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#newContactForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.newContactForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>gets fields from database, collects new entries</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.next_period">
+<code class="descclassname">interface.</code><code class="descname">next_period</code><span class="sig-paren">(</span><em>thisTime</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#next_period"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.next_period" title="Permalink to this definition">¶</a></dt>
+<dd><p>advances datetime object by 10 minutes, e.g. &#8216;04:50:00&#8217; -&gt; &#8216;05:00:00&#8217;</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.phone_for_paper_diary">
+<code class="descclassname">interface.</code><code class="descname">phone_for_paper_diary</code><span class="sig-paren">(</span><em>metaID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#phone_for_paper_diary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.phone_for_paper_diary" title="Permalink to this definition">¶</a></dt>
+<dd><p>the id is typed on command line</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.printSticker">
+<code class="descclassname">interface.</code><code class="descname">printSticker</code><span class="sig-paren">(</span><em>text</em>, <em>fileName</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#printSticker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.printSticker" title="Permalink to this definition">¶</a></dt>
+<dd><p>pandoc file into printabe format and send to printer</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.print_address">
+<code class="descclassname">interface.</code><code class="descname">print_address</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#print_address"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.print_address" title="Permalink to this definition">¶</a></dt>
+<dd><p>formated address label</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.print_letter">
+<code class="descclassname">interface.</code><code class="descname">print_letter</code><span class="sig-paren">(</span><em>letterType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#print_letter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.print_letter" title="Permalink to this definition">¶</a></dt>
+<dd><p>personal letter as pdf</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.root_phone">
+<code class="descclassname">interface.</code><code class="descname">root_phone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#root_phone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.root_phone" title="Permalink to this definition">¶</a></dt>
+<dd><p>push root and flash packages</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.setSerialNumber">
+<code class="descclassname">interface.</code><code class="descname">setSerialNumber</code><span class="sig-paren">(</span><em>SerialNumber</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#setSerialNumber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.setSerialNumber" title="Permalink to this definition">¶</a></dt>
+<dd><p>command typed number is set as serial number for current metaID</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.showScreen">
+<code class="descclassname">interface.</code><code class="descname">showScreen</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#showScreen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.showScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>populate screen based ScreenKey dict</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="interface.snEntry">
+<em class="property">class </em><code class="descclassname">interface.</code><code class="descname">snEntry</code><span class="sig-paren">(</span><em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#snEntry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.snEntry" title="Permalink to this definition">¶</a></dt>
+<dd><p>pops up to collect a serial number</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.time_in_seconds">
+<code class="descclassname">interface.</code><code class="descname">time_in_seconds</code><span class="sig-paren">(</span><em>timestr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#time_in_seconds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.time_in_seconds" title="Permalink to this definition">¶</a></dt>
+<dd><p>not used - just kept for reference...</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.updateConfigFile">
+<code class="descclassname">interface.</code><code class="descname">updateConfigFile</code><span class="sig-paren">(</span><em>_id</em>, <em>_dateChoice</em>, <em>meterType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#updateConfigFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.updateConfigFile" title="Permalink to this definition">¶</a></dt>
+<dd><p>write id information and created dates and times for follow up queries</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.updateDataQuality">
+<code class="descclassname">interface.</code><code class="descname">updateDataQuality</code><span class="sig-paren">(</span><em>idMeta</em>, <em>Quality</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#updateDataQuality"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.updateDataQuality" title="Permalink to this definition">¶</a></dt>
+<dd><p>set Quality in Meta table</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.updateHouseholdStatus">
+<code class="descclassname">interface.</code><code class="descname">updateHouseholdStatus</code><span class="sig-paren">(</span><em>householdID</em>, <em>status</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#updateHouseholdStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.updateHouseholdStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>update status of household</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.updateIDfile">
+<code class="descclassname">interface.</code><code class="descname">updateIDfile</code><span class="sig-paren">(</span><em>_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#updateIDfile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.updateIDfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>update device date and id information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.upload_10min_readings">
+<code class="descclassname">interface.</code><code class="descname">upload_10min_readings</code><span class="sig-paren">(</span><em>metaIDe</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#upload_10min_readings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.upload_10min_readings" title="Permalink to this definition">¶</a></dt>
+<dd><p>use panas to resample readings</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.upload_1min_readings">
+<code class="descclassname">interface.</code><code class="descname">upload_1min_readings</code><span class="sig-paren">(</span><em>metaIDe</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#upload_1min_readings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.upload_1min_readings" title="Permalink to this definition">¶</a></dt>
+<dd><p>use panas to resample readings</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.xgetDeviceMetaIDs">
+<code class="descclassname">interface.</code><code class="descname">xgetDeviceMetaIDs</code><span class="sig-paren">(</span><em>householdID</em>, <em>deviceType</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#xgetDeviceMetaIDs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.xgetDeviceMetaIDs" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if eMeter has been configured</p>
+</dd></dl>
+
+</div>
+<div class="section" id="meter-module">
+<h1>Meter Module<a class="headerlink" href="#meter-module" title="Permalink to this headline">¶</a></h1>
+<p>This module provides SQL functionality to connect, query and upload to the database.</p>
+<span class="target" id="module-meter"></span><dl class="function">
+<dt id="meter.backup_database">
+<code class="descclassname">meter.</code><code class="descname">backup_database</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#backup_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.backup_database" title="Permalink to this definition">¶</a></dt>
+<dd><p>dump sql in local dated file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.connectDatabase">
+<code class="descclassname">meter.</code><code class="descname">connectDatabase</code><span class="sig-paren">(</span><em>_dbHost</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#connectDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.connectDatabase" title="Permalink to this definition">¶</a></dt>
+<dd><p>try to connect to server - else to local database</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.connectDatabaseOLD">
+<code class="descclassname">meter.</code><code class="descname">connectDatabaseOLD</code><span class="sig-paren">(</span><em>_dbHost</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#connectDatabaseOLD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.connectDatabaseOLD" title="Permalink to this definition">¶</a></dt>
+<dd><p>remove</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.executeSQL">
+<code class="descclassname">meter.</code><code class="descname">executeSQL</code><span class="sig-paren">(</span><em>_sqlq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#executeSQL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.executeSQL" title="Permalink to this definition">¶</a></dt>
+<dd><p>to safeguard against dropped connections</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getContact">
+<code class="descclassname">meter.</code><code class="descname">getContact</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getContact" title="Permalink to this definition">¶</a></dt>
+<dd><p>return contactID for given household</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getDateTimeFormated">
+<code class="descclassname">meter.</code><code class="descname">getDateTimeFormated</code><span class="sig-paren">(</span><em>dts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getDateTimeFormated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getDateTimeFormated" title="Permalink to this definition">¶</a></dt>
+<dd><p>DateTimeString as received from database: return 31 Jan 16</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getHouseholdCount">
+<code class="descclassname">meter.</code><code class="descname">getHouseholdCount</code><span class="sig-paren">(</span><em>condition</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdCount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdCount" title="Permalink to this definition">¶</a></dt>
+<dd><p>count household in database matching the modus criteria</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getHouseholdForContact">
+<code class="descclassname">meter.</code><code class="descname">getHouseholdForContact</code><span class="sig-paren">(</span><em>contactID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdForContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdForContact" title="Permalink to this definition">¶</a></dt>
+<dd><p>find the first HH match for this cID - WARNING - there could be more than one!!!</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getHouseholdForMeta">
+<code class="descclassname">meter.</code><code class="descname">getHouseholdForMeta</code><span class="sig-paren">(</span><em>_metaID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdForMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdForMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>find the one match of HH for this metaID</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getNameEmail">
+<code class="descclassname">meter.</code><code class="descname">getNameEmail</code><span class="sig-paren">(</span><em>table</em>, <em>criterium</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getNameEmail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getNameEmail" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns name and email for matched</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getNameOfContact">
+<code class="descclassname">meter.</code><code class="descname">getNameOfContact</code><span class="sig-paren">(</span><em>thisContactID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getNameOfContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getNameOfContact" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Contact name for a given Contact</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getSQL">
+<code class="descclassname">meter.</code><code class="descname">getSQL</code><span class="sig-paren">(</span><em>_sqlq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getSQL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getSQL" title="Permalink to this definition">¶</a></dt>
+<dd><p>to safeguard against dropped connections</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getSecurityCode">
+<code class="descclassname">meter.</code><code class="descname">getSecurityCode</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getSecurityCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getSecurityCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the security code for this household</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.getStatus">
+<code class="descclassname">meter.</code><code class="descname">getStatus</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the status for this household</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.householdExists">
+<code class="descclassname">meter.</code><code class="descname">householdExists</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#householdExists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.householdExists" title="Permalink to this definition">¶</a></dt>
+<dd><p>true if record is found</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.message">
+<code class="descclassname">meter.</code><code class="descname">message</code><span class="sig-paren">(</span><em>msgStr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.message" title="Permalink to this definition">¶</a></dt>
+<dd><p>shorthand to display debug information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="meter.toggleDatabase">
+<code class="descclassname">meter.</code><code class="descname">toggleDatabase</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#toggleDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.toggleDatabase" title="Permalink to this definition">¶</a></dt>
+<dd><p>switch between remote and local db</p>
+</dd></dl>
+
+<p>See <a class="reference external" href="https://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/">GitHub Documentation</a> for more information.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Meter study</a></li>
+<li><a class="reference internal" href="#activity-recorder">Activity recorder</a></li>
+<li><a class="reference internal" href="#user-data-visualisation">User data visualisation</a></li>
+<li><a class="reference internal" href="#admin-interface">Admin interface</a></li>
+<li><a class="reference internal" href="#meter-module">Meter Module</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Meter Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="_static/MeterDatabaseIntro.html"
+                        title="next chapter">The Meter Database</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/README.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="_static/MeterDatabaseIntro.html" title="The Meter Database"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Meter Documentation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">MeterInterface 1.0.1a documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>

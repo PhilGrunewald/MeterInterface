@@ -45,4 +45,3 @@ This module provides SQL functionality to connect, query and upload to the datab
     :members:
 
 See `GitHub Documentation <https://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/>`__ for more information.
-and `GitHub Documentation <https://rawgit.com/PhilGrunewald/MeterInterface/master/docs/html/>`__ for more information.
