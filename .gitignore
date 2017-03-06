@@ -4,6 +4,8 @@ meter_ini.*
 .DS_store
 .temp
 Data/
+letters/aMeter*
+letters/address*
 apk/
 flash*/
 /emails/tempEmail.htmail
