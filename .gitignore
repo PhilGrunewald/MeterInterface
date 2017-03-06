@@ -1,6 +1,8 @@
 meter_ini.*
 *.pyc
-letters/
+*.swp
+.DS_store
+.temp
 Data/
 apk/
 flash*/
