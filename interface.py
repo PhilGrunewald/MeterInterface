@@ -1173,22 +1173,19 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         # global dataType
         self.m1 = self.add_menu(name="Data handling", shortcut="D")
-        self.m1.addItemsFromList([
-            ("Download from phone", data_download, "d"),
-            ("Review Meta Data", data_review, "r"),
-        ])
-        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
-        self.m2.addItem(text='Show Households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='S', arguments=['Households'])
-        self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
-        self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
-        self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
-        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
-        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
-        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
-        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
-        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
+        self.m1.addItem(text='Download from device', onSelect=data_download, shortcut='d', arguments=None)
+        self.m1.addItem(text='Review downloaded data', onSelect=data_review, shortcut='r', arguments=None)
+        # self.m1.addItemsFromList([
+        #     ("Download from phone", data_download, "d"),
+        #     ("Review Meta Data", data_review, "r"),
+        # ])
 
-        self.m2 = self.add_menu(name="Work with data", shortcut="i")
+        self.m2 = self.add_menu(name="Participants", shortcut="i")
+        self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
+        self.m2.addItem(text='Edit   contact', onSelect=self.show_EditContact, shortcut='C')
+        self.m2.addItem(text='Select households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['Households'])
+        self.m2.addItem(text='Edit   household', onSelect=self.show_EditHousehold, shortcut='H')
+        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
 
         self.m2 = self.add_menu(name="Emails", shortcut="e")
         self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
@@ -1209,13 +1206,19 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         self.m2 = self.add_menu(name="Database management", shortcut="m")
         self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
-        self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
-        self.m2.addItem(text='Edit contact', onSelect=self.show_EditContact, shortcut='C')
-        self.m2.addItem(text='Edit household', onSelect=self.show_EditHousehold, shortcut='H')
-        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
         self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
         self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
         self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
+
+        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
+        self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
+        self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
+        self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
+        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
+        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
+        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
+        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
+        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
 
         self.m3 = self.add_menu(name="Exit", shortcut="X")
         self.m3.addItem(text="Home", onSelect=MeterApp._Forms['MAIN'].setMainMenu, shortcut="h")
