@@ -63,6 +63,7 @@ def executeSQL(_sqlq):
     except:
         message("Reconnect to datahase")
         cursor = connectDatabase(dbHost)
+        message(_sqlq)
         cursor.execute(_sqlq)
     return cursor.lastrowid
 
@@ -106,10 +107,11 @@ def getNameEmail(table,criterium):
                     ON Household.Contact_idContact = Contact.idContact\
                     WHERE email like %s\
                     AND %s\
-                    AND Contact.status IS NULL\
                  )\
                  as x\
                  group by idContact having count(*) = 1;" % (email,criterium)
+
+                    # AND Contact.status IS NULL\
 
         # sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
         #         From Contact\

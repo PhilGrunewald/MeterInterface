@@ -6,6 +6,6 @@ meter_ini.*
 Data/
 letters/aMeter*
 letters/address*
-apk/
+apk/*.apk
 flash*/
 /emails/tempEmail.htmail

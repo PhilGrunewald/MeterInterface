@@ -61,6 +61,9 @@ def callShell(command):
         messageStr += line
     return messageStr
 
+def getDateTimeNow():
+    """ current date and time in format "YYYY-MM-DD hh:mm:ss" """
+    return str(datetime.datetime.now())[0:19]
 
 def showScreen(key):
     """ populate screen based ScreenKey dict """
@@ -262,8 +265,10 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
     # we don't want 'I' in the Meta table - only E or A
     if (dataType == 'I'):
         dataType = 'A'
+    dtNow = getDateTimeNow()
     sqlq = "UPDATE Meta SET \
-            `DataType`='" + dataType + "' \
+            `DataType`='" + dataType + "', \
+            `uploaded`='" + dtNow + "' \
             WHERE `idMeta`='" + metaID + "';"
     commit()
     executeSQL(sqlq)
@@ -456,9 +461,10 @@ def device_config(meterType):
         print_address()
         updateHouseholdStatus(householdID, 5)
         if ((metaID != '0') & (sn != '-1')):
-            # callShell('adb shell reboot -p')
             # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
-            call('adb shell reboot -p', shell=True)
+            # callShell('adb shell reboot -p')
+            # call('adb shell reboot -p', shell=True)
+            pass
     else:
         # Booklet sticker
         dt   = getHHdtChoice(householdID)
@@ -1172,7 +1178,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # #menu_bar
 
         # global dataType
-        self.m1 = self.add_menu(name="Data handling", shortcut="D")
+        self.m1 = self.add_menu(name="Data handling", shortcut="d")
         self.m1.addItem(text='Download from device', onSelect=data_download, shortcut='d', arguments=None)
         self.m1.addItem(text='Review downloaded data', onSelect=data_review, shortcut='r', arguments=None)
         # self.m1.addItemsFromList([
@@ -1180,7 +1186,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         #     ("Review Meta Data", data_review, "r"),
         # ])
 
-        self.m2 = self.add_menu(name="Participants", shortcut="i")
+        self.m2 = self.add_menu(name="Participants", shortcut="p")
         self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
         self.m2.addItem(text='Edit   contact', onSelect=self.show_EditContact, shortcut='C')
         self.m2.addItem(text='Select households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['Households'])
@@ -1210,7 +1216,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
         self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
 
-        self.m2 = self.add_menu(name="Setup a batch", shortcut="B")
+        self.m2 = self.add_menu(name="Configure devices", shortcut="c")
         self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
         self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
         self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
@@ -1964,7 +1970,7 @@ class snEntry(nps.ActionPopup):
 
         # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
         # callShell('adb shell reboot -p')
-        call('adb shell reboot -p', shell=True)
+        # call('adb shell reboot -p', shell=True)
 
         sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value, self.meta)
         message(sqlq)
