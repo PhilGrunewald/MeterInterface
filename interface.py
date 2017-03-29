@@ -265,11 +265,13 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
     # we don't want 'I' in the Meta table - only E or A
     if (dataType == 'I'):
         dataType = 'A'
+    sn = getDeviceSerialNumber(dataType)
     dtNow = getDateTimeNow()
     sqlq = "UPDATE Meta SET \
-            `DataType`='" + dataType + "', \
-            `uploaded`='" + dtNow + "' \
-            WHERE `idMeta`='" + metaID + "';"
+            `SerialNumber` = '%s',\
+            `DataType`     = '%s',\
+            `uploaded`     = '%s' \
+            WHERE `idMeta` = '%s';" % (sn, dataType, dtNow, metaID)
     commit()
     executeSQL(sqlq)
     commit()
