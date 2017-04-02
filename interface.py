@@ -244,8 +244,31 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
             actList = activities[activity].values()
             actList = [act.replace("'", "\\'") for act in actList]
             valStr = "', '".join(actList)
-            sqlq = "INSERT INTO Activities(`%s`) VALUES('%s')" % (keyStr, valStr)
-            executeSQL(sqlq)
+            sqlq   = "INSERT INTO Activities(`%s`) VALUES('%s')" % (keyStr, valStr)
+            idAct  = executeSQL(sqlq)
+            # Add path in it's own table
+            path   = activities[activity]['path'].split(",")
+
+            for idButton in path:
+                try:
+                    sqlq = "INSERT INTO Path \
+                    (`Activities_idActivities`, `idButton`) \
+                    VALUES ({}, {})".format(idAct,idButton)
+                    executeSQL(sqlq)
+                except:
+                    message("Funny entry {}".format(idButton))
+        if (len(activities) > 6):
+           quality = 1
+        else:
+           quality = 0
+        sqlq = "UPDATE Meta SET \
+                `Quality` = '%s' \
+                WHERE `idMeta` = '%s';" % (quality, metaID)
+        commit()
+        executeSQL(sqlq)
+
+
+
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
@@ -257,10 +280,14 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
                         WHERE idIndividual = '" + str(individualID) + "';"
                 executeSQL(sqlq)
         if (dataType == 'A'):
+            # XXX ??? WILL THIS EVER EXECUTE ??? XXX
             for row in csv_data:                                                       # insert each line into Activities
                 sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
                         VALUES('" + row[0] + "', '" + row[1] + "', '" + row[2] + "', '" + row[3] + "', '" + row[4] + "', '" + row[5] + "', '" + row[6] + "', '" + row[7] + "', '" + row[8] + "', '" + row[9] + "')"
-                executeSQL(sqlq)
+                idAct = executeSQL(sqlq)
+
+
+
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
     if (dataType == 'I'):

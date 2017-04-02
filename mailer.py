@@ -90,9 +90,12 @@ def sendTo(condition,attach):
     idField = "id%s" % table
     for result in results:
         emailText = templateText.replace("[name]", "%s" % result["Name"])
-        emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
-        emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
+        if ("idHH" in result):
+            emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
+        if ("sc" in result):
+            emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
         emailText = emailText.replace("[id]", "%s" % result[idField])
+
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")
         emailFile.write(emailText)
