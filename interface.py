@@ -574,6 +574,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
         dts.append("%s %s" % (jstring['start'], time))
     for time in times2:
         dts.append("%s %s" % (jstring['end'], time))
+
     if (meterType == "P"):
         # device for manual entry of paper diary
         # needs no reminders

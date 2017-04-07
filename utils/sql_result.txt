@@ -1,0 +1,3 @@
+  uploaded	   updated	    idMeta	  DataType	Household_	SerialNumb	Collection	   Quality
+      None	      None	         0	         E	         0	      2680	      None	      None
+      None	      None	         8	         A	        50	8659100242	2016-07-18	      None
