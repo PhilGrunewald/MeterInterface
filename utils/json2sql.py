@@ -4,16 +4,19 @@ import sys
 import json
 import MySQLdb.cursors
 import db_ini as db     # reads the database and file path information
-# override host to local
-# db.Host='localhost'
 
 # ========= #
 #  GLOBALS  #
 # ========= #
 
-# with open('Definitions.json') as f:    
-with open('../activities.json') as f:    
-    jsonData = json.load(f)
+# override host to local
+# db.Host='localhost'
+
+# uncomment to select source file
+sourceFile = '../json/LegendHousehold.json'
+sourceFile = '../json/LegendIndividual.json'
+sourceFile = '../json/activities.json'
+
 
 # ========= #
 # FUNCTIONS #
@@ -47,8 +50,10 @@ def insertActivitiesJSON(jsonData):
             col = 'survey'
         else:
             col = 'UNDEFINED'
-        print  "INSERT INTO Legend (`table`,`column`,`value`,`meaning`) VALUES ('{}','{}','{}','{}')".format('Activities',col,jsonData['activities'][act]['ID'],jsonData['activities'][act]['title'])
-        sqlq =  "INSERT INTO Legend (`table`,`column`,`value`,`meaning`) VALUES ('{}','{}','{}','{}')".format('Activities',col,jsonData['activities'][act]['ID'],jsonData['activities'][act]['title'])
+        sqlq =  "INSERT INTO Legend \
+                (`table`,`column`,`value`,`meaning`) \
+                VALUES ('{}','{}','{}','{}')".format('Activities',col,jsonData['activities'][act]['ID'],jsonData['activities'][act]['title'])
+        print sqlq
         cursor.execute(sqlq)
         dbConnection.commit()
 
@@ -56,8 +61,10 @@ def insertJSON(jsonData):
     """ go two levels deep and insert all"""
     for column in jsonData:
         for item in jsonData[column]:
-            print  "INSERT INTO Legend (`table`,`column`,`value`,`meaning`) VALUES ('{}','{}','{}','{}')".format("Individual",column,item, jsonData[column][item])
-            sqlq =  "INSERT INTO Legend (`table`,`column`,`value`,`meaning`) VALUES ('{}','{}','{}','{}')".format("Individual",column,item, jsonData[column][item])
+            sqlq =  "INSERT INTO Legend \
+                     (`table`,`column`,`value`,`meaning`) \
+                     VALUES ('{}','{}','{}','{}')".format("Individual",column,item, jsonData[column][item])
+            print sqlq
             cursor.execute(sqlq)
             dbConnection.commit()
 
@@ -65,7 +72,20 @@ def insertJSON(jsonData):
 #  EXECUTE  #
 # ========= #
 if __name__ == "__main__":
+    """ 
+    Populates an sql table `Legend` based on json data 
+    Fields are
+    - `table` - the name of the sql table for which these values and meanings apply
+    - `column` - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)
+    - `value` - the entry in this column
+    - `meaning` - a plain text description of that this value means (e.g. 0:= Female)
+    """
+    # select source file under Globals 
+    with open(sourceFile) as f:    
+        jsonData = json.load(f)
     cursor = connectDB()
-    insertActivitiesJSON(jsonData)
-    # insertJSON(jsonData)
+    if (sourceFile == '../json/activities.json'):
+        insertActivitiesJSON(jsonData)
+    else:
+        insertJSON(jsonData)
 

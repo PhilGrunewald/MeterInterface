@@ -13,7 +13,8 @@ Meter Documentation
 ===================
 
 
-v.1.2
+v.1.2 25 Feb 2017
+v.1.3 13 Apr 2017
 
 .. toctree::
    :maxdepth: 1

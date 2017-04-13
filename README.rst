@@ -31,7 +31,7 @@ Admin interface
 .. image:: _static/MeterInterface.png
 
 The Meter interface is a terminal based app to configure the research tools of the `Meter study <http://www.energy-use.org>`_ and support data handling with the MySQL database.
-The forms support Mutt-style navigation and key bindings. Build on the `npyScreen <http://npyscreen.readthedocs.io/>`_ package.
+The forms support Mutt-style navigation and key bindings, based on the `npyScreen <http://npyscreen.readthedocs.io/>`_ package.
 
 .. automodule:: interface
     :members:
@@ -44,5 +44,17 @@ This module provides SQL functionality to connect, query and upload to the datab
 .. automodule:: meter
     :members:
 
-See `GitHub Documentation <https://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/>`__ for more information.
-and `GitHub Documentation <https://rawgit.com/PhilGrunewald/MeterInterface/master/docs/html/>`__ for more information.
+Utils
+=====
+
+This subfolder contains an number of useful utilities for common tasks.
+
+json2sql
+--------
+
+.. automodule:: utils/json2sql
+    :members:
+
+
+
+See `Code Documentation <https://rawgit.com/PhilGrunewald/MeterInterface/master/docs/html/>`__ .

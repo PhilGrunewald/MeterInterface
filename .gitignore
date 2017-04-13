@@ -10,3 +10,4 @@ letters/address*
 apk/*.*
 flash*/
 /emails/tempEmail.htmail
+emails/email_personal.html
