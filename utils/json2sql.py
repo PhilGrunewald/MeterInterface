@@ -69,12 +69,14 @@ def insertJSON(jsonData):
             dbConnection.commit()
 
 # ========= #
-#  EXECUTE  #
+#   Main    #
 # ========= #
-if __name__ == "__main__":
+
+def main():
     """ 
     Populates an sql table `Legend` based on json data 
     Fields are
+
     - `table` - the name of the sql table for which these values and meanings apply
     - `column` - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)
     - `value` - the entry in this column
@@ -89,3 +91,9 @@ if __name__ == "__main__":
     else:
         insertJSON(jsonData)
 
+# ========= #
+#  EXECUTE  #
+# ========= #
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Configuring Devices &#8212; MeterInterface beta documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="configuring-devices">
+<h1>Configuring Devices<a class="headerlink" href="#configuring-devices" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="prepare-root-flash">
+<h2>Prepare root/flash<a class="headerlink" href="#prepare-root-flash" title="Permalink to this headline">¶</a></h2>
+<p>Install packages (.apk)</p>
+<ul class="simple">
+<li>root</li>
+<li>Insecure</li>
+<li>Flashify</li>
+<li>AppRemover</li>
+<li>AppHider</li>
+<li>AppLock</li>
+<li>ButtonRemap</li>
+<li>Tasker</li>
+</ul>
+<p>Copy</p>
+<ul class="simple">
+<li>recovery.img</li>
+</ul>
+<p>Settings</p>
+<ul class="simple">
+<li>Lock settings</li>
+<li>Select Lock screen</li>
+<li>None</li>
+</ul>
+<p>Open &#8220;Uninstall&#8221; (AppRemover)</p>
+<ul class="simple">
+<li>System app</li>
+<li>delete about 43 apps</li>
+<li>User app &gt; remove:</li>
+<li>MyEE</li>
+<li>SuperBattery</li>
+<li>Twitter</li>
+<li>WhatsApp</li>
+</ul>
+<p>Open &#8220;AppHider&#8221;</p>
+<ul class="simple">
+<li>hide all but the downloaded apps</li>
+<li>hide Settings</li>
+<li>Pin Code -&gt; Never Show</li>
+</ul>
+<p>Open &#8220;Tasker&#8221;</p>
+<ul class="simple">
+<li>Profile &gt; [+] &gt; Event &gt; Display &gt; Off</li>
+<li>[+] task</li>
+<li>App &gt; Launch &gt; Meter</li>
+</ul>
+<p>Open &#8220;Button Remapper&#8221;</p>
+<ul class="simple">
+<li>enable service &gt; OK</li>
+<li>[+] Short and long press</li>
+<li>BACK &gt; do nothing</li>
+<li>Home &gt; do nothing</li>
+</ul>
+<p>Open &#8220;AppLock&#8221;</p>
+<ul class="simple">
+<li>lock all but Meter</li>
+</ul>
+</div>
+<div class="section" id="create-backup">
+<h2>Create Backup<a class="headerlink" href="#create-backup" title="Permalink to this headline">¶</a></h2>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">recovery</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>BACKUP</li>
+<li>tick all</li>
+<li>&gt; Options &gt; enable compression</li>
+<li>swipe to backup (392s)</li>
+</ul>
+<p>Copy backup folder to local machine</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">pull</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">TWRP</span> <span class="o">./</span><span class="n">TWRP</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="emeter-setup">
+<h2>eMeter setup<a class="headerlink" href="#emeter-setup" title="Permalink to this headline">¶</a></h2>
+<p>Requires: Pixi 3 - Android 4.2.2</p>
+<p>Assume device is rooted, Insecured</p>
+<p>From bash with USB connected:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">push</span> <span class="n">recovery</span><span class="o">.</span><span class="n">img</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">recovery</span><span class="o">.</span><span class="n">img</span>
+<span class="n">adb</span> <span class="n">install</span> <span class="n">Flashify</span><span class="o">.</span><span class="n">apk</span>
+<span class="n">adb</span> <span class="n">push</span> <span class="o">./</span><span class="n">TWRP</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">TWRP</span>
+</pre></div>
+</div>
+<p>Open &#8220;Flashify&#8221;</p>
+<ul class="simple">
+<li>OK, OK, OK</li>
+<li>Recovery image</li>
+<li>select /sdcard/recovery.img</li>
+<li>Flashing (2 min)</li>
+</ul>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">recovery</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>RESTORE , select, swipe</li>
+</ul>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">shell</span>
+<span class="n">mkdir</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">METER</span><span class="o">/</span>
+<span class="n">exit</span>
+<span class="n">adb</span> <span class="n">push</span> <span class="nb">id</span><span class="o">.</span><span class="n">txt</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">METER</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ameter-setup">
+<h2>aMeter setup<a class="headerlink" href="#ameter-setup" title="Permalink to this headline">¶</a></h2>
+<p>Requires: Pixi 4 - Android 6</p>
+<p>Start device &gt; Settings
+&#8211;&gt; developer options
+&#8211;&gt; OEM unlocking (allow bootloader unlock)</p>
+<p>From shell with USB connected (you may need to reconnect the USB cable between each step):</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">bootloader</span>
+<span class="n">fastboot</span> <span class="n">oem</span> <span class="n">unlock</span>
+</pre></div>
+</div>
+<p>Confirm with &lt;VOL UP&gt;</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">fastboot</span> <span class="n">flash</span> <span class="n">recovery</span> <span class="n">recoverypixi4</span><span class="o">.</span><span class="n">img</span>
+<span class="n">fastboot</span> <span class="nb">format</span> <span class="n">userdata</span>
+<span class="n">fastboot</span> <span class="n">reboot</span>
+</pre></div>
+</div>
+<p>Select &lt;Restore&gt;</p>
+<p>Select &gt; SD card &gt; img file</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../README.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Configuring Devices</a><ul>
+<li><a class="reference internal" href="#prepare-root-flash">Prepare root/flash</a></li>
+<li><a class="reference internal" href="#create-backup">Create Backup</a></li>
+<li><a class="reference internal" href="#emeter-setup">eMeter setup</a></li>
+<li><a class="reference internal" href="#ameter-setup">aMeter setup</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/docs/Configure_aMeter.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>

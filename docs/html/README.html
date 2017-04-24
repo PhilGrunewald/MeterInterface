@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Meter study &#8212; MeterInterface 1.0.1a documentation</title>
+    <title>Meter study &#8212; MeterInterface beta documentation</title>
     
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.0.1a',
+        VERSION:     'beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -25,9 +25,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="The Meter Database" href="_static/MeterDatabaseIntro.html" />
-    <link rel="prev" title="Meter Documentation" href="index.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
   </head>
   <body role="document">
     <div class="related" role="navigation" aria-label="related navigation">
@@ -39,13 +37,7 @@
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="_static/MeterDatabaseIntro.html" title="The Meter Database"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="Meter Documentation"
-             accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">MeterInterface 1.0.1a documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">MeterInterface beta documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -56,24 +48,69 @@
             
   <div class="section" id="meter-study">
 <h1>Meter study<a class="headerlink" href="#meter-study" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/MeterSchema.png"><img alt="_images/MeterSchema.png" src="_images/MeterSchema.png" style="width: 300px;" /></a>
 <a class="reference internal image-reference" href="_images/meter_logo.png"><img alt="_images/meter_logo.png" class="align-right" src="_images/meter_logo.png" style="width: 300px;" /></a>
-<p>The <a class="reference external" href="http://www.energy-use.org">Meter study</a> is a research project at the <a class="reference external" href="http://ox.ac.uk">University of Oxford&#8217;s</a> Environmental Change Institute (<a class="reference external" href="http://www.eci.ox.ac.uk/">ECI</a>) collecting data on household demographics, activities and electricity use. The aim is to better understand the timing of electricity use in households and identify potential routes towards flexibility in electricity use, which could support the emergence of more sustainable energy systems.</p>
+<p>The <a class="reference external" href="http://www.energy-use.org">Meter</a> Study is a research project at the <a class="reference external" href="http://ox.ac.uk">University of Oxford&#8217;s</a> Environmental Change Institute (<a class="reference external" href="http://www.eci.ox.ac.uk/">ECI</a>) collecting data on household demographics, activities and electricity use. The aim is to better understand the timing of electricity use in households and identify potential routes towards flexibility in electricity use, which could support the emergence of more sustainable energy systems.</p>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Content:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Meter study</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#modules-in-this-repository">Modules in this Repository</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#meter">Meter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#meter-interface">Meter interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#meter-mailer">Meter mailer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#json2sql">json2sql</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cockpit">cockpit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#app-tree">app_tree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sql">sql</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-meter-database">The Meter Database</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-data-are-collected">What data are collected?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#database-structure">Database structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#further-information">Further information</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-devices">Configuring Devices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prepare-root-flash">Prepare root/flash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#create-backup">Create Backup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#emeter-setup">eMeter setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ameter-setup">aMeter setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#meteractivities-json">MeterActivities (JSON)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#screens">Screens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#activities">Activities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#legendhousehold">LegendHousehold</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#legendindividual">LegendIndividual</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#other-meter-repositories">Other Meter Repositories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#activity-recorder">Activity recorder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#user-data-visualisation">User data visualisation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
 </div>
-<div class="section" id="activity-recorder">
-<h1>Activity recorder<a class="headerlink" href="#activity-recorder" title="Permalink to this headline">¶</a></h1>
-<a class="reference internal image-reference" href="_images/handheld.png"><img alt="_images/handheld.png" src="_images/handheld.png" style="height: 200px;" /></a>
-<p>The app to record activities is kept in the <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp">Meter App</a> repository. This has it&#8217;s own <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/tree/master/docs">documentation</a>.</p>
+<div class="section" id="modules-in-this-repository">
+<h2>Modules in this Repository<a class="headerlink" href="#modules-in-this-repository" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="meter">
+<h3>Meter<a class="headerlink" href="#meter" title="Permalink to this headline">¶</a></h3>
+<p>This module provides SQL functionality to connect, query and upload to the database.</p>
+<p>// .. automodule:: meter
+//    :members:</p>
 </div>
-<div class="section" id="user-data-visualisation">
-<h1>User data visualisation<a class="headerlink" href="#user-data-visualisation" title="Permalink to this headline">¶</a></h1>
-<a class="reference internal image-reference" href="_images/user_profile.png"><img alt="_images/user_profile.png" src="_images/user_profile.png" style="height: 200px;" /></a>
-<p>A D3 based visualisation of activity and electricity data for a single household. See <a class="reference external" href="https://github.com/PhilGrunewald/yourdata">Your data</a> repository.</p>
-</div>
-<div class="section" id="admin-interface">
-<h1>Admin interface<a class="headerlink" href="#admin-interface" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="meter-interface">
+<h3>Meter interface<a class="headerlink" href="#meter-interface" title="Permalink to this headline">¶</a></h3>
 <img alt="_images/MeterInterface.png" src="_images/MeterInterface.png" />
 <p>The Meter interface is a terminal based app to configure the research tools of the <a class="reference external" href="http://www.energy-use.org">Meter study</a> and support data handling with the MySQL database.
-The forms support Mutt-style navigation and key bindings. Build on the <a class="reference external" href="http://npyscreen.readthedocs.io/">npyScreen</a> package.</p>
+The forms support Mutt-style navigation and key bindings, based on the <a class="reference external" href="http://npyscreen.readthedocs.io/">npyScreen</a> package.</p>
 <span class="target" id="module-interface"></span><dl class="class">
 <dt id="interface.ActionControllerData">
 <em class="property">class </em><code class="descclassname">interface.</code><code class="descname">ActionControllerData</code><span class="sig-paren">(</span><em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#ActionControllerData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.ActionControllerData" title="Permalink to this definition">¶</a></dt>
@@ -252,6 +289,12 @@ The forms support Mutt-style navigation and key bindings. Build on the <a class=
 <dt id="interface.getDateTimeFormated">
 <code class="descclassname">interface.</code><code class="descname">getDateTimeFormated</code><span class="sig-paren">(</span><em>dts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDateTimeFormated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDateTimeFormated" title="Permalink to this definition">¶</a></dt>
 <dd><p>DateTimeString as received from database: return 31 Jan 16</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="interface.getDateTimeNow">
+<code class="descclassname">interface.</code><code class="descname">getDateTimeNow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#getDateTimeNow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.getDateTimeNow" title="Permalink to this definition">¶</a></dt>
+<dd><p>current date and time in format &#8220;YYYY-MM-DD hh:mm:ss&#8221;</p>
 </dd></dl>
 
 <dl class="function">
@@ -453,112 +496,437 @@ The forms support Mutt-style navigation and key bindings. Build on the <a class=
 </dd></dl>
 
 </div>
-<div class="section" id="meter-module">
-<h1>Meter Module<a class="headerlink" href="#meter-module" title="Permalink to this headline">¶</a></h1>
-<p>This module provides SQL functionality to connect, query and upload to the database.</p>
-<span class="target" id="module-meter"></span><dl class="function">
-<dt id="meter.backup_database">
-<code class="descclassname">meter.</code><code class="descname">backup_database</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#backup_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.backup_database" title="Permalink to this definition">¶</a></dt>
-<dd><p>dump sql in local dated file</p>
-</dd></dl>
-
+<div class="section" id="meter-mailer">
+<h3>Meter mailer<a class="headerlink" href="#meter-mailer" title="Permalink to this headline">¶</a></h3>
+<p>A utility to send emails to mailing lists and contacts in the Meter Database. Built on a similar framework as the Meter interface.</p>
+<p>See full <a class="reference external" href="https://rawgit.com/PhilGrunewald/MeterInterface/master/docs/html/_">Documentation</a> for more detail.</p>
+</div>
+</div>
+<div class="section" id="utils">
+<h2>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h2>
+<p>This folder contains an number of useful utilities for common tasks.</p>
+<div class="section" id="json2sql">
+<h3>json2sql<a class="headerlink" href="#json2sql" title="Permalink to this headline">¶</a></h3>
+<p>Used to transfer json data to the database. Originally these files were created in json.</p>
+<p>The <a class="reference external" href="../json/activities.json">activities</a> json file was developed for and is principally used by <a href="#id6"><span class="problematic" id="id7">`Meter App`__</span></a>. This python script makes the <cite>title</cite> in json available in the database as the <cite>meaning</cite> for each <cite>tuc</cite> (<cite>ID</cite> in json).</p>
 <dl class="function">
-<dt id="meter.connectDatabase">
-<code class="descclassname">meter.</code><code class="descname">connectDatabase</code><span class="sig-paren">(</span><em>_dbHost</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#connectDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.connectDatabase" title="Permalink to this definition">¶</a></dt>
-<dd><p>try to connect to server - else to local database</p>
+<dt>
+<code class="descclassname">json2sql.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/json2sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Populates an sql table <cite>Legend</cite> based on json data 
+Fields are</p>
+<ul class="simple">
+<li><cite>table</cite> - the name of the sql table for which these values and meanings apply</li>
+<li><cite>column</cite> - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)</li>
+<li><cite>value</cite> - the entry in this column</li>
+<li><cite>meaning</cite> - a plain text description of that this value means (e.g. 0:= Female)</li>
+</ul>
 </dd></dl>
 
+</div>
+<div class="section" id="cockpit">
+<h3>cockpit<a class="headerlink" href="#cockpit" title="Permalink to this headline">¶</a></h3>
+<p>Creates a table summary in markdown table format.</p>
 <dl class="function">
-<dt id="meter.connectDatabaseOLD">
-<code class="descclassname">meter.</code><code class="descname">connectDatabaseOLD</code><span class="sig-paren">(</span><em>_dbHost</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#connectDatabaseOLD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.connectDatabaseOLD" title="Permalink to this definition">¶</a></dt>
-<dd><p>remove</p>
+<dt>
+<code class="descclassname">cockpit.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cockpit.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>cockpit.py</p>
+<blockquote>
+<div>options:</div></blockquote>
+<p>[-h,&#8211;help]</p>
+<blockquote>
+<div>this help</div></blockquote>
+<p>[-l,&#8211;localhost]</p>
+<blockquote>
+<div><p>override default host to use localhost</p>
+<p>Default: energy-use.org</p>
+<p>Example: python cockpit.py -l</p>
+</div></blockquote>
+<p>[-c,&#8211;condition]</p>
+<blockquote>
+<div><p>add sql criteria</p>
+<p>Default: None</p>
+<p>Example: python cockpit.py -c &#8216;quality = 1 AND people &gt; 3&#8217;</p>
+</div></blockquote>
+<p>[-t,&#8211;table]</p>
+<blockquote>
+<div><p>specify table.</p>
+<p>Default: <cite>Household</cite></p>
+<p>Example: <cite>python cockpit.py -t &#8216;Individual&#8217;</cite></p>
+</div></blockquote>
 </dd></dl>
 
+</div>
+<div class="section" id="app-tree">
+<h3>app_tree<a class="headerlink" href="#app-tree" title="Permalink to this headline">¶</a></h3>
+<p>Interactive command line interface to step through the screen options of the <a href="#id6"><span class="problematic" id="id8">`Meter App`__</span></a></p>
 <dl class="function">
-<dt id="meter.executeSQL">
-<code class="descclassname">meter.</code><code class="descname">executeSQL</code><span class="sig-paren">(</span><em>_sqlq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#executeSQL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.executeSQL" title="Permalink to this definition">¶</a></dt>
-<dd><p>to safeguard against dropped connections</p>
+<dt>
+<code class="descclassname">app_tree.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app_tree.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Interactive command line tool.Explore activity choices of screens in the MeterApp.</p>
+<p>Use:
+python appSreens.py [-c]</p>
+<p>Option &#8216;c&#8217; displays the number of times a sequence of two buttons was used by study participants</p>
 </dd></dl>
 
+</div>
+<div class="section" id="sql">
+<h3>sql<a class="headerlink" href="#sql" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
-<dt id="meter.getContact">
-<code class="descclassname">meter.</code><code class="descname">getContact</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getContact" title="Permalink to this definition">¶</a></dt>
-<dd><p>return contactID for given household</p>
+<dt>
+<code class="descclassname">sql.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>A tool to develop and test SQL statements.</p>
+<p>Example:
+python sql.py -q &#8216;SELECT * FROM table&#8217;</p>
+<dl class="docutils">
+<dt>[-h,&#8211;help]</dt>
+<dd>this help</dd>
+<dt>[-l,&#8211;localhost]</dt>
+<dd>use localhost [default: 109.74.196.205]</dd>
+<dt>[-s,&#8211;seperator]</dt>
+<dd>specify column seperator [default: tab]</dd>
+<dt>[-w,&#8211;width]</dt>
+<dd>column width [default: 10]</dd>
+<dt>[-q,&#8211;query | -f,&#8211;file]</dt>
+<dd>SQL query as argument or read from a file</dd>
+<dt>[-o,&#8211;output]</dt>
+<dd>sepcify output file name [default: sql_result.txt]</dd>
+</dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="meter.getDateTimeFormated">
-<code class="descclassname">meter.</code><code class="descname">getDateTimeFormated</code><span class="sig-paren">(</span><em>dts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getDateTimeFormated"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getDateTimeFormated" title="Permalink to this definition">¶</a></dt>
-<dd><p>DateTimeString as received from database: return 31 Jan 16</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getHouseholdCount">
-<code class="descclassname">meter.</code><code class="descname">getHouseholdCount</code><span class="sig-paren">(</span><em>condition</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdCount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdCount" title="Permalink to this definition">¶</a></dt>
-<dd><p>count household in database matching the modus criteria</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getHouseholdForContact">
-<code class="descclassname">meter.</code><code class="descname">getHouseholdForContact</code><span class="sig-paren">(</span><em>contactID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdForContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdForContact" title="Permalink to this definition">¶</a></dt>
-<dd><p>find the first HH match for this cID - WARNING - there could be more than one!!!</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getHouseholdForMeta">
-<code class="descclassname">meter.</code><code class="descname">getHouseholdForMeta</code><span class="sig-paren">(</span><em>_metaID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getHouseholdForMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getHouseholdForMeta" title="Permalink to this definition">¶</a></dt>
-<dd><p>find the one match of HH for this metaID</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getNameEmail">
-<code class="descclassname">meter.</code><code class="descname">getNameEmail</code><span class="sig-paren">(</span><em>table</em>, <em>criterium</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getNameEmail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getNameEmail" title="Permalink to this definition">¶</a></dt>
-<dd><p>returns name and email for matched</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getNameOfContact">
-<code class="descclassname">meter.</code><code class="descname">getNameOfContact</code><span class="sig-paren">(</span><em>thisContactID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getNameOfContact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getNameOfContact" title="Permalink to this definition">¶</a></dt>
-<dd><p>get Contact name for a given Contact</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getSQL">
-<code class="descclassname">meter.</code><code class="descname">getSQL</code><span class="sig-paren">(</span><em>_sqlq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getSQL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getSQL" title="Permalink to this definition">¶</a></dt>
-<dd><p>to safeguard against dropped connections</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getSecurityCode">
-<code class="descclassname">meter.</code><code class="descname">getSecurityCode</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getSecurityCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getSecurityCode" title="Permalink to this definition">¶</a></dt>
-<dd><p>get the security code for this household</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.getStatus">
-<code class="descclassname">meter.</code><code class="descname">getStatus</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#getStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.getStatus" title="Permalink to this definition">¶</a></dt>
-<dd><p>get the status for this household</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.householdExists">
-<code class="descclassname">meter.</code><code class="descname">householdExists</code><span class="sig-paren">(</span><em>hhID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#householdExists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.householdExists" title="Permalink to this definition">¶</a></dt>
-<dd><p>true if record is found</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.message">
-<code class="descclassname">meter.</code><code class="descname">message</code><span class="sig-paren">(</span><em>msgStr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.message" title="Permalink to this definition">¶</a></dt>
-<dd><p>shorthand to display debug information</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="meter.toggleDatabase">
-<code class="descclassname">meter.</code><code class="descname">toggleDatabase</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/meter.html#toggleDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#meter.toggleDatabase" title="Permalink to this definition">¶</a></dt>
-<dd><p>switch between remote and local db</p>
-</dd></dl>
-
-<p>See <a class="reference external" href="https://rawgit.com/PhilGrunewald/AdminInterface/master/_build/html/">GitHub Documentation</a> for more information.</p>
+</div>
+</div>
+<div class="section" id="the-meter-database">
+<h2>The Meter Database<a class="headerlink" href="#the-meter-database" title="Permalink to this headline">¶</a></h2>
+<p>This section explains</p>
+<ul class="simple">
+<li>the types of data collected as part of the Meter project;</li>
+<li>how these data are structured, stored and retrieved; and</li>
+<li>the tools used to manage the data.</li>
+</ul>
+<p>This is a live document. For the latest version, please visit
+<a class="reference external" href="https://github.com/PhilGrunewald/Meter/tree/master/docs">Meter/docs</a>.</p>
+<div class="section" id="what-data-are-collected">
+<h3>What data are collected?<a class="headerlink" href="#what-data-are-collected" title="Permalink to this headline">¶</a></h3>
+<p>Meter collects three types of data:</p>
+<ol class="arabic simple">
+<li>Household and individual survey information</li>
+<li>Individual activity information</li>
+<li>Electricity readings at household level</li>
+</ol>
+<p>Each of these data are explained in more detail here.</p>
+<div class="figure" id="id5">
+<img alt="Database schema for Meter Data" src="res/MeterSchema.png" />
+<p class="caption"><span class="caption-text">Database schema for Meter Data</span></p>
+</div>
+<div class="section" id="household-and-individual-survey-information">
+<h4>Household and individual survey information<a class="headerlink" href="#household-and-individual-survey-information" title="Permalink to this headline">¶</a></h4>
+<p>Survey information is grouped into three tables:</p>
+<p><strong>Contact</strong>: This is personal information with restricted access (all
+other data will become public). It is provided by participants when
+registering via <a class="reference external" href="http://www.energy-use.org/hhq.php">energy-use.org/hhq.php</a>.</p>
+<p><strong>Household</strong>: Socio-demographic information about household composition
+(number of people, ages, housetype, appliances, electricity bills
+income). This table also keeps the &#8216;date_choice&#8217; - the preferred date
+for the study, and &#8216;status&#8217; (see Section &#8216;Status progression&#8217;).</p>
+<p><strong>Individual</strong>: Collected on the study day via the booklet or app.
+Covers individual information, such as age, occupation, working hours,
+use of appliances...</p>
+</div>
+<div class="section" id="individual-activity-information">
+<h4>Individual activity information<a class="headerlink" href="#individual-activity-information" title="Permalink to this headline">¶</a></h4>
+<p>Recorded via booklet or app. Each entry contains:</p>
+<p><strong>Time</strong> (dt_activity): Freely chosen by participant (unlike in
+conventional Time-use research, where 10 minute windows are prescribed).
+Certain times of particular interest will be suggested in the app (e.g.
+5:30pm, 6pm, 8am). &#8216;dt&#8217; stands for DateTime in the format &#8216;2012-11-13
+23:59:59&#8217;.</p>
+<p><strong>Time recorded</strong> (dt_recorded): The time when the entry was made. In
+case of the app, entries can be back-dated (what did you do 20 minutes
+ago?). Booklets may be coded up days later. Entries made via the
+web-interface later still. This time stamp helps to identify &#8216;how
+devoiced&#8217; the entry is from the actual event.</p>
+<p><strong>Time use code</strong> (tuc): Numeric code based on an extended version of
+the Harmonised European Time-Use Survey codes (&#64;eurostat14). See field
+&#8216;ID&#8217; in
+<a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/blob/master/www/js/activities.json">activities.json</a>.</p>
+<p><strong>Activity</strong>: Plain text description of the activity. See field &#8216;title&#8217;
+in
+<a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/blob/master/www/js/activities.json">activities.json</a>.</p>
+<p><strong>Location</strong>: Numeric code for location:</p>
+<ol class="arabic simple">
+<li>home</li>
+<li>travelling</li>
+<li>work</li>
+<li>public place</li>
+<li>outdoors</li>
+<li>other</li>
+<li>not specified</li>
+</ol>
+<p><strong>Enjoyment</strong>: Numeric code for enjoyment:</p>
+<ol class="arabic simple">
+<li>not at all</li>
+<li>not very much</li>
+<li>neutral</li>
+<li>somewhat</li>
+<li>very much</li>
+<li>not specified</li>
+</ol>
+</div>
+<div class="section" id="electricity-readings">
+<h4>Electricity readings<a class="headerlink" href="#electricity-readings" title="Permalink to this headline">¶</a></h4>
+<p>Collected via current clamp connected to an Android phone using <a class="reference external" href="https://github.com/PhilGrunewald/DMon">DMon
+software</a>. Recordings are
+taken every second and stored in a csv file with two columns: a DateTime
+stamp &#8216;2012-11-13 23:59:59&#8217;) and the reading in Watt. The file name
+refers to the Meta table &#8216;idMeta&#8217; value followed by underscore and a
+sequential number for each time readings were started for this device
+with this &#8216;idMeta&#8217;. Often the xxxx_2.csv file contains the &#8216;real&#8217;
+readings, because the phone was started up for testing before shipment.
+A xxxx_03.csv file is created when starting up the phone to process the
+data.</p>
+<p>When uploading to the database this file is copied to the server first
+to speed up the database processing. Each reading is a row with an ID
+(idElectricity) the reference to the Meta entry (Meta_idMeta), the
+DateTime stamp and the reading value in Watt.</p>
+</div>
+</div>
+<div class="section" id="database-structure">
+<h3>Database structure<a class="headerlink" href="#database-structure" title="Permalink to this headline">¶</a></h3>
+<p>The Meta table is central to the data structure as shown in Figure 1.
+The name is perhaps an unfortunate left over from early trials with data
+structure. It could equally be called the &#8216;devices&#8217;, &#8216;instruments&#8217; or
+&#8216;study events&#8217;.</p>
+<p>Each row in this table has a unique ID (idMeta) and represents either a
+booklet or a phone that has been sent out. The entry is created as part
+of the equipment set up. Each household gets one entry for the
+electricity recorder (eMeter) they receive and one for each booklet or
+activity app. DataType for an eMeter is &#8216;E&#8217;, whereas a booklet or device
+with the activity app is labelled &#8216;A&#8217;.</p>
+<p>When devices are returned the CollectionDate, which is &#8216;NULL&#8217; until now
+is updated.</p>
+<p>Individual and Activity data share the same idMeta value, because they
+come from the same instrument and can thus be linked.
+Individual/Activity data and Electricity readings can be linked to their
+Household via the Household_idHousehold reference in their Meta entry
+and vice versa: To find all Activities for a given Household with the ID
+1234 one could use the following SQL statement:</p>
+<div class="code sql highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="n">idMeta</span>
+    <span class="n">FROM</span> <span class="n">Meta</span>
+    <span class="n">WHERE</span> <span class="n">Household_idHousehold</span> <span class="o">=</span> <span class="mi">1234</span> <span class="n">AND</span> <span class="n">DataType</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This will return one idMeta for each individual which has completed a
+study day. The activities can then be retrieved for each of these
+returned values. If 6789 was returned, the activity record can be
+accessed with:</p>
+<div class="code sql highlight-default"><div class="highlight"><pre><span></span><span class="n">SELECT</span> <span class="n">dt_activity</span><span class="p">,</span><span class="n">activity</span>
+    <span class="n">FROM</span> <span class="n">Activities</span>
+    <span class="n">WHERE</span> <span class="n">Meta_idMeta</span> <span class="o">=</span> <span class="mi">6789</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This will produce a list of DateTime values and the description of the
+activity.</p>
+</div>
+<div class="section" id="further-information">
+<h3>Further information<a class="headerlink" href="#further-information" title="Permalink to this headline">¶</a></h3>
+<p>The data handing is principally conducted with the <a class="reference external" href="https://github.com/PhilGrunewald/Meter">Meter
+Interface</a>. This repository
+includes a dummy database file in
+<a class="reference external" href="https://github.com/PhilGrunewald/Meter/tree/master/dbDummy">/dbDummy</a>
+which can be used for experimenting. To set this up you require a
+working MySQL version on your machine. Create a user and grant
+privileges to the data.</p>
+<p>To gain access to the live Meter database on
+<a class="reference external" href="http://www.energy-use.org">www.energy-use.org</a> you will need to be
+granted access.</p>
+</div>
+</div>
+<div class="section" id="configuring-devices">
+<h2>Configuring Devices<a class="headerlink" href="#configuring-devices" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="prepare-root-flash">
+<h3>Prepare root/flash<a class="headerlink" href="#prepare-root-flash" title="Permalink to this headline">¶</a></h3>
+<p>Install packages (.apk)</p>
+<ul class="simple">
+<li>root</li>
+<li>Insecure</li>
+<li>Flashify</li>
+<li>AppRemover</li>
+<li>AppHider</li>
+<li>AppLock</li>
+<li>ButtonRemap</li>
+<li>Tasker</li>
+</ul>
+<p>Copy</p>
+<ul class="simple">
+<li>recovery.img</li>
+</ul>
+<p>Settings</p>
+<ul class="simple">
+<li>Lock settings</li>
+<li>Select Lock screen</li>
+<li>None</li>
+</ul>
+<p>Open &#8220;Uninstall&#8221; (AppRemover)</p>
+<ul class="simple">
+<li>System app</li>
+<li>delete about 43 apps</li>
+<li>User app &gt; remove:</li>
+<li>MyEE</li>
+<li>SuperBattery</li>
+<li>Twitter</li>
+<li>WhatsApp</li>
+</ul>
+<p>Open &#8220;AppHider&#8221;</p>
+<ul class="simple">
+<li>hide all but the downloaded apps</li>
+<li>hide Settings</li>
+<li>Pin Code -&gt; Never Show</li>
+</ul>
+<p>Open &#8220;Tasker&#8221;</p>
+<ul class="simple">
+<li>Profile &gt; [+] &gt; Event &gt; Display &gt; Off</li>
+<li>[+] task</li>
+<li>App &gt; Launch &gt; Meter</li>
+</ul>
+<p>Open &#8220;Button Remapper&#8221;</p>
+<ul class="simple">
+<li>enable service &gt; OK</li>
+<li>[+] Short and long press</li>
+<li>BACK &gt; do nothing</li>
+<li>Home &gt; do nothing</li>
+</ul>
+<p>Open &#8220;AppLock&#8221;</p>
+<ul class="simple">
+<li>lock all but Meter</li>
+</ul>
+</div>
+<div class="section" id="create-backup">
+<h3>Create Backup<a class="headerlink" href="#create-backup" title="Permalink to this headline">¶</a></h3>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">recovery</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>BACKUP</li>
+<li>tick all</li>
+<li>&gt; Options &gt; enable compression</li>
+<li>swipe to backup (392s)</li>
+</ul>
+<p>Copy backup folder to local machine</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">pull</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">TWRP</span> <span class="o">./</span><span class="n">TWRP</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="emeter-setup">
+<h3>eMeter setup<a class="headerlink" href="#emeter-setup" title="Permalink to this headline">¶</a></h3>
+<p>Requires: Pixi 3 - Android 4.2.2</p>
+<p>Assume device is rooted, Insecured</p>
+<p>From bash with USB connected:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">push</span> <span class="n">recovery</span><span class="o">.</span><span class="n">img</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">recovery</span><span class="o">.</span><span class="n">img</span>
+<span class="n">adb</span> <span class="n">install</span> <span class="n">Flashify</span><span class="o">.</span><span class="n">apk</span>
+<span class="n">adb</span> <span class="n">push</span> <span class="o">./</span><span class="n">TWRP</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">TWRP</span>
+</pre></div>
+</div>
+<p>Open &#8220;Flashify&#8221;</p>
+<ul class="simple">
+<li>OK, OK, OK</li>
+<li>Recovery image</li>
+<li>select /sdcard/recovery.img</li>
+<li>Flashing (2 min)</li>
+</ul>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">recovery</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>RESTORE , select, swipe</li>
+</ul>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">shell</span>
+<span class="n">mkdir</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">METER</span><span class="o">/</span>
+<span class="n">exit</span>
+<span class="n">adb</span> <span class="n">push</span> <span class="nb">id</span><span class="o">.</span><span class="n">txt</span> <span class="o">/</span><span class="n">sdcard</span><span class="o">/</span><span class="n">METER</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ameter-setup">
+<h3>aMeter setup<a class="headerlink" href="#ameter-setup" title="Permalink to this headline">¶</a></h3>
+<p>Requires: Pixi 4 - Android 6</p>
+<p>Start device &gt; Settings
+&#8211;&gt; developer options
+&#8211;&gt; OEM unlocking (allow bootloader unlock)</p>
+<p>From shell with USB connected (you may need to reconnect the USB cable between each step):</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">bootloader</span>
+<span class="n">fastboot</span> <span class="n">oem</span> <span class="n">unlock</span>
+</pre></div>
+</div>
+<p>Confirm with &lt;VOL UP&gt;</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">fastboot</span> <span class="n">flash</span> <span class="n">recovery</span> <span class="n">recoverypixi4</span><span class="o">.</span><span class="n">img</span>
+<span class="n">fastboot</span> <span class="nb">format</span> <span class="n">userdata</span>
+<span class="n">fastboot</span> <span class="n">reboot</span>
+</pre></div>
+</div>
+<p>Select &lt;Restore&gt;</p>
+<p>Select &gt; SD card &gt; img file</p>
+</div>
+</div>
+<div class="section" id="meteractivities-json">
+<h2>MeterActivities (JSON)<a class="headerlink" href="#meteractivities-json" title="Permalink to this headline">¶</a></h2>
+<p>A json structure for activities and their navigation</p>
+<div class="section" id="screens">
+<h3>Screens<a class="headerlink" href="#screens" title="Permalink to this headline">¶</a></h3>
+<p>Lists keys to activities.json
+Each screen key has six such &#8216;activity&#8217; keys</p>
+</div>
+<div class="section" id="activities">
+<h3>Activities<a class="headerlink" href="#activities" title="Permalink to this headline">¶</a></h3>
+<p>Each entry can be thought of as a button on the screen</p>
+<ul class="simple">
+<li>&#8220;caption&#8221; is displayed on the button</li>
+<li>&#8220;title&#8221; describes the activity on the home screen and is used as plain text description in visualisations</li>
+<li>&#8220;ID&#8221; is the time-use-code based on an extended version of HETUS</li>
+<li>&#8220;help&#8221; optionally displayed in the app to explain the meaning of a button</li>
+<li>&#8220;value&#8221; used for ranking questions or for numerical calculations, such as relative adjustment of time by, say, 15 minutes</li>
+<li>&#8220;icon&#8221; and image file in png format stored in /img</li>
+<li>&#8220;next&#8221; key in screen.json to display the next screen after pressing this button</li>
+</ul>
+</div>
+<div class="section" id="legendhousehold">
+<h3>LegendHousehold<a class="headerlink" href="#legendhousehold" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>all columns in the Household table of the Meter database are listed as keys</li>
+<li>under each key possible values are assigned their &#8216;meaning&#8217; as plain text</li>
+<li>&#8220;q&#8221; denotes the question asked to which these are the anwers</li>
+<li>not all possible answers are listed. For instance, counted values like &#8220;How many screens do you have&#8221;, can be left as numerical values</li>
+<li>Note all these values have been uploaded to Table <cite>Legend</cite> in the Meter schema using <a class="reference external" href="../../utils/json2sql.py">json2sql</a></li>
+</ul>
+</div>
+<div class="section" id="legendindividual">
+<h3>LegendIndividual<a class="headerlink" href="#legendindividual" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>same as Legend Household, but for table Individual on Meter database</li>
+<li>Note all these values have been uploaded to Table <cite>Legend</cite> in the Meter schema using /utils/json2sql.py</li>
+</ul>
+</div>
+</div>
+<div class="section" id="other-meter-repositories">
+<h2>Other Meter Repositories<a class="headerlink" href="#other-meter-repositories" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="activity-recorder">
+<h3>Activity recorder<a class="headerlink" href="#activity-recorder" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/handheld.png"><img alt="_images/handheld.png" src="_images/handheld.png" style="height: 200px;" /></a>
+<p>The app to record activities is kept in the <a href="#id6"><span class="problematic" id="id9">`Meter App`__</span></a> repository (see <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/tree/master/docs">MeterApp documentation</a>).</p>
+</div>
+<div class="section" id="user-data-visualisation">
+<h3>User data visualisation<a class="headerlink" href="#user-data-visualisation" title="Permalink to this headline">¶</a></h3>
+<a class="reference internal image-reference" href="_images/user_profile.png"><img alt="_images/user_profile.png" src="_images/user_profile.png" style="height: 200px;" /></a>
+<p>A D3 based visualisation of activity and electricity data for a single household. See <a class="reference external" href="https://github.com/PhilGrunewald/yourdata">Your data</a> repository.</p>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
 </div>
 
 
@@ -567,21 +935,57 @@ The forms support Mutt-style navigation and key bindings. Build on the <a class=
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
+  <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Meter study</a></li>
+<li><a class="reference internal" href="#">Meter study</a><ul>
+<li><a class="reference internal" href="#modules-in-this-repository">Modules in this Repository</a><ul>
+<li><a class="reference internal" href="#meter">Meter</a></li>
+<li><a class="reference internal" href="#meter-interface">Meter interface</a></li>
+<li><a class="reference internal" href="#meter-mailer">Meter mailer</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#utils">Utils</a><ul>
+<li><a class="reference internal" href="#json2sql">json2sql</a></li>
+<li><a class="reference internal" href="#cockpit">cockpit</a></li>
+<li><a class="reference internal" href="#app-tree">app_tree</a></li>
+<li><a class="reference internal" href="#sql">sql</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-meter-database">The Meter Database</a><ul>
+<li><a class="reference internal" href="#what-data-are-collected">What data are collected?</a><ul>
+<li><a class="reference internal" href="#household-and-individual-survey-information">Household and individual survey information</a></li>
+<li><a class="reference internal" href="#individual-activity-information">Individual activity information</a></li>
+<li><a class="reference internal" href="#electricity-readings">Electricity readings</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#database-structure">Database structure</a></li>
+<li><a class="reference internal" href="#further-information">Further information</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#configuring-devices">Configuring Devices</a><ul>
+<li><a class="reference internal" href="#prepare-root-flash">Prepare root/flash</a></li>
+<li><a class="reference internal" href="#create-backup">Create Backup</a></li>
+<li><a class="reference internal" href="#emeter-setup">eMeter setup</a></li>
+<li><a class="reference internal" href="#ameter-setup">aMeter setup</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#meteractivities-json">MeterActivities (JSON)</a><ul>
+<li><a class="reference internal" href="#screens">Screens</a></li>
+<li><a class="reference internal" href="#activities">Activities</a></li>
+<li><a class="reference internal" href="#legendhousehold">LegendHousehold</a></li>
+<li><a class="reference internal" href="#legendindividual">LegendIndividual</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#other-meter-repositories">Other Meter Repositories</a><ul>
 <li><a class="reference internal" href="#activity-recorder">Activity recorder</a></li>
 <li><a class="reference internal" href="#user-data-visualisation">User data visualisation</a></li>
-<li><a class="reference internal" href="#admin-interface">Admin interface</a></li>
-<li><a class="reference internal" href="#meter-module">Meter Module</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
 </ul>
 
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Meter Documentation</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="_static/MeterDatabaseIntro.html"
-                        title="next chapter">The Meter Database</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -612,13 +1016,7 @@ The forms support Mutt-style navigation and key bindings. Build on the <a class=
         <li class="right" >
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="_static/MeterDatabaseIntro.html" title="The Meter Database"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="Meter Documentation"
-             >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">MeterInterface 1.0.1a documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">MeterInterface beta documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

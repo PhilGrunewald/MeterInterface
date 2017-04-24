@@ -1,18 +1,26 @@
 import json
-datafile = open('../activities.json', 'r')
+datafile = open('../json/activities.json', 'r')
 acts = json.loads(datafile.read().decode("utf-8"))
-datafile = open('../screens.json', 'r')
+datafile = open('../json/screens.json', 'r')
 screens = json.loads(datafile.read().decode("utf-8"))
+
+exitCriteria = {'','other specify','other people','home','enjoyment'}
 
 def recursive(node,level):
     level += 1
     for branch in screens['screens'][node]['activities']:
             nextNode = acts['activities'][branch]['next']
-            caption = acts['activities'][branch]['caption']
-            title = acts['activities'][branch]['ID']
-            # print '.'*level + node + ' > ' + branch + ' > ' + nextNode
-            print "{:<35}".format('.  '*level + caption)  +"{:25}".format(title) + branch
-            if not ((nextNode == 'other specify') or (nextNode == '') or (nextNode == 'other people') or (nextNode == 'home') or (nextNode == 'enjoyment')):   # '' is for 'Blank'
+            caption  = acts['activities'][branch]['caption']
+            id       = acts['activities'][branch]['ID']
+            title    = acts['activities'][branch]['title']
+            icon     = 'NONE'
+            try:
+                icon = acts['activities'][branch]['icon']
+            except:
+                pass
+
+            print "{:<25}{:<35}{:>6} {:<15}{:<35}".format('.  '*level + caption, title, id, icon, branch)
+            if not (nextNode in exitCriteria):
                 try:
                     recursive(nextNode,level)
                 except KeyError:

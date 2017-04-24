@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>sql &#8212; MeterInterface beta documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for sql</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">getopt</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">MySQLdb.cursors</span>
+<span class="kn">import</span> <span class="nn">db_ini</span> <span class="k">as</span> <span class="nn">db</span>     <span class="c1"># reads the database and file path information</span>
+<span class="c1"># override host to local</span>
+
+<span class="c1"># ========= #</span>
+<span class="c1">#  GLOBALS  #</span>
+<span class="c1"># ========= #</span>
+
+<span class="n">width</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">seperator</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span>
+<span class="n">outputFile</span> <span class="o">=</span> <span class="s1">&#39;sql_result.txt&#39;</span>
+
+<span class="c1"># ========= #</span>
+<span class="c1"># FUNCTIONS #</span>
+<span class="c1"># ========= #</span>
+
+<span class="k">def</span> <span class="nf">connectDB</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; use db credentials for MySQLdb &quot;&quot;&quot;</span>
+    <span class="n">dbConnection</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">Host</span><span class="p">,</span>
+        <span class="n">user</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+        <span class="n">passwd</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">Pass</span><span class="p">,</span>
+        <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span>
+        <span class="n">cursorclass</span><span class="o">=</span><span class="n">MySQLdb</span><span class="o">.</span><span class="n">cursors</span><span class="o">.</span><span class="n">DictCursor</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dbConnection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">getResults</span><span class="p">(</span><span class="n">_query</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; send sql query and return result as list &quot;&quot;&quot;</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">connectDB</span><span class="p">()</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">_query</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="n">ks</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">width</span><span class="p">:</span>
+        <span class="n">resultStr</span> <span class="o">=</span>  <span class="n">seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;{0: &gt;</span><span class="si">{1}</span><span class="s2">.</span><span class="si">{1}</span><span class="s2">}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span><span class="n">width</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ks</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">resultStr</span> <span class="o">=</span>  <span class="n">seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ks</span><span class="p">)</span>
+        
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">vs</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="n">resultStr</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="n">width</span><span class="p">:</span>
+            <span class="n">resultStr</span> <span class="o">+=</span> <span class="n">seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;{0: &gt;</span><span class="si">{1}</span><span class="s2">.</span><span class="si">{1}</span><span class="s2">}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span><span class="n">width</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">resultStr</span> <span class="o">+=</span> <span class="n">seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">resultStr</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../utils/README.html#sql.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;\</span>
+<span class="sd">A tool to develop and test SQL statements.\n\n\</span>
+<span class="sd">Example:\n\</span>
+<span class="sd">python sql.py -q &#39;SELECT * FROM table&#39; \n\n\</span>
+<span class="sd">[-h,--help]\n\</span>
+<span class="sd">    this help \n\n\</span>
+<span class="sd">[-l,--localhost]\n\</span>
+<span class="sd">    use localhost [default: 109.74.196.205]\n\n\</span>
+<span class="sd">[-s,--seperator]\n\</span>
+<span class="sd">    specify column seperator [default: tab]\n\n\</span>
+<span class="sd">[-w,--width]\n\</span>
+<span class="sd">    column width [default: 10]\n\n\</span>
+<span class="sd">[-q,--query | -f,--file]\n\</span>
+<span class="sd">    SQL query as argument or read from a file\n\n\</span>
+<span class="sd">[-o,--output]\n\</span>
+<span class="sd">    sepcify output file name [default: sql_result.txt]\</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">width</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot;hlw:q:f:o:s:&quot;</span>
+    <span class="n">optionsLong</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;help&quot;</span><span class="p">,</span><span class="s2">&quot;file&quot;</span><span class="p">,</span><span class="s2">&quot;query&quot;</span><span class="p">,</span><span class="s2">&quot;output&quot;</span><span class="p">]</span>
+    <span class="n">helpStr</span> <span class="o">=</span>  <span class="s2">&quot;sql.py </span><span class="si">{}</span><span class="s2"> </span><span class="se">\n\</span>
+<span class="s2">Example:</span><span class="se">\n\</span>
+<span class="s2">python sql.py -q &#39;SELECT * FROM table&#39; </span><span class="se">\n\n\</span>
+<span class="s2">[-h,--help]</span><span class="se">\n\</span>
+<span class="s2">    this help </span><span class="se">\n\n\</span>
+<span class="s2">[-l,--localhost]</span><span class="se">\n\</span>
+<span class="s2">    use localhost [default: 109.74.196.205]</span><span class="se">\n\n\</span>
+<span class="s2">[-s,--seperator]</span><span class="se">\n\</span>
+<span class="s2">    specify column seperator [default: tab]</span><span class="se">\n\n\</span>
+<span class="s2">[-w,--width]</span><span class="se">\n\</span>
+<span class="s2">    column width [default: 10]</span><span class="se">\n\n\</span>
+<span class="s2">[-q,--query | -f,--file]</span><span class="se">\n\</span>
+<span class="s2">    SQL query as argument or read from a file</span><span class="se">\n\n\</span>
+<span class="s2">[-o,--output]</span><span class="se">\n\</span>
+<span class="s2">    sepcify output file name [default: sql_result.txt]</span><span class="se">\</span>
+<span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">helpStr</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="s1">&#39;SHOW tables;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">getopt</span><span class="o">.</span><span class="n">getopt</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span><span class="n">options</span><span class="p">,</span><span class="n">optionsLong</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">getopt</span><span class="o">.</span><span class="n">GetoptError</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="n">helpStr</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">opt</span><span class="p">,</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-h&quot;</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">):</span>
+            <span class="nb">print</span> <span class="n">helpStr</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-l&quot;</span><span class="p">,</span> <span class="s2">&quot;--localhost&quot;</span><span class="p">):</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">Host</span> <span class="o">=</span> <span class="s1">&#39;localhost&#39;</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-s&quot;</span><span class="p">,</span> <span class="s2">&quot;--seperator&quot;</span><span class="p">):</span>
+            <span class="k">global</span> <span class="n">seperator</span>
+            <span class="n">seperator</span> <span class="o">=</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-w&quot;</span><span class="p">,</span> <span class="s2">&quot;--width&quot;</span><span class="p">):</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="n">arg</span>
+            <span class="nb">print</span> <span class="n">width</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-q&quot;</span><span class="p">,</span> <span class="s2">&quot;--query&quot;</span><span class="p">):</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;--file&quot;</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="s2">&quot;--output&quot;</span><span class="p">):</span>
+            <span class="k">global</span> <span class="n">outputFile</span>
+            <span class="n">outputFile</span> <span class="o">=</span> <span class="n">arg</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">getResults</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outputFile</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+       <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+<span class="c1"># ========= #</span>
+<span class="c1">#  EXECUTE  #</span>
+<span class="c1"># ========= #</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>

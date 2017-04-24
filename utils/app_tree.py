@@ -7,9 +7,11 @@ import MySQLdb.cursors
 import meter_ini as db      # database credentials
 
 opt_hits = False
+actsFile    = '../activities.json'
+screensFile = '../screens.json'
 
 def _getJSON(filePath):
-    """ returns json from file """
+    """ returns json formatted file content """
     datafile = open(filePath, 'r')
     return json.loads(datafile.read().decode("utf-8"))
 
@@ -40,7 +42,7 @@ def getPathCount(tuc,tucNext):
     return count
 
 
-def interact(screenKey, actKey, old_screenKey):
+def showScreen(screenKey, actKey, old_screenKey):
     """ list activities for a given screen """
     options = {'1','2','3','4','5','6'}
     seperator = '_' * 47
@@ -88,11 +90,21 @@ def interact(screenKey, actKey, old_screenKey):
 
 
 def main(argv):
-    """ Check for arguments """
-    # nextScreen  = ['activity root', None, None]
+    """ \
+Interactive command line tool.\
+Explore activity choices of screens in the MeterApp.\n\n\
+Use:\n\
+python appSreens.py [-c]\n\n\
+Option 'c' displays the number of times a sequence of two buttons was used by study participants\
+"""
     nextScreen  = ['activity root', None, None]
     global opt_hits
-    helpStr =  'app_tree.py [ch] \n options \n [-h,--help]\t\tthis help \n [-c,--hitcount]\tshow usage of buttons'
+    helpStr =  'app_tree.py [ch] \n\
+options \n\
+[-h,--help]\n\
+\tthis help \n\
+[-c,--hitcount]\n\
+\tshow how often button sequence was used'
     try:
        opts, args = getopt.getopt(argv,"ch",["hitcount","help"])
     except getopt.GetoptError:
@@ -105,12 +117,12 @@ def main(argv):
        elif opt in ("-c", "--hitcount"):
           opt_hits = True
     while (nextScreen[0] != 'home'):
-        nextScreen = interact(nextScreen[0],nextScreen[1],nextScreen[2])
+        nextScreen = showScreen(nextScreen[0],nextScreen[1],nextScreen[2])
     print "Entry complete\n\n"
 
 
 if __name__ == "__main__":
-    acts        = _getJSON( '../activities.json')
-    screens     = _getJSON('../screens.json')
+    acts        = _getJSON(actsFile)
+    screens     = _getJSON(screensFile)
     cursor      = _connectDatabase(db.Host)
     main(sys.argv[1:])

@@ -1,3 +1,31 @@
+# Marina
+# counts number of entries made by users with valid metaIDs ONLY in their first day of experiment
+# () AS bob: creates a selection of MetaID, experiment data, by joining two tables: Meta and Household, and picking the experiment date from the Household table
+#joins it to the Activities table using the MetaID field, but only to those entries of the Activities table that have the same date as the experiment
+
+SELECT idMeta, experiment_date, day1, count(Activities.idActivities) as day2
+FROM (
+SELECT idMeta, experiment_date, count(Activities.idActivities) as day1
+FROM
+( 
+SELECT Meta.idMeta, Household.date_choice as experiment_date
+FROM Meta, Household
+WHERE Meta.Household_idHousehold = Household.idHousehold
+AND Meta.Quality = 1 AND Meta.DataType = 'A'
+) as bob 
+JOIN Activities
+ON Meta_idMeta = idMeta
+WHERE date(Activities.dt_activity) = date(experiment_date)
+AND time(Activities.dt_activity) BETWEEN '17:00:00' and '21:00:00'
+        GROUP BY idMeta) as alice
+JOIN Activities
+ON Meta_idMeta = idMeta
+WHERE abs(date(Activities.dt_activity) - experiment_date) = 1 
+AND time(Activities.dt_activity) BETWEEN '17:00:00' and '21:00:00'
+        GROUP BY idMeta;
+
+
+
 SELECT people,ROUND
     (
      COUNT(*)/

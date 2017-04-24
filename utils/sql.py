@@ -11,6 +11,8 @@ import db_ini as db     # reads the database and file path information
 # ========= #
 
 width = 0
+seperator = '\t'
+outputFile = 'sql_result.txt'
 
 # ========= #
 # FUNCTIONS #
@@ -28,40 +30,64 @@ def connectDB():
 
 def getResults(_query):
     """ send sql query and return result as list """
+    cursor = connectDB()
     cursor.execute(_query)
     results = cursor.fetchall()
     ks = results[0].keys()
     if width:
-        resultStr =  '\t'.join("{0: >{1}.{1}}".format(str(e),width) for e in ks)
+        resultStr =  seperator.join("{0: >{1}.{1}}".format(str(e),width) for e in ks)
     else:
-        resultStr =  '\t'.join("{}".format(str(e)) for e in ks)
+        resultStr =  seperator.join("{}".format(str(e)) for e in ks)
         
     for result in results:
         vs = result.values()
         resultStr += '\n'
         if width:
-            resultStr += '\t'.join("{0: >{1}.{1}}".format(str(e),width) for e in vs)
+            resultStr += seperator.join("{0: >{1}.{1}}".format(str(e),width) for e in vs)
         else:
-            resultStr += '\t'.join("{}".format(str(e)) for e in vs)
+            resultStr += seperator.join("{}".format(str(e)) for e in vs)
 
     return resultStr
 
 def main(argv):
-    """ Check for arguments """
+    """\
+A tool to develop and test SQL statements.\n\n\
+Example:\n\
+python sql.py -q 'SELECT * FROM table' \n\n\
+[-h,--help]\n\
+    this help \n\n\
+[-l,--localhost]\n\
+    use localhost [default: 109.74.196.205]\n\n\
+[-s,--seperator]\n\
+    specify column seperator [default: tab]\n\n\
+[-w,--width]\n\
+    column width [default: 10]\n\n\
+[-q,--query | -f,--file]\n\
+    SQL query as argument or read from a file\n\n\
+[-o,--output]\n\
+    sepcify output file name [default: sql_result.txt]\
+    """
     global width
-    options = "hw:q:f:o:O"
-    optionsLong = ["help","file"]
+    options = "hlw:q:f:o:s:"
+    optionsLong = ["help","file","query","output"]
     helpStr =  "sql.py {} \n\
-                options \n\
-                [-h,--help]\t\tthis help \n\
-                [-l,--localhost]\t\tuse localhost\n\
-                [-w,--width]\t\tcolumn width [10]\n\
-                [-q,--query]\t\tSQL query\n\
-                [-f,--file]\t\tfile with SQL query\n\
-                [-o,--output]\t\toutput file\n\
-                [-O,--Output]\t\twrite to sql_result.txt\n\
-                ".format(options)
+Example:\n\
+python sql.py -q 'SELECT * FROM table' \n\n\
+[-h,--help]\n\
+    this help \n\n\
+[-l,--localhost]\n\
+    use localhost [default: 109.74.196.205]\n\n\
+[-s,--seperator]\n\
+    specify column seperator [default: tab]\n\n\
+[-w,--width]\n\
+    column width [default: 10]\n\n\
+[-q,--query | -f,--file]\n\
+    SQL query as argument or read from a file\n\n\
+[-o,--output]\n\
+    sepcify output file name [default: sql_result.txt]\
+".format(options)
     result = helpStr
+    query = 'SHOW tables;'
     try:
         opts, args = getopt.getopt(argv,options,optionsLong)
     except getopt.GetoptError:
@@ -73,28 +99,28 @@ def main(argv):
             sys.exit()
         elif opt in ("-l", "--localhost"):
             db.Host = 'localhost'
+        elif opt in ("-s", "--seperator"):
+            global seperator
+            seperator = arg
         elif opt in ("-w", "--width"):
             width = arg
             print width
         elif opt in ("-q", "--query"):
-            result = getResults(arg)
+            query = arg
         elif opt in ("-f", "--file"):
             with open(arg,'r') as f:
                 query = f.read()
-            result = getResults(query)
         elif opt in ("-o", "--output"):
-            print "x{}y".format(arg)
-            if (arg == ''):
-               arg = 'sql_result.txt'
-            with open(arg,'w') as f:
-               f.write(result)
+            global outputFile
+            outputFile = arg
 
+    result = getResults(query)
     print "{}".format(result)
-    print "Entry complete\n\n"
+    with open(outputFile,'w') as f:
+       f.write(result)
 
 # ========= #
 #  EXECUTE  #
 # ========= #
 if __name__ == "__main__":
-    cursor = connectDB()
     main(sys.argv[1:])

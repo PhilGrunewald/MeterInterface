@@ -1,0 +1,198 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utils &#8212; MeterInterface beta documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="utils">
+<h1>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h1>
+<p>This folder contains an number of useful utilities for common tasks.</p>
+<div class="section" id="json2sql">
+<h2>json2sql<a class="headerlink" href="#json2sql" title="Permalink to this headline">¶</a></h2>
+<p>Used to transfer json data to the database. Originally these files were created in json.</p>
+<p>The <a href="#id4"><span class="problematic" id="id5">activities_</span></a> json file was developed for and is principally used by <a href="#id1"><span class="problematic" id="id2">`Meter App`__</span></a>. This python script makes the <cite>title</cite> in json available in the database as the <cite>meaning</cite> for each <cite>tuc</cite> (<cite>ID</cite> in json).</p>
+<dl class="function">
+<dt>
+<code class="descclassname">json2sql.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/json2sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Populates an sql table <cite>Legend</cite> based on json data 
+Fields are</p>
+<ul class="simple">
+<li><cite>table</cite> - the name of the sql table for which these values and meanings apply</li>
+<li><cite>column</cite> - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)</li>
+<li><cite>value</cite> - the entry in this column</li>
+<li><cite>meaning</cite> - a plain text description of that this value means (e.g. 0:= Female)</li>
+</ul>
+</dd></dl>
+
+</div>
+<div class="section" id="cockpit">
+<h2>cockpit<a class="headerlink" href="#cockpit" title="Permalink to this headline">¶</a></h2>
+<p>Creates a table summary in markdown table format.</p>
+<dl class="function">
+<dt>
+<code class="descclassname">cockpit.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cockpit.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>cockpit.py</p>
+<blockquote>
+<div>options:</div></blockquote>
+<p>[-h,&#8211;help]</p>
+<blockquote>
+<div>this help</div></blockquote>
+<p>[-l,&#8211;localhost]</p>
+<blockquote>
+<div><p>override default host to use localhost</p>
+<p>Default: energy-use.org</p>
+<p>Example: python cockpit.py -l</p>
+</div></blockquote>
+<p>[-c,&#8211;condition]</p>
+<blockquote>
+<div><p>add sql criteria</p>
+<p>Default: None</p>
+<p>Example: python cockpit.py -c &#8216;quality = 1 AND people &gt; 3&#8217;</p>
+</div></blockquote>
+<p>[-t,&#8211;table]</p>
+<blockquote>
+<div><p>specify table.</p>
+<p>Default: <cite>Household</cite></p>
+<p>Example: <cite>python cockpit.py -t &#8216;Individual&#8217;</cite></p>
+</div></blockquote>
+</dd></dl>
+
+</div>
+<div class="section" id="app-tree">
+<h2>app_tree<a class="headerlink" href="#app-tree" title="Permalink to this headline">¶</a></h2>
+<p>Interactive command line interface to step through the screen options of the <a href="#id1"><span class="problematic" id="id3">`Meter App`__</span></a></p>
+<dl class="function">
+<dt>
+<code class="descclassname">app_tree.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/app_tree.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Interactive command line tool.Explore activity choices of screens in the MeterApp.</p>
+<p>Use:
+python appSreens.py [-c]</p>
+<p>Option &#8216;c&#8217; displays the number of times a sequence of two buttons was used by study participants</p>
+</dd></dl>
+
+</div>
+<div class="section" id="sql">
+<h2>sql<a class="headerlink" href="#sql" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt>
+<code class="descclassname">sql.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>A tool to develop and test SQL statements.</p>
+<p>Example:
+python sql.py -q &#8216;SELECT * FROM table&#8217;</p>
+<dl class="docutils">
+<dt>[-h,&#8211;help]</dt>
+<dd>this help</dd>
+<dt>[-l,&#8211;localhost]</dt>
+<dd>use localhost [default: 109.74.196.205]</dd>
+<dt>[-s,&#8211;seperator]</dt>
+<dd>specify column seperator [default: tab]</dd>
+<dt>[-w,&#8211;width]</dt>
+<dd>column width [default: 10]</dd>
+<dt>[-q,&#8211;query | -f,&#8211;file]</dt>
+<dd>SQL query as argument or read from a file</dd>
+<dt>[-o,&#8211;output]</dt>
+<dd>sepcify output file name [default: sql_result.txt]</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../README.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Utils</a><ul>
+<li><a class="reference internal" href="#json2sql">json2sql</a></li>
+<li><a class="reference internal" href="#cockpit">cockpit</a></li>
+<li><a class="reference internal" href="#app-tree">app_tree</a></li>
+<li><a class="reference internal" href="#sql">sql</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/utils/README.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>

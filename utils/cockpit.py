@@ -11,7 +11,6 @@ import db_ini as db     # reads the database and file path information
 #  GLOBALS  #
 # ========= #
 
-
 SQLquery ={
 "PDF": "\
 Select value,meaning,percent FROM \
@@ -65,6 +64,7 @@ def connectDB():
     return dbConnection.cursor()
 
 def getCount(table,condition):
+    """ number of rows in a `table` matching the `condition` """
     sqlq = SQLquery['Count'].format(table,condition)
     cursor.execute(sqlq)
     results = cursor.fetchall()
@@ -72,7 +72,7 @@ def getCount(table,condition):
 
 
 def getCols(table):
-    """ get list of Column names  """
+    """ get list of all Column names in `table` """
     colNames = []
     sqlq = "SHOW Columns FROM {}".format(table)
     cursor.execute(sqlq)
@@ -82,10 +82,13 @@ def getCols(table):
     return colNames
 
 def getColPDF(col,table,condition):
-    """ list all values and percentage of occurances """
+    """ list all values and percentage of occurances as string """
     cursor.execute(SQLquery['PDF'].format(col,table,condition))
     results = cursor.fetchall()
     q = '# Undefined \n\n'
+    # Formatting for markdown table: 
+    # 1. Header Row
+    # 2. Formatting row: `:--` align left, `--:` align right
     row = "{}\t|{}\n:--- |---:\n".format(col,'Percent')
     for result in results:
         if (result['value'] == 'q'):
@@ -105,9 +108,6 @@ def getTablePDFs(table,condition):
     for col in getCols(table):
         PDF =  getColPDF(col,table,condition)
         if (PDF.count('\n') < 18):
-            # Formatting for markdown table: 2 col - align right
-            # inserted after header (i.e after first \n)
-            # PDF_table = PDF.replace("\n","\n---: |---:\n",1)
             PDF_Str += PDF
     return PDF_Str
 
@@ -120,24 +120,79 @@ def createCockpit(table,condition,output):
            f.write(getTablePDFs(table,condition))
 
 def main(argv):
-    """ Check for arguments """
+    """
+cockpit.py 
+
+        options: 
+
+
+[-h,--help]
+
+    this help 
+
+
+[-l,--localhost] 
+
+    override default host to use localhost
+
+    Default: energy-use.org
+
+    Example: python cockpit.py -l
+
+
+[-c,--condition] 
+
+    add sql criteria
+
+    Default: None
+
+    Example: python cockpit.py -c 'quality = 1 AND people > 3'
+
+
+[-t,--table] 
+
+    specify table.
+
+    Default: `Household`
+
+    Example: `python cockpit.py -t 'Individual'`
+
+
+    """
 
     # Default values
-    global width
     output = False
     table = "Household"
-    condition = "True"
     # table = "Individual"
+    condition = "True"
 
     # Optional arguments
     options = "hlt:c:o:"
-    optionsLong = ["help","file"]
+    optionsLong = ["help","localhost","condition","table","output"]
 
     # Help
-    helpStr =  "sql.py {} \n\
-                options \n\
-                [-h,--help]\t\tthis help \n\
-                ".format(options)
+    helpStr =  "\
+cockpit.py \n\
+        options: \n\
+\n\
+[-h,--help]\n\
+    this help \n\
+\n\
+[-l,--localhost] \n\
+    override default host to use localhost\n\
+    Default: energy-use.org\n\
+    Example: python cockpit.py -l\n\
+\n\
+[-c,--condition] \n\
+    add sql criteria\n\
+    Default: None\n\
+    Example: python cockpit.py -c 'quality = 1 AND people > 3'\n\
+\n\
+[-t,--table] \n\
+    specify table.\n\
+    Default: `Household`\n\
+    Example: `python cockpit.py -t 'Individual'`\n\
+"
     result = helpStr
 
     # Evaluate arguments
@@ -162,12 +217,11 @@ def main(argv):
     global cursor
     cursor = connectDB()
     createCockpit(table,condition,output)
-    print "Entry complete\n\n"
 
 # ========= #
 #  EXECUTE  #
 # ========= #
 if __name__ == "__main__":
-    cursor = connectDB()
+    # cursor = connectDB()
     main(sys.argv[1:])
 

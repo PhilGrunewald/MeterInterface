@@ -1,0 +1,218 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>app_tree &#8212; MeterInterface beta documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     'beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for app_tree</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">getopt</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">MySQLdb.cursors</span>
+<span class="kn">import</span> <span class="nn">meter_ini</span> <span class="k">as</span> <span class="nn">db</span>      <span class="c1"># database credentials</span>
+
+<span class="n">opt_hits</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">actsFile</span>    <span class="o">=</span> <span class="s1">&#39;../activities.json&#39;</span>
+<span class="n">screensFile</span> <span class="o">=</span> <span class="s1">&#39;../screens.json&#39;</span>
+
+<span class="k">def</span> <span class="nf">_getJSON</span><span class="p">(</span><span class="n">filePath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; returns json formatted file content &quot;&quot;&quot;</span>
+    <span class="n">datafile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filePath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">datafile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_connectDatabase</span><span class="p">(</span><span class="n">_dbHost</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; try to connect to server - else to local database &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">dbHost</span>
+    <span class="n">dbHost</span> <span class="o">=</span> <span class="n">_dbHost</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">dbConnection</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">Host</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">Pass</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">Name</span><span class="p">,</span> <span class="n">cursorclass</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">cursors</span><span class="o">.</span><span class="n">DictCursor</span><span class="p">)</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">dbConnection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">dbHost</span><span class="o">=</span><span class="s1">&#39;localhost&#39;</span>
+        <span class="n">dbConnection</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">dbHost</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">dbUser</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span> <span class="n">dbPass</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="n">dbName</span><span class="p">,</span> <span class="n">cursorclass</span> <span class="o">=</span> <span class="n">MySQLdb</span><span class="o">.</span><span class="n">cursors</span><span class="o">.</span><span class="n">DictCursor</span><span class="p">)</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">dbConnection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cursor</span>
+
+
+<span class="k">def</span> <span class="nf">getPathCount</span><span class="p">(</span><span class="n">tuc</span><span class="p">,</span><span class="n">tucNext</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; count instances where this sequence of entries was made &quot;&quot;&quot;</span>
+    <span class="c1"># NOTE: this is merely a count of the sequence of two tuc&#39;s</span>
+    <span class="c1"># there are of course many paths to make this two step choice</span>
+    <span class="c1"># passing the total path would yield lower (and more precice) numbers</span>
+    <span class="n">sqlq</span> <span class="o">=</span> <span class="s2">&quot;SELECT COUNT(*) AS cnt FROM Activities WHERE path LIKE &#39;%</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">%&#39;;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tuc</span><span class="p">,</span><span class="n">tucNext</span><span class="p">)</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sqlq</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;cnt&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">count</span>
+
+
+<span class="k">def</span> <span class="nf">showScreen</span><span class="p">(</span><span class="n">screenKey</span><span class="p">,</span> <span class="n">actKey</span><span class="p">,</span> <span class="n">old_screenKey</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; list activities for a given screen &quot;&quot;&quot;</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;2&#39;</span><span class="p">,</span><span class="s1">&#39;3&#39;</span><span class="p">,</span><span class="s1">&#39;4&#39;</span><span class="p">,</span><span class="s1">&#39;5&#39;</span><span class="p">,</span><span class="s1">&#39;6&#39;</span><span class="p">}</span>
+    <span class="n">seperator</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span> <span class="o">*</span> <span class="mi">47</span>
+    <span class="k">if</span> <span class="n">opt_hits</span><span class="p">:</span>
+        <span class="n">seperator</span> <span class="o">=</span> <span class="n">seperator</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">*</span> <span class="mi">7</span>
+
+    <span class="n">title</span> <span class="o">=</span> <span class="n">screens</span><span class="p">[</span><span class="s1">&#39;screens&#39;</span><span class="p">][</span><span class="n">screenKey</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">actKey</span><span class="p">):</span>
+        <span class="n">tuc</span> <span class="o">=</span> <span class="n">acts</span><span class="p">[</span><span class="s1">&#39;activities&#39;</span><span class="p">][</span><span class="n">actKey</span><span class="p">][</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tuc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="n">screens</span><span class="p">[</span><span class="s1">&#39;screens&#39;</span><span class="p">][</span><span class="n">screenKey</span><span class="p">][</span><span class="s1">&#39;activities&#39;</span><span class="p">]</span>
+    <span class="nb">print</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Screen: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">screenKey</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="n">seperator</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:&lt;5}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Key&quot;</span><span class="p">)</span> <span class="o">+</span> \
+           <span class="s2">&quot;</span><span class="si">{:&lt;35}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Activity&quot;</span><span class="p">)</span> <span class="o">+</span> \
+           <span class="s2">&quot;</span><span class="si">{:^7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;ID&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">opt_hits</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{:^7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Hits&quot;</span><span class="p">)</span>
+    <span class="nb">print</span> <span class="n">line</span>
+    <span class="nb">print</span> <span class="n">seperator</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">act</span><span class="p">:</span>
+        <span class="n">tucNext</span> <span class="o">=</span> <span class="n">acts</span><span class="p">[</span><span class="s1">&#39;activities&#39;</span><span class="p">][</span><span class="n">a</span><span class="p">][</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">opt_hits</span><span class="p">:</span>
+            <span class="n">hits</span> <span class="o">=</span> <span class="n">getPathCount</span><span class="p">(</span><span class="n">tuc</span><span class="p">,</span><span class="n">tucNext</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:^5}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> \
+               <span class="s2">&quot;</span><span class="si">{:&lt;35}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> \
+               <span class="s2">&quot;</span><span class="si">{:&gt;7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tucNext</span><span class="p">)</span> <span class="o">+</span> \
+               <span class="s2">&quot;</span><span class="si">{:&gt;7}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="n">line</span>
+    <span class="nb">print</span> <span class="n">seperator</span>
+    <span class="n">selection</span> <span class="o">=</span> <span class="n">raw_input</span><span class="p">(</span><span class="s2">&quot;Select key: &quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">selection</span> <span class="ow">in</span> <span class="n">options</span><span class="p">):</span>
+        <span class="c1"># get json key for this activity and the next screen</span>
+        <span class="n">actKey</span> <span class="o">=</span> <span class="n">act</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">new_screenKey</span> <span class="o">=</span> <span class="n">acts</span><span class="p">[</span><span class="s1">&#39;activities&#39;</span><span class="p">][</span><span class="n">actKey</span><span class="p">][</span><span class="s1">&#39;next&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># go back</span>
+        <span class="n">new_screenKey</span> <span class="o">=</span> <span class="n">old_screenKey</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">new_screenKey</span><span class="p">,</span> <span class="n">actKey</span><span class="p">,</span> <span class="n">screenKey</span><span class="p">]</span>
+
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../utils/README.html#app_tree.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; \</span>
+<span class="sd">Interactive command line tool.\</span>
+<span class="sd">Explore activity choices of screens in the MeterApp.\n\n\</span>
+<span class="sd">Use:\n\</span>
+<span class="sd">python appSreens.py [-c]\n\n\</span>
+<span class="sd">Option &#39;c&#39; displays the number of times a sequence of two buttons was used by study participants\</span>
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="n">nextScreen</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;activity root&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">global</span> <span class="n">opt_hits</span>
+    <span class="n">helpStr</span> <span class="o">=</span>  <span class="s1">&#39;app_tree.py [ch] </span><span class="se">\n\</span>
+<span class="s1">options </span><span class="se">\n\</span>
+<span class="s1">[-h,--help]</span><span class="se">\n\</span>
+<span class="se">\t</span><span class="s1">this help </span><span class="se">\n\</span>
+<span class="s1">[-c,--hitcount]</span><span class="se">\n\</span>
+<span class="se">\t</span><span class="s1">show how often button sequence was used&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+       <span class="n">opts</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">getopt</span><span class="o">.</span><span class="n">getopt</span><span class="p">(</span><span class="n">argv</span><span class="p">,</span><span class="s2">&quot;ch&quot;</span><span class="p">,[</span><span class="s2">&quot;hitcount&quot;</span><span class="p">,</span><span class="s2">&quot;help&quot;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="n">getopt</span><span class="o">.</span><span class="n">GetoptError</span><span class="p">:</span>
+       <span class="nb">print</span> <span class="n">helpStr</span>
+       <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">opt</span><span class="p">,</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
+       <span class="k">if</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-h&quot;</span><span class="p">,</span> <span class="s2">&quot;--help&quot;</span><span class="p">):</span>
+          <span class="nb">print</span> <span class="n">helpStr</span>
+          <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+       <span class="k">elif</span> <span class="n">opt</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="s2">&quot;--hitcount&quot;</span><span class="p">):</span>
+          <span class="n">opt_hits</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">nextScreen</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;home&#39;</span><span class="p">):</span>
+        <span class="n">nextScreen</span> <span class="o">=</span> <span class="n">showScreen</span><span class="p">(</span><span class="n">nextScreen</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">nextScreen</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">nextScreen</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="nb">print</span> <span class="s2">&quot;Entry complete</span><span class="se">\n\n</span><span class="s2">&quot;</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">acts</span>        <span class="o">=</span> <span class="n">_getJSON</span><span class="p">(</span><span class="n">actsFile</span><span class="p">)</span>
+    <span class="n">screens</span>     <span class="o">=</span> <span class="n">_getJSON</span><span class="p">(</span><span class="n">screensFile</span><span class="p">)</span>
+    <span class="n">cursor</span>      <span class="o">=</span> <span class="n">_connectDatabase</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">Host</span><span class="p">)</span>
+    <span class="n">main</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Phil Grunewald.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.2.
+    </div>
+  </body>
+</html>
