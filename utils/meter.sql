@@ -1,3 +1,11 @@
+DELETE FROM Meta WHERE idMeta = 3090;
+
+SELECT * FROM Meta WHERE idMeta = 3090;
+
+
+
+
+
 # Marina
 # counts number of entries made by users with valid metaIDs ONLY in their first day of experiment
 # () AS bob: creates a selection of MetaID, experiment data, by joining two tables: Meta and Household, and picking the experiment date from the Household table
@@ -53,6 +61,8 @@ SELECT COLUMN_NAME
     WHERE table_schema = Meter
     AND table_name = Household;
 SELECT column_name FROM information_schema.columns WHERE  table_name = 'Household' AND table_schema = 'Meter';
+
+
 # Replicate a table
     SHOW CREATE TABLE El_hour;
     # run on source schema and execute the result on destination schema

@@ -7,9 +7,9 @@ You have now been entered into the prize draw to win a year free electricity and
 
 I am sorry to inform you that the electricity recorder did not function properly. This is quite rare and nothing you have done wrong. As these are very early days in the study we hope to iron out these issues. Your diary data is still very valuable for this study.
 
-I see that you chose not to take part again. If you change your mind, just click the link below and I very much hope that next time the electricity reading will work properly.
+If you would like to give it another go at some point in the future, you can use this personal link:
 
-http://www.energy-use.org/hhq.php?id=[householdID]&sc=[securityCode]&pn=17
+http://www.energy-use.org/date.php?hh=[householdID]&sc=[securityCode]
 
 I do apologise for not being able to share your load profile with you.
 

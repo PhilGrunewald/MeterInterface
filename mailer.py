@@ -22,7 +22,7 @@ from meter_ini import *     # reads the database and file path information from 
 tables = ['Contact', 'Mailinglist']
 
 subsections = {'Contact': ['TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
-               'Mailinglist': ['All', 'Panel', 'Updates', 'Test']} 
+               'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
             'All':       'email <> \'%@%\'',
@@ -31,6 +31,7 @@ Criteria = {
         'Post trial':'Household.status >= 3',
         'Panel':     'status = \'panel\'',
         'Updates':     'status = \'updates\'',
+        'Workshop':     'status IN (\'updates\', \'panel\', \'participant\')',
         'TestC':     'Contact.status = \'test\'',
         'Test':     'status = \'test\'',
         'early':     'Contact.status = \'early\''

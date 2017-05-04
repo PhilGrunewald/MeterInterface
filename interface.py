@@ -595,6 +595,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
     config_file.close()
     callShell('adb shell "mkdir /sdcard/METER/"')
     callShell('adb push ' + configFilePath + ' /sdcard/METER/')
+    callShell('adb uninstall org.energy_use.meter')
     callShell('adb shell am force-stop org.energy_use.meter')
     callShell('adb install -r ./apk/aMeter.apk')
 

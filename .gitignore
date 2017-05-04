@@ -11,3 +11,4 @@ apk/*.*
 flash*/
 /emails/tempEmail.htmail
 emails/email_personal.html
+sql_output.txt
