@@ -628,8 +628,20 @@ def aMeter_setup():
     """ compile and upload the cordova activity app """
     callShell('/Users/phil/Sites/MeterApp/platforms/android/cordova/run')
     # install AutoStart app
-    callShell('adb install ~/Software/Android/AutoStart_2.1.apk')
+    # callShell('adb install ~/Software/Android/AutoStart_2.1.apk')
 
+def switchOff():
+    showCharge()
+    call('adb shell reboot -p', shell=True)
+
+
+def showCharge():
+    # Android 4:
+    result = callShell('adb shell dumpsys battery | grep -m1 level')
+    if not result:
+        # Android 6
+        result = callShell('adb shell dumpsys batterystats | grep -m2 discharged')
+    message("Charge is\n {}".format(result))
 
 def root_phone():
     """ push root and flash packages """
@@ -1209,13 +1221,13 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         # #menu_bar
 
         # global dataType
-        self.m1 = self.add_menu(name="Data handling", shortcut="d")
+        self.m1 = self.add_menu(name="Data", shortcut="d")
         self.m1.addItem(text='Download from device', onSelect=data_download, shortcut='d', arguments=None)
         self.m1.addItem(text='Review downloaded data', onSelect=data_review, shortcut='r', arguments=None)
-        # self.m1.addItemsFromList([
-        #     ("Download from phone", data_download, "d"),
-        #     ("Review Meta Data", data_review, "r"),
-        # ])
+        self.m1.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
+        self.m1.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
+        self.m1.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
+        self.m1.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
 
         self.m2 = self.add_menu(name="Participants", shortcut="p")
         self.m2.addItem(text='Select contact', onSelect=self.list_contacts, shortcut='c')
@@ -1224,42 +1236,36 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Edit   household', onSelect=self.show_EditHousehold, shortcut='H')
         self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
 
-        self.m2 = self.add_menu(name="Emails", shortcut="e")
-        self.m2.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
-        self.m2.addItem(text='Date reschedule', onSelect=compose_email, shortcut='d', arguments=['reschedule'])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
-        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
-        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
-        self.m2.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
+        self.m3 = self.add_menu(name="Emails", shortcut="e")
+        self.m3.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
+        self.m3.addItem(text='Email blank', onSelect=compose_email, shortcut='b', arguments=['blank'])
+        self.m3.addItem(text='Date reschedule', onSelect=compose_email, shortcut='d', arguments=['reschedule'])
+        self.m3.addItem(text='Email confirm date', onSelect=compose_email, shortcut='c', arguments=['confirm'])
+        self.m3.addItem(text='Email pack sent', onSelect=compose_email, shortcut='p', arguments=['parcel'])
+        self.m3.addItem(text='Email graph', onSelect=compose_email, shortcut='g', arguments=['graph'])
+        self.m3.addItem(text='Email on failure', onSelect=compose_email, shortcut='f', arguments=['fail'])
+        self.m3.addItem(text='Request return', onSelect=compose_email, shortcut='r', arguments=['request_return'])
+        self.m3.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
+        self.m3.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank', False])
+        self.m3.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm', False])
+        self.m3.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel', False])
+        self.m3.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph', False])
+        self.m3.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
 
-        self.m2.addItem(text='------No editing------', onSelect=self.IgnoreForNow, shortcut='', arguments=None)
-        self.m2.addItem(text='Email blank', onSelect=compose_email, shortcut='B', arguments=['blank', False])
-        self.m2.addItem(text='Email confirm date', onSelect=compose_email, shortcut='C', arguments=['confirm', False])
-        self.m2.addItem(text='Email pack sent', onSelect=compose_email, shortcut='P', arguments=['parcel', False])
-        self.m2.addItem(text='Email graph', onSelect=compose_email, shortcut='G', arguments=['graph', False])
-        self.m2.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
+        self.m4 = self.add_menu(name="Devices", shortcut="D")
+        self.m4.addItem(text='Show charge', onSelect=showCharge, shortcut='c', arguments=None)
+        self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
+        self.m4.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
+        self.m4.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
+        self.m4.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
+        self.m4.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
+        self.m4.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
+        self.m4.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
+        self.m4.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
 
-        self.m2 = self.add_menu(name="Database management", shortcut="m")
-        self.m2.addItem(text='Show tables', onSelect=self.show_Tables, shortcut='t')
-        self.m2.addItem(text='Select meta', onSelect=self.list_meta, shortcut='m')
-        self.m2.addItem(text='Change database', onSelect=self.toggleDatabase, shortcut='d')
-        self.m2.addItem(text='Backup database', onSelect=backup_database, shortcut='b')
-
-        self.m2 = self.add_menu(name="Configure devices", shortcut="c")
-        self.m2.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
-        self.m2.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
-        self.m2.addItem(text='aMeter for Paper Diary', onSelect=device_config, shortcut='p', arguments='P')
-        # self.m2.addItem(text='eMeter apk', onSelect=eMeter_setup, shortcut='E', arguments=None)
-        self.m2.addItem(text='Flash eMeter', onSelect=flash_phone, shortcut='E', arguments='E')
-        self.m2.addItem(text='Flash aMeter', onSelect=flash_phone, shortcut='A', arguments='A')
-        self.m2.addItem(text='aMeter app upload', onSelect=aMeter_setup, shortcut='C', arguments=None)
-        self.m2.addItem(text='Root phone', onSelect=root_phone, shortcut='R', arguments=None)
-
-        self.m3 = self.add_menu(name="Exit", shortcut="X")
-        self.m3.addItem(text="Home", onSelect=MeterApp._Forms['MAIN'].setMainMenu, shortcut="h")
-        self.m3.addItem(text="Exit", onSelect=self.exit_application, shortcut="X")
+        self.m5 = self.add_menu(name="Exit", shortcut="X")
+        self.m5.addItem(text="Home", onSelect=MeterApp._Forms['MAIN'].setMainMenu, shortcut="h")
+        self.m5.addItem(text="Exit", onSelect=self.exit_application, shortcut="X")
 
     def getMenuText(self):
         """ get content based on current ScreenKey """
