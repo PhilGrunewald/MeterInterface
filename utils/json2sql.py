@@ -51,7 +51,7 @@ def insertActivitiesJSON(jsonData):
         else:
             col = 'UNDEFINED'
         sqlq =  "INSERT INTO Legend \
-                (`table`,`column`,`value`,`meaning`) \
+                (`tab`,`col`,`value`,`meaning`) \
                 VALUES ('{}','{}','{}','{}')".format('Activities',col,jsonData['activities'][act]['ID'],jsonData['activities'][act]['title'])
         print sqlq
         cursor.execute(sqlq)
@@ -59,11 +59,11 @@ def insertActivitiesJSON(jsonData):
 
 def insertJSON(jsonData):
     """ go two levels deep and insert all"""
-    for column in jsonData:
-        for item in jsonData[column]:
+    for col in jsonData:
+        for item in jsonData[col]:
             sqlq =  "INSERT INTO Legend \
-                     (`table`,`column`,`value`,`meaning`) \
-                     VALUES ('{}','{}','{}','{}')".format("Individual",column,item, jsonData[column][item])
+                     (`table`,`col`,`value`,`meaning`) \
+                     VALUES ('{}','{}','{}','{}')".format("Individual",col,item, jsonData[col][item])
             print sqlq
             cursor.execute(sqlq)
             dbConnection.commit()
@@ -77,8 +77,8 @@ def main():
     Populates an sql table `Legend` based on json data 
     Fields are
 
-    - `table` - the name of the sql table for which these values and meanings apply
-    - `column` - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)
+    - `tab` - the name of the sql table for which these values and meanings apply
+    - `col` - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)
     - `value` - the entry in this column
     - `meaning` - a plain text description of that this value means (e.g. 0:= Female)
     """
