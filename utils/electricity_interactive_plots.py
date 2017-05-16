@@ -71,15 +71,12 @@ def offer_selection(_description, _list_of_tuples):
         The one without the digits gets printed as being the most descriptive.
     """
     #print preamble
-    print "\n\n", "*","-"*50,"*\n", "{:50}\n".format(_description)
+    # print "\n\n", "*","-"*20,"*\n", "{:20}\n".format(_description)
     #go through the list, printing the most informative characteristic
     for characteristic in _list_of_tuples:
         char = characteristic[1]
         #if ( bool(re.search(r'\d', characteristic[0])) ): char = characteristic[1] #if column name is not descriptive (contains a digit), revert to "meaning" from the Legend table
-        print "{:50}: {:5}".format(char, _list_of_tuples.index(characteristic))
-
-
-
+        print "{:5}: {:20}".format(_list_of_tuples.index(characteristic), char)
 
 
 
