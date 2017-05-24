@@ -10,7 +10,7 @@ from pandas import Series, DataFrame #the book suggests this is done explicitly
 import db_ini as db     # reads the database and file path information
 
 # override host to local
-db.Host = 'localhost'
+# db.Host = 'localhost'
 
 # ========= #
 #  GLOBALS  #
@@ -49,8 +49,8 @@ Activity_graph = {
               ON ActivityHH.Household_idHousehold = ElectricityHH.Household_idHousehold\
               AND dt BETWEEN dt_activity - INTERVAL 30 MINUTE AND dt_activity + INTERVAL 30 MINUTE\
               GROUP BY dt,Watt,ElectricityHH.Household_idHousehold {};",
-    "xLabel": "Activity count",
-    "yLabel": "Watt",
+    "xLabel": "Number of household activities preported per hour",
+    "yLabel": "Electricity use [Watt]",
     "title" : "Activity and Power per HH 30 min period"
 }
 
@@ -98,10 +98,20 @@ def getDataFrame(_graph, _condition):
 def plot(graph):
     # graph = Electricity_graph
     df = getDataFrame(graph, "")
+    max_activity_count = 8
+    df = df[[i for i in xrange(max_activity_count + 1) if i > 0]] #columns with labels from 1 to max_activity_count
     print df
-    plt.plot(df.ix['mean'], label = 'Sample Size = ' + str(int(df.ix['count'][0])))
-    plt.fill_between(df.ix['25%'].index, df.ix['25%'], df.ix['75%'], alpha = 0.2)
-    plt.legend()
+    plt.plot(df.ix['mean'], color = 'green', label = 'Mean')
+    plt.plot([525]*2, color = 'green')
+    plt.fill_between(df.ix['25%'].index, df.ix['25%'], df.ix['75%'], alpha = 0.2, label = '$\pm$ quartile', color = 'green')
+    plt.legend(loc='upper left', frameon=False)
+    plt.xlabel(graph["xLabel"])
+    plt.ylabel(graph["yLabel"])
+    # get rid of the frame
+    for spine in plt.gca().spines.values():
+        spine.set_visible(False)   
+    plt.tick_params(top='off', bottom='off', left='on', right='off', labelleft='on', labelbottom='on')
+    plt.savefig('activityCount_Power.png')
     plt.show()
 
 
