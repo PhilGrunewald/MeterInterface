@@ -14,7 +14,7 @@ import db_ini as db     # reads the database and file path information
 SQLquery ={
 "PDF": "\
 Select value,meaning,percent FROM \
-(SELECT {0} AS col,ROUND \
+(SELECT {0} AS thisCol,ROUND \
     ( \
      COUNT(*)/ \
          ( \
@@ -26,11 +26,11 @@ Select value,meaning,percent FROM \
      ,1) as percent  \
     FROM {1}  \
     WHERE {2} \
-    GROUP BY col) as ColPercent \
+    GROUP BY thisCol) as ColPercent \
 JOIN Legend \
     ON col = Legend.`value` \
-    WHERE Legend.`column` = '{0}' \
-    AND Legend.`table` = '{1}' \
+    WHERE Legend.`col` = '{0}' \
+    AND Legend.`tab` = '{1}' \
     ORDER BY value;",
 
 "PDF_noLegend": "\
@@ -192,6 +192,11 @@ cockpit.py \n\
     specify table.\n\
     Default: `Household`\n\
     Example: `python cockpit.py -t 'Individual'`\n\
+\n\
+[-o,--output] \n\
+    specify file to write to.\n\
+    Default: `False`\n\
+    Example: `python cockpit.py -o 'foo'`\n\
 "
     result = helpStr
 

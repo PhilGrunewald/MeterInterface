@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+import datetime as dt
 import MySQLdb.cursors
 import numpy as np
 import pandas as pd           # to reshape el readings
@@ -6,36 +8,74 @@ import matplotlib.pyplot as plt
 
 import db_ini as db     # reads the database and file path information
 # override host to local
-# db.Host = 'localhost'
+#db.Host = 'localhost'
 
 # ========= #
 #  GLOBALS  #
 # ========= #
 
-BaseloadPerHH  = "SELECT MIN(Watt) AS result \
-          FROM Meter.Electricity_10min \
-          WHERE Watt > 20 \
-          GROUP BY Meta_idMeta;"
-bins   = 40
+graphs = { 
+"Load": { 
+    "query": "SELECT Watt AS y,\
+               dt   AS x,\
+               Meta_idMeta AS label\
+            FROM Electricity_10min\
+            {};",
+    "xLabel": "Day",
+    "yLabel": "Watt",
+    "title" : "Participant load"
+},
 
-ActivityCount_by_WattHour = "\
-    SELECT COUNT(ActivityHH.Household_idHousehold) AS x, Watt AS y\
-     FROM (\
-     SELECT * \
-    	FROM Meta\
-        JOIN Activities\
-        ON Meta_idMeta = idMeta\
-     ) ActivityHH\
-     JOIN (\
-     SELECT * \
-    	FROM Meta\
-        JOIN El_hour\
-        ON Meta_idMeta = idMeta\
-     ) ElectricityHH\
-     ON ActivityHH.Household_idHousehold = ElectricityHH.Household_idHousehold\
-     AND dt BETWEEN dt_activity - INTERVAL 30 MINUTE AND dt_activity + INTERVAL 30 MINUTE\
-    GROUP BY dt,Watt,ElectricityHH.Household_idHousehold;"
+"Most_intensive_10min": {
+    "query": " SELECT a.Watt AS y, a.dt AS x, Meta_idMeta AS label\
+                FROM El_hour a\
+                INNER JOIN (\
+                    SELECT Meta_idMeta AS b_ID, MAX(Watt) AS mWatt\
+                    FROM El_hour\
+                    WHERE Watt >20\
+                    GROUP BY Meta_idMeta\
+                    ) b \
+                    ON ((Meta_idMeta = b_ID) AND (a.Watt = mWatt)); ",
+    "xLabel": "Day",
+    "yLabel": "Watt",
+    "title" : "Time of hihgest demand hour"
+},
+"Most_intensive_hour": {
+    "query": " SELECT a.Watt AS y, a.dt AS x, Meta_idMeta AS label\
+                FROM Electricity_10min a\
+                INNER JOIN (\
+                    SELECT Meta_idMeta AS b_ID, MAX(Watt) AS mWatt\
+                    FROM Electricity_10min\
+                    WHERE Watt >20\
+                    GROUP BY Meta_idMeta\
+                    ) b \
+                    ON ((Meta_idMeta = b_ID) AND (a.Watt = mWatt)); ",
+    "xLabel": "Day",
+    "yLabel": "Watt",
+    "title" : "Time of hihgest demand hour"
+},
 
+"TUC_Count": {
+    "query": "SELECT Count(*) AS y,\
+                tuc AS x,\
+                Meta_idMeta AS label\
+               FROM Activities\
+               GROUP BY tuc,Meta_idMeta {};",
+    "xLabel": "Activity codes [tuc]",
+    "yLabel": "Mentions per person",
+    "title" : "Activity frequency"
+},
+
+"TUC_Watt": {
+    "query": "SELECT tuc AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM hh_el_act_hour {};",
+    "xLabel": "TUC",
+    "yLabel": "Watt",
+    "title" : "..."
+    }
+}
 # ========= #
 # FUNCTIONS #
 # ========= #
@@ -51,76 +91,50 @@ def connectDB():
         cursorclass=MySQLdb.cursors.DictCursor)
     return dbConnection.cursor()
 
-def create_e1hour():
-    """ take 1 min readings and produce table with 1 hour mean values """
-    sqlq = "SELECT idMeta AS result FROM Meta WHERE DataType = 'E' AND Quality = '1'";
-    metaIDs = getResults(sqlq)
-    for metaID in metaIDs:
-        sqlq = "SELECT * FROM Meter.Electricity WHERE Meta_idMeta=%s" % metaID
-        df_elec = pd.read_sql(sqlq, con=dbConnection)
-        df_elec.index = pd.to_datetime(df_elec.dt)        # index by time
-        # downsample, label left such that time refers to the next minute
-        df_elec_resampled = df_elec.resample('60min', label='left').mean()
-        # remove index, so that a new one is auto-incremented
-        del df_elec_resampled['idElectricity']
-        # pandas is brutal, if not append it rewrites the table!!
-        df_elec_resampled.to_sql(con=dbConnection, name='El_hour', if_exists='append', flavor='mysql')
-
 def getXY(_query):
     """ send sql query and return result as list """
     x = []
     y = []
-    h = {}
+    label = []
     cursor.execute(_query)
     results = cursor.fetchall()
     for result in results:
-        actCount = int(result['x'])
-        power    = int(result['y'])
-        x.append(actCount)
-        y.append(power)
         try:
-            h[actCount].append(power)
-        except KeyError:
-            h[actCount] = [power]
-    return x,y,h
+            x.append(result['x'].time())
+        except:
+            x.append(int(result['x']))
+        y.append(int(result['y']))
+        try:
+            label.append(int(result['label']))
+        except:
+            label.append(0)
+    return x,y,label
 
-def getResults(_query):
-    """ send sql query and return result as list """
-    dataList = []
-    cursor.execute(_query)
-    results = cursor.fetchall()
-    for result in results:
-        dataList.append(int(result['result']))
-    return dataList
-
-def plotScatter(d):
+def plotScatter(graphName):
     """ x-y scatter """
-    print d[2]
-    data = d[2]
-    x_ = []
-    y_ = []
-    for dkey in data:
-        x_.append(dkey)
-        y_.append(np.mean(data[dkey]))
-    plt.scatter(d[0],d[1],alpha=0.1)
-    plt.scatter(x_,y_,c='red')
-    plt.xlabel('Activities reported per hour')
-    plt.ylabel('Baseload [Watt]')
-    plt.show()
+    graph = graphs[graphName]
+    [x,y,label] = getXY(graph["query"].format(condition))
 
-
-def plotHist(plotData):
-    """ create the figure """
+    # figure
     fig, ax = plt.subplots()
-    plt.hist(plotData, bins, range=(min(plotData), max(plotData)), normed=True, facecolor='gray', alpha=0.5)
-    # plt.yticks(np.arange(0, 0.041, 0.01))
+    plt.scatter(x,y,s=200, lw=0, color='g',alpha=0.2)
+    plt.xlabel(graph["xLabel"])
+    plt.ylabel(graph["yLabel"])
+
+    if isinstance(x[0], dt.time):
+        # if x value are time based, make 24 hours with only 3 ticks
+        xTickLocations = [dt.time(h,0) for h in range(6,24,6)]
+        ax.xaxis.set_ticks(xTickLocations)
+        xTickLabels    = ["6am", "noon", "6pm"]
+        ax.set_xticklabels(xTickLabels)
+
+    # ax.xaxis.major.locator.set_params(nbins=5)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
-    
-    plt.xlabel('Baseload [Watt]')
-    plt.ylabel('Probability')
+    plt.savefig("../figures/{}.pdf".format(graphName), transparent=True)
+    plt.savefig("../figures/{}.png".format(graphName), transparent=True)
     plt.show()
 
 # ========= #
@@ -128,7 +142,11 @@ def plotHist(plotData):
 # ========= #
 
 cursor = connectDB()
-query = ActivityCount_by_WattHour
-# plotHist(getResults(query))
-plotScatter(getXY(query))
-# create_e1hour()
+i = 0
+for graphType in graphs.keys():
+    print "{}: {}".format(i, graphType)
+    i += 1
+condition = ""
+selection = raw_input("Graph type: ")
+graphName = graphs.keys()[int(selection)]
+plotScatter(graphName)

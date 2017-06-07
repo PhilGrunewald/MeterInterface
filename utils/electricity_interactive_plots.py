@@ -30,6 +30,18 @@ Electricity_graph = {
     "title" : "Participant load"
 }
 
+Activity_graph = { 
+    "query": "SELECT Count(*) AS y,\
+                tuc AS x,\
+                Meta_idMeta AS label\
+               FROM Activities\
+               GROUP BY tuc,Meta_idMeta {};",
+    "xLabel": "Activity codes [tuc]",
+    "yLabel": "Mentions per person",
+    "title" : "Activity frequency"
+}
+
+
 # ========= #
 # FUNCTIONS #
 # ========= #
@@ -104,6 +116,8 @@ def DF_getDataMetaIDStats(_graph, _condition):
 
 
 def plot_electricity_based_on_HH_column(_column_name = 'people', _plot_title = 'People'):
+    graph = Electricity_graph
+    # graph = Activity_graph
     """Description"""
     #1. get possible values under that column name, sorted in ascending order, with a corresponding meaning
     #!!! Important: some columns, like 'people', will have values that need to be interpreted through the legend table. Therefore we 
@@ -134,20 +148,20 @@ def plot_electricity_based_on_HH_column(_column_name = 'people', _plot_title = '
         nrow = num_plots/2 + 1
     ncol = 2
 
-    same_y_axis = True
+    same_y_axis = False
 
     #either
     fig, axs = plt.subplots(nrow, ncol, sharex=True, sharey=same_y_axis, figsize=(8, 6))
     for i, ax in enumerate(fig.axes):
         if (i == 0): #make a general trend plot
             title = 'General Trend'
-            d = DF_getDataMetaIDStats(Electricity_graph, "")
+            d = DF_getDataMetaIDStats(graph, "")
         elif (i < num_plots):
             value = results[i-1]['value']
             title = results[i-1]['meaning']
             sql_condition = sql_proforma_condition.format(_column_name, value)
             print "Getting results with: ", sql_condition
-            d = DF_getDataMetaIDStats(Electricity_graph, sql_condition)
+            d = DF_getDataMetaIDStats(graph, sql_condition)
         if (d is not False): #because some results, e.g. averages for 4 night storage heaters, might have no electricity associated with them
             ax.plot(d.ix['mean'], label = 'Sample Size = ' + str(int(d.ix['count'][0])))
             ax.fill_between(d.ix['25%'].index, d.ix['25%'], d.ix['75%'], alpha = 0.2)
@@ -180,6 +194,7 @@ def plot_electricity_based_on_HH_column(_column_name = 'people', _plot_title = '
 
     plt.suptitle(_plot_title)
     plt.tight_layout()
+    plt.savefig("WasherDryer.pdf", transparent=True)
     plt.show()
 
 

@@ -1,6 +1,37 @@
-DELETE FROM Meta WHERE idMeta = 3090;
 
-SELECT * FROM Meta WHERE idMeta = 3090;
+
+SHOW tables;
+
+SELECT FROM Activities
+    JOIN Electricity_10min
+    ON 
+
+SELECT MAX(Watt) AS mWatt, TIME(dt) AS time
+    FROM El_hour
+    GROUP BY Meta_idMeta;
+
+    JOIN El_hour AS El_max
+    On El_max.Watt = El_hour.Watt
+
+SELECT * FROM Legend 
+    JOIN Categories
+    ON value = tuc
+    WHERE col = 'tuc'
+    ORDER BY tuc
+    LIMIT 29;
+
+SELECT * FROM Legend WHERE value = 311 Limit 5;
+SELECT * FROM Categories Limit 5;
+SELECT * FROM Activities Limit 5;
+SELECT Count(*),tuc,Meta_idMeta FROM Activities GROUP BY tuc,Meta_idMeta;
+
+
+
+UPDATE Meta 
+    SET Household_idHousehold = -2
+    WHERE idMeta = 3107;
+
+SELECT * FROM Meta WHERE idMeta = 3107;
 
 
 

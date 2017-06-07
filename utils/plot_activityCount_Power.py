@@ -54,6 +54,15 @@ Activity_graph = {
     "title" : "Activity and Power per HH 30 min period"
 }
 
+TUC_Watt = {
+    "query": "SELECT tuc AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM hh_el_act_hour {};",
+    "xLabel": "TUC",
+    "yLabel": "Watt",
+    "title" : "..."
+    }
 
 # ========= #
 # FUNCTIONS #
@@ -111,7 +120,7 @@ def plot(graph):
     for spine in plt.gca().spines.values():
         spine.set_visible(False)   
     plt.tick_params(top='off', bottom='off', left='on', right='off', labelleft='on', labelbottom='on')
-    plt.savefig('activityCount_Power.png')
+    plt.savefig('activityCount_Power.pdf', transparent=True)
     plt.show()
 
 
@@ -119,6 +128,7 @@ def plot(graph):
 def main():
   """ Description """
   plot(Activity_graph)
+  # plot(TUC_Watt)
 
 # ========= #
 #  EXECUTE  #

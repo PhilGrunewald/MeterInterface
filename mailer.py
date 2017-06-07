@@ -19,9 +19,10 @@ import npyscreen as nps
 from meter import *         # db connection and npyscreen features
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
-tables = ['Contact', 'Mailinglist']
+tables = ['Contact', 'Mailinglist', 'OE_mail']
 
 subsections = {'Contact': ['TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
+               'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
@@ -30,10 +31,13 @@ Criteria = {
         'Pre trial': 'Household.status = 2',
         'Post trial':'Household.status >= 3',
         'Panel':     'status = \'panel\'',
-        'Updates':     'status = \'updates\'',
-        'Workshop':     'status IN (\'updates\', \'panel\', \'participant\')',
+        'Updates':   'status = \'updates\'',
+        'Workshop':  'status IN (\'updates\', \'panel\', \'participant\')',
         'TestC':     'Contact.status = \'test\'',
-        'Test':     'status = \'test\'',
+        'Test':      'status = \'test\'',
+        '1st round': 'status = \'2e\'',
+        '2nd round': 'status = \'2\'',
+        'reminder': 'confirmed = "" and (status = 1 or status = 2)',
         'early':     'Contact.status = \'early\''
         # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
         # 'xxx':     'Contact.status = \'test1\''
@@ -41,7 +45,7 @@ Criteria = {
 table = tables[0]
 subsection = subsections[table][0]
 emailFilePath = emailPath + "email_many.html"
-attachment = ''
+attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/InvitesR4/Invitation_University_of_Oxford_201732[id].pdf'
 
 dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")
@@ -72,7 +76,8 @@ def editMessage():
 def sendTo(condition,attach):
     # compose message
     # emailRCFilePath = emailPath + ".emailrc"
-    account = emailFilePath + "phil"
+    # account = emailFilePath + "phil"
+    account = emailFilePath + "infoEnergy"
     templateFile = open(emailFilePath, "r")
     templateText = templateFile.read()
     templateFile.close()
@@ -96,13 +101,14 @@ def sendTo(condition,attach):
         if ("sc" in result):
             emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
         emailText = emailText.replace("[id]", "%s" % result[idField])
+        thisAttach = attach.replace("[id]", "%s" % result[idField])
 
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")
         emailFile.write(emailText)
         emailFile.close()
-        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
-        # call('mutt -F "'+account+'" -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + attach + ' < ' + emailPathPersonal, shell=True)
+        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + thisAttach + ' < ' + emailPathPersonal, shell=True)
+        # call('mutt -F "'+account+'" -e "set content_type=text/html" -s "' + subjectLine + '" ' + emailAddress + thisAttach + ' < ' + emailPathPersonal, shell=True)
 
 
 # ------------------------------------------------------------------------------

@@ -4,12 +4,13 @@ import sys
 import json
 import MySQLdb.cursors
 import db_ini as db     # reads the database and file path information
-# override host to local
 
 # ========= #
 #  GLOBALS  #
 # ========= #
 
+# override host to local
+# db.Host = 'localhost'
 width = 0
 seperator = '\t'
 outputFile = 'sql_result.txt'
@@ -26,13 +27,18 @@ def connectDB():
         passwd=db.Pass,
         db=db.Name,
         cursorclass=MySQLdb.cursors.DictCursor)
-    return dbConnection.cursor()
+    return dbConnection
 
 def getResults(_query):
     """ send sql query and return result as list """
-    cursor = connectDB()
+    db = connectDB()
+    cursor = db.cursor()
     cursor.execute(_query)
+    db.commit()
     results = cursor.fetchall()
+    cursor.close()
+    db.close()
+
     ks = results[0].keys()
     if width:
         resultStr =  seperator.join("{0: >{1}.{1}}".format(str(e),width) for e in ks)
@@ -46,7 +52,6 @@ def getResults(_query):
             resultStr += seperator.join("{0: >{1}.{1}}".format(str(e),width) for e in vs)
         else:
             resultStr += seperator.join("{}".format(str(e)) for e in vs)
-
     return resultStr
 
 def main(argv):

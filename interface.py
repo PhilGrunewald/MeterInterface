@@ -492,8 +492,8 @@ def device_config(meterType):
         if ((metaID != '0') & (sn != '-1')):
             # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
             # callShell('adb shell reboot -p')
-            # call('adb shell reboot -p', shell=True)
-            pass
+            showCharge()
+            call('adb shell reboot -p', shell=True)
     else:
         # Booklet sticker
         dt   = getHHdtChoice(householdID)
