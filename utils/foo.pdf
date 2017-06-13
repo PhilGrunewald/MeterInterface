@@ -1,0 +1,272 @@
+% Table: Individual
+% Count: 291
+
+# Undefined 
+
+
+Gender	|Percent
+:--- |---:
+0	|3.4
+1	|49.5
+2	|47.1
+
+# Undefined 
+
+
+Age_range	|Percent
+:--- |---:
+None	|1.7
+0	|2.7
+1	|15.5
+2	|16.2
+3	|35.1
+4	|24.1
+5	|4.5
+6	|0.3
+
+# Undefined 
+
+
+Occupation	|Percent
+:--- |---:
+0	|4.5
+1	|16.2
+2	|56.4
+3	|6.9
+4	|2.4
+5	|11.0
+6	|2.7
+
+# Undefined 
+
+
+WorkingHours	|Percent
+:--- |---:
+0	|15.5
+1	|5.2
+2	|10.0
+3	|12.0
+4	|47.1
+5	|9.3
+6	|1.0
+
+# Undefined 
+
+
+WorkRegularity	|Percent
+:--- |---:
+0	|14.1
+1	|35.4
+2	|22.7
+3	|23.7
+4	|4.1
+
+# Undefined 
+
+
+WorkHome	|Percent
+:--- |---:
+0	|15.5
+1	|21.3
+2	|13.7
+3	|26.1
+4	|14.1
+5	|5.2
+6	|4.1
+
+# Undefined 
+
+
+BillContributer	|Percent
+:--- |---:
+0	|4.8
+1	|49.5
+2	|22.3
+3	|21.6
+4	|1.7
+
+# Undefined 
+
+
+Income	|Percent
+:--- |---:
+None	|1.7
+0	|3.1
+1	|14.1
+2	|7.2
+3	|15.8
+4	|22.0
+5	|17.5
+6	|18.6
+
+# Undefined 
+
+
+UseDishwasher	|Percent
+:--- |---:
+0	|5.2
+1	|52.2
+2	|8.6
+3	|5.2
+4	|14.1
+5	|13.4
+6	|1.4
+
+# Undefined 
+
+
+UseWashingMachine	|Percent
+:--- |---:
+0	|5.2
+1	|28.5
+2	|16.5
+3	|13.7
+4	|24.1
+5	|10.3
+6	|1.7
+
+# Undefined 
+
+
+UseTumbleDryer	|Percent
+:--- |---:
+0	|5.2
+1	|72.5
+2	|9.3
+3	|4.5
+4	|5.8
+5	|2.7
+
+# Undefined 
+
+
+UseShower	|Percent
+:--- |---:
+0	|5.2
+1	|11.0
+2	|6.2
+3	|3.4
+4	|22.3
+5	|43.6
+6	|8.2
+
+# Undefined 
+
+
+UseVacuumCleaner	|Percent
+:--- |---:
+0	|5.2
+1	|47.4
+2	|28.2
+3	|4.5
+4	|14.1
+6	|0.7
+
+# Undefined 
+
+
+TimeMobile	|Percent
+:--- |---:
+0	|5.2
+1	|4.5
+2	|5.8
+3	|11.3
+4	|23.4
+5	|21.6
+6	|28.2
+
+# Undefined 
+
+
+TimeScreens	|Percent
+:--- |---:
+0	|5.2
+1	|1.0
+2	|4.8
+3	|13.7
+4	|7.9
+5	|23.0
+6	|44.3
+
+# Undefined 
+
+
+TimeCooking	|Percent
+:--- |---:
+0	|5.2
+1	|13.1
+2	|7.6
+3	|19.9
+4	|37.5
+5	|10.7
+6	|6.2
+
+# Undefined 
+
+
+TimeExercise	|Percent
+:--- |---:
+0	|3.1
+1	|4.5
+2	|5.5
+3	|24.1
+4	|30.2
+5	|23.4
+6	|9.3
+
+# Undefined 
+
+
+TimeOfDiary	|Percent
+:--- |---:
+None	|0.3
+0	|98.3
+1	|1.4
+
+# Undefined 
+
+
+Rushed	|Percent
+:--- |---:
+None	|99.3
+0	|0.7
+
+# Undefined 
+
+
+UnusualDay	|Percent
+:--- |---:
+None	|98.6
+0	|0.3
+1	|1.0
+
+# Undefined 
+
+
+DifficultyMeter	|Percent
+:--- |---:
+None	|98.6
+0	|0.7
+1	|0.7
+
+# Undefined 
+
+
+ConsentShare	|Percent
+:--- |---:
+0	|98.6
+2	|1.0
+3	|0.3
+
+# Undefined 
+
+
+EnergyInterest	|Percent
+:--- |---:
+0	|19.9
+1	|23.4
+2	|9.3
+3	|4.8
+4	|2.1
+5	|0.3
+6	|40.2
