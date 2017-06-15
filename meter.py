@@ -14,6 +14,8 @@ import glob                 # for reading files in directory
 from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen as nps
 
+from sqlalchemy import create_engine    # fix for pandas sql connections
+
 from meter_ini import *     # reads the database and file path information from meter_ini.py
 
 def connectDatabase(_dbHost):
@@ -30,6 +32,12 @@ def connectDatabase(_dbHost):
         dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName, cursorclass = MySQLdb.cursors.DictCursor)
         cursor = dbConnection.cursor()
     return cursor
+
+def connectPandasDatabase():
+    # engine = create_engine("mysql+mysqldb://USER:"+'PASSWORD'+"@localhost/DATABASE")
+    engine = create_engine("mysql+mysqldb://{}:{}@{}/{}".format(dbUser,dbPass,dbHost,dbName))
+    return engine
+
 
 def getHost():
     return dbHost

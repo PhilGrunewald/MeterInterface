@@ -77,13 +77,13 @@ X3130 	 Lay or clear table                            	 Dish washing
 3724 	 Shopping for&ordring gds&srv related to acc v 	 Shopping for and ordering goods and services related to accommodation via the internet
 3725 	 Shopping for&ordring mass media via the inter 	 Shopping for and ordering mass media via the internet
 3726 	 Shopping for&ordring entertainment via the in 	 Shopping for and ordering entertainment via the internet
->>> got this far [Phil 11 Jun 2017]
 3727 	 Banking and bill paying via the internet      	 Banking and bill paying via the internet
 3729 	 Other specified household management using th 	 Other specified household management using the internet
 3800 	 Childcare                                     	 Unspecified childcare
 3810 	 Child care                                    	 Unspecified physical care & supervision of a child
 3811 	 Feeding the child                             	 Feeding the child
 3819 	 Physical care & supervision of a child        	 Other and unspecified physical care & supervision of a child
+>>> got this far [Phil 11 Jun 2017]
 3820 	 Study with child                              	 Teaching the child
 3830 	 Being with child                              	 Reading playing and talking with child
 3840 	 not used - Accompanying child                 	 Accompanying child

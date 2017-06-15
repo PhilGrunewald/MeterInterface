@@ -190,7 +190,9 @@ def upload_1min_readings(metaIDe):
     # remove index, so that a new one is auto-incremented
     del df_elec_resampled['idElectricity']
     # pandas is brutal, if not append it rewrites the table!!
-    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
+    engine = connectPandasDatabase()
+    df_elec_resampled.to_sql(con=engine, name='Electricity_1min', if_exists='append', index=True)
+    #df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
     # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
 
 
@@ -206,7 +208,8 @@ def upload_10min_readings(metaIDe):
     # remove index, so that a new one is auto-incremented
     del df_elec_resampled['idElectricity']
     # pandas is brutal, if not append it rewrites the table!!
-    df_elec_resampled.to_sql(con=dbConnection, name='Electricity_10min', if_exists='append', flavor='mysql')
+    engine = connectPandasDatabase()
+    df_elec_resampled.to_sql(con=engine, name='Electricity_10min', if_exists='append', index=True)
 
 
 def uploadDataFile(fileName, dataType, _metaID, collectionDate):
@@ -958,6 +961,7 @@ class ActionControllerData(nps.MultiLineAction):
             'Q': self.parent.exit_application,
             'P': data_download,
             'A': self.show_snEntry,
+            'X': self.test
         }
         global MasterKeysLabels
         MasterKeysLabels = {
@@ -1133,6 +1137,9 @@ class ActionControllerData(nps.MultiLineAction):
 
     def show_snEntry(self, *args, **keywords):
         device_config("A")
+
+    def test(self, *args, **keywords):
+        print_address()
 
     def formated_data_type(self, vl):
         return "%s (%s)" % (vl[1], str(vl[0]))
