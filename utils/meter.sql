@@ -17,6 +17,35 @@ General
 Experimantal
 ============
 
+Recategorisation
+================
+
+# count how often categories are reported
+SELECT COUNT(*) AS Instances, Categories.category
+    FROM Activities
+    JOIN Categories
+    ON Categories.tuc = Activities.tuc
+    GROUP BY Categories.category
+    ORDER BY Instances DESC;
+
+# count how often activities within one category are reported
+
+SELECT Code, meaning, count FROM
+    (SELECT COUNT(*) AS count, Activities.tuc AS Code
+    FROM Activities
+    JOIN Categories
+    ON Categories.tuc = Activities.tuc
+    WHERE Categories.category = 'care_self'
+    GROUP BY Activities.tuc) as a
+  JOIN Legend
+    ON value = a.Code
+    WHERE col = 'tuc'
+    ORDER BY count DESC
+    ;
+
+
+SELECT * from Legend LIMIT 5;
+
 
 SELECT MAX(Watt) AS mWatt, TIME(dt) AS time
     FROM El_hour
