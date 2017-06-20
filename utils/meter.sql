@@ -11,11 +11,31 @@ General
     ALTER TABLE TUS2015 AUTO_INCREMENT = 1;
     # Replicate a table
         SHOW CREATE TABLE El_hour;
+        SHOW CREATE TABLE Categories;
         # run on source schema and execute the result on destination schema
 
 
 Experimantal
 ============
+
+
+Activities with 10 min Watt reading
+===================================
+
+# Open question - this should be the electricity reading surrounding the activity ( e < a would probably be better)
+# Takes 315 seconds for 8010 rows (!)
+
+SELECT tuc, dt_activity, (
+	SELECT e.Watt
+		FROM hh_el_10min e
+		WHERE e.dt > a.dt_activity
+        ORDER BY a.dt_activity DESC
+        LIMIT 1
+	) AS Watt
+	FROM hh_act a
+
+
+
 
 Recategorisation
 ================

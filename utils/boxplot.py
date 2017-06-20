@@ -55,7 +55,7 @@ graphs = {
     "title" : "Activity and Power per HH 30 min period"
 },
 
-"TUC_Watt": {
+"Category_Watt": {
     "query": "SELECT category AS x,\
                      Watt AS y,\
                      dt AS label\
@@ -64,6 +64,19 @@ graphs = {
               ON Categories.tuc = hh_el_act_hour.tuc;\
               {};",
     "xLabel": "TUC",
+    "yLabel": "Watt",
+    "title" : "..."
+    },
+
+"SubCategory_Watt": {
+    "query": "SELECT subcategory AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM hh_el_act_hour \
+              JOIN Categories \
+              ON Categories.tuc = hh_el_act_hour.tuc;\
+              {};",
+    "xLabel": "Sub-category",
     "yLabel": "Watt",
     "title" : "..."
     },
@@ -178,6 +191,7 @@ def boxplot(graphName):
 # ========= #
 if __name__ == "__main__":
     cursor = connectDB()
+    cursor.execute("SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));")
     i = 0
     for graphType in graphs.keys():
         print "{}: {}".format(i, graphType)
