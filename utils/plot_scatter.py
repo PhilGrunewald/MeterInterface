@@ -91,6 +91,22 @@ def connectDB():
         cursorclass=MySQLdb.cursors.DictCursor)
     return dbConnection.cursor()
 
+def getXYfile(filename):
+    """ read values from tab seperated file """
+    # written for watt_tuc_dt_b.tab, but then decided to import that as a static table to db
+    x = []
+    y = []
+    label = []
+    with open('data.csv','r') as f:
+        next(f) # skip headings
+        reader=csv.reader(f,delimiter='\t')
+        for watt,tuc,dt in reader:
+            x.append(Watt)
+            y.append(tuc)
+            label.append(dt_activity.time())
+    return x,y,label
+
+
 def getXY(_query):
     """ send sql query and return result as list """
     x = []

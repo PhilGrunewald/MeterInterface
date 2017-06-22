@@ -10,7 +10,7 @@ from pandas import Series, DataFrame #the book suggests this is done explicitly
 import db_ini as db     # reads the database and file path information
 
 # override host to local
-db.Host = 'localhost'
+#db.Host = 'localhost'
 
 # ========= #
 #  GLOBALS  #
@@ -75,6 +75,62 @@ graphs = {
               FROM hh_el_act_hour \
               JOIN Categories \
               ON Categories.tuc = hh_el_act_hour.tuc;\
+              {};",
+    "xLabel": "Sub-category",
+    "yLabel": "Watt",
+    "title" : "..."
+    },
+
+"e_cat_Watt_10min_a": {
+    "query": "SELECT e_cat AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM _el_act_10min \
+              JOIN Categories \
+              ON Categories.tuc = _el_act_10min.tuc\
+              WHERE Watt > 30 \
+              {};",
+    "xLabel": "Sub-category",
+    "yLabel": "Watt",
+    "title" : "..."
+    },
+
+"e_cat_Watt_10min_b": {
+    "query": "SELECT e_cat AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM _el_act_10min_b \
+              JOIN Categories \
+              ON Categories.tuc = _el_act_10min_b.tuc\
+              WHERE Watt > 30 \
+              {};",
+    "xLabel": "Sub-category",
+    "yLabel": "Watt",
+    "title" : "..."
+    },
+
+"SubCategory_Watt_10min_a": {
+    "query": "SELECT subcategory AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM _el_act_10min \
+              JOIN Categories \
+              ON Categories.tuc = _el_act_10min.tuc\
+              WHERE Watt > 30 \
+              {};",
+    "xLabel": "Sub-category",
+    "yLabel": "Watt",
+    "title" : "..."
+    },
+
+"SubCategory_Watt_10min_b": {
+    "query": "SELECT subcategory AS x,\
+                     Watt AS y,\
+                     dt AS label\
+              FROM _el_act_10min_b \
+              JOIN Categories \
+              ON Categories.tuc = _el_act_10min_b.tuc\
+              WHERE Watt > 30 \
               {};",
     "xLabel": "Sub-category",
     "yLabel": "Watt",

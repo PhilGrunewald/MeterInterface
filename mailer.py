@@ -37,7 +37,7 @@ Criteria = {
         'Test':      'status = \'test\'',
         '1st round': 'status = \'2e\'',
         '2nd round': 'status = \'2\'',
-        'reminder': 'confirmed = "" and (status = 1 or status = 2)',
+        'reminder': 'confirmed = "yes" or confirmed = "panel"',
         'early':     'Contact.status = \'early\''
         # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
         # 'xxx':     'Contact.status = \'test1\''
@@ -45,7 +45,8 @@ Criteria = {
 table = tables[0]
 subsection = subsections[table][0]
 emailFilePath = emailPath + "email_many.html"
-attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/InvitesR4/Invitation_University_of_Oxford_201732[id].pdf'
+# attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/InvitesR4/Invitation_University_of_Oxford_201732[id].pdf'
+attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/Details_of_Transport_meeting.pdf'
 
 dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")

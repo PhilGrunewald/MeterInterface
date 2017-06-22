@@ -25,6 +25,8 @@ Activities with 10 min Watt reading
 # Open question - this should be the electricity reading surrounding the activity ( e < a would probably be better)
 # Takes 315 seconds for 8010 rows (!)
 
+# Version a: takes the electricity reading right after an activity was reported
+# output in watt_tuc_dt_a.tab
 SELECT tuc, dt_activity, (
 	SELECT e.Watt
 		FROM hh_el_10min e
@@ -32,7 +34,18 @@ SELECT tuc, dt_activity, (
         ORDER BY a.dt_activity DESC
         LIMIT 1
 	) AS Watt
-	FROM hh_act a
+	FROM hh_act a;
+
+# Version b: takes the electricity reading starting before (thus overlapping with) activity
+# output in watt_tuc_dt_a.tab
+SELECT tuc, dt_activity, (
+	SELECT e.Watt
+		FROM hh_el_10min e
+		WHERE e.dt < a.dt_activity
+        ORDER BY e.dt DESC
+        LIMIT 1
+	) AS Watt
+	FROM hh_act a;
 
 
 
@@ -62,6 +75,29 @@ SELECT Code, meaning, count FROM
     WHERE col = 'tuc'
     ORDER BY count DESC
     ;
+
+
+Update Categories
+ SET subcategory = 'bed'
+ WHERE tuc in (110, 111, 120, 5311)
+ AND tuc >0;
+
+
+Update Categories
+ SET subcategory = 'personal'
+ WHERE tuc in (311, 314, 302, 313, 0, 321, 315, 310, 8574, 320, 8572, 316, 8571, 8575)
+ AND tuc > -1;
+
+
+Update Categories
+ SET subcategory = 'self'
+ WHERE tuc in (304, 303, 5310, 6100, 3242, 9610, 9610, 300)
+ AND tuc >0;
+
+Update Categories
+ SET subcategory = 'other'
+ WHERE tuc in (3600, 1120)
+ AND tuc >0;
 
 
 SELECT * from Legend LIMIT 5;
