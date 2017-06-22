@@ -358,6 +358,13 @@ def getDevicesForDate(householdID, dateChoice):
             metaIDs = metaIDs + ("{:<6}".format("%s" % result['idMeta']))
     return metaIDs
 
+def hasPV(householdID):
+    """ check if HH has PV """
+    sqlq = "SELECT appliance_b9 AS PV FROM Household WHERE idHousehold = '%s'" % (householdID)
+    results = getSQL(sqlq)
+    PV = bool(results[0]['PV'])
+    return  PV
+
 
 def getDeviceRequirements(householdID):
     """ formated list of counters and 'E' for people/eMeter """
@@ -366,6 +373,9 @@ def getDeviceRequirements(householdID):
     for counter in range(counters):
         clist = clist + ("{:<6}".format("A%s" % (counter + 1)))
     clist = clist + ("{:<6}".format("E"))
+    # check if a PV device is required
+    if hasPV(householdID):
+        clist = clist + ("{:<6}".format("PV"))
     return clist
 
 
@@ -497,6 +507,10 @@ def device_config(meterType):
             # callShell('adb shell reboot -p')
             showCharge()
             call('adb shell reboot -p', shell=True)
+    if (meterType == 'P'):
+        updateIDfile(metaID)  # XXX currently douplicated with config file - eMeter could use json file, too...
+        showCharge()
+        call('adb shell reboot -p', shell=True)
     else:
         # Booklet sticker
         dt   = getHHdtChoice(householdID)
@@ -1357,6 +1371,8 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             device_config('A')
         elif (deviceCount == participantCount):
             device_config('E')
+        elif (hasPV(householdID)):
+            device_config('P')
         else:
             message("All devices are configured (or should be :-)")
         # recount after new device configured
