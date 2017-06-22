@@ -965,7 +965,23 @@ TUC2015
      Join Legend
      on Legend.value = TUC2015.tuc
      WHERE Legend.col = 'tuc';
-     
+    
+
+    #TUCs in Time Use Survey that are NOT in Meter categories table
+    SELECT * FROM
+    (
+    SELECT distinct(tuc)
+    FROM Meter.TUS2015
+    ) as alice
+    WHERE tuc NOT IN
+    (
+    SELECT distinct(tuc)
+    FROM Meter.Categories
+    );
+
+
+
+
     # show any tuc that Meter is not covering with our own Legends
     SELECT tuc,TimeUse 
         FROM TUC2015 
