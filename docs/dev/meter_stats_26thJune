@@ -1,0 +1,101 @@
+                                General Database Stats                                
+:--------------------------------------------------------------------------------------:
+|              Description                   HH       Ppl      Adults    Participants  |
+|   The number of times the survey was                                                 |
+|                started                    494                                        |
+|                                                                                      |
+|The number of times survey was completed   291                                        |
+|                                                                                      |
+|The number of times survey was completed                                              |
+|           and was consistent              279                                        |
+|                                                                                      |
+|     The number of times survey was                                                   |
+|completed, was consistent, and household                                              |
+|         took part in the study            154                                        |
+|                                                                                      |
+|     The number of times survey was                                                   |
+|  completed, was consistent, household                                                |
+|  took part in the study, with a valid                                                |
+|         electricity recording             117       307       269          268       |
+|                                                                                      |
+|     The number of times survey was                                                   |
+|  completed, was consistent, household                                                |
+|  took part in the study, with a valid                                                |
+|electricity recording, with at least one                                              |
+|         valid activity record             113       297       260          222       |
+|                                                                                      |
+|     The number of times survey was                                                   |
+|  completed, was consistent, household                                                |
+|  took part in the study, with a valid                                                |
+|  electricity recording, with at least                                                |
+| half the adults having activity record    110       284       251          219       |
+|                                                                                      |
+|     The number of times survey was                                                   |
+|  completed, was consistent, household                                                |
+|  took part in the study, with a valid                                                |
+|  electricity recording, with all the                                                 |
+|     adults having activity record          79       193       169          169       |
+|                                                                                      |
+:--------------------------------------------------------------------------------------:
+
+
+                Ownership                 
+:------------------------------------------:
+|    Value           VH           PVH      |
+|     Own            84            83      |
+| Rent Social        5             4       |
+| Rent Private       10            11      |
+:------------------------------------------:
+
+
+    Fraction of households with people    
+:------------------------------------------:
+|    Value           VH           PVH      |
+|      1             21            15      |
+|      2             41            42      |
+|      3             13            15      |
+|      4             18            22      |
+|      5             1             1       |
+|  6 and more        2             1       |
+:------------------------------------------:
+
+
+                Age groups                
+:------------------------------------------:
+|    Value           VH           PVH      |
+|   Under 8          12            11      |
+|     8-18           12            15      |
+|    19-34           16            16      |
+|    35-50           33            32      |
+|    51-70           19            20      |
+|   Over 70          5             3       |
+:------------------------------------------:
+
+
+            Pets in household             
+:------------------------------------------:
+|    Value           VH           PVH      |
+|   Any pet          36            33      |
+|     Dogs           13            10      |
+|     Cats           25            23      |
+|     Fish           6             6       |
+:------------------------------------------:
+
+
+                 Households with appliances                 
+:------------------------------------------------------------:
+|                 Value                      VH       PVH    |
+|                   PV                       11        13    |
+|             Electric cars                  3         4     |
+|               Heat Pumps                   2         3     |
+|      Washing machine/washer dryer         100        99    |
+|              Tumble dryer                  86        87    |
+|           Underfloor heating               18        19    |
+:------------------------------------------------------------:
+
+
+                Dishwasher                
+:------------------------------------------:
+|    Value           VH           PVH      |
+|     Yes            46            51      |
+:------------------------------------------:
