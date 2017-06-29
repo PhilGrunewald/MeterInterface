@@ -49,6 +49,32 @@ householdID = '0'
 first_time = True
 
 
+def dummy_aMeter():
+    """ assign meta id and copy config / id files to device """ 
+    meterType = "A"
+    sn = getDeviceSerialNumber(meterType)
+    # 2) create a meta id entry for an 'eMeter'
+
+    sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'" % "0"
+    result = getSQL(sqlq)[0]
+    dateChoice = ("%s" % result['date_choice'])
+
+    sqlq = "INSERT INTO Meta(DataType, SerialNumber, Household_idHousehold, CollectionDate) \
+               VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID, dateChoice)
+    metaID = ("%s" % executeSQL(sqlq))
+    commit()
+    updateConfigFile(metaID, dateChoice, meterType)
+
+    if (sn == '-1'):
+        # pass current metaID to for to make the update
+        MeterApp._Forms['snEntry'].meta = metaID
+        MeterApp.switchForm('snEntry')
+
+    MeterApp._Forms['MAIN'].wStatus2.value =\
+        "Phone was assigned ID " + metaID
+    MeterApp._Forms['MAIN'].wStatus2.display()
+    MeterApp._Forms['MAIN'].setMainMenu()
+
 def showHouseholds():
     MeterApp._Forms['MAIN'].display_selected_data('Households')
 
@@ -471,6 +497,7 @@ def getDeviceSerialNumber(meterType):
     return sn
 
 
+
 def device_config(meterType):
     """ assign meta id and copy config / id files to device """ 
     # 2 Nov 15 - assumes that the apps are already installed
@@ -606,7 +633,8 @@ def updateConfigFile(_id, _dateChoice, meterType):
     else:
         jstring.update({"times": dts})
         callShell("adb root")
-        callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
+        timeSet =callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
+        message(timeSet)
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
     config_file.close()
@@ -1153,7 +1181,8 @@ class ActionControllerData(nps.MultiLineAction):
         device_config("A")
 
     def test(self, *args, **keywords):
-        print_address()
+        # print_address()
+        dummy_aMeter()
 
     def formated_data_type(self, vl):
         return "%s (%s)" % (vl[1], str(vl[0]))
