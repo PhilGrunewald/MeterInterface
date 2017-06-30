@@ -9,6 +9,12 @@ letters/aMeter*
 letters/address*
 apk/*.*
 flash*/
-/emails/tempEmail.htmail
+emails/tempEmail.htmail
 emails/email_personal.html
+emails/17_03_MeterReading.html
+emails/17_03_YourTimeHasCome.html
+emails/17_04_workshop_invite2.html
+emails/17_05_CH_invite.html
+emails/CH_reminder.html
+emails/infoEnergy
 sql_output.txt
