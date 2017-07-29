@@ -24,7 +24,7 @@
 # For plotting
 import json                   # used for reading activities.json
 # import numpy as np          # used for mean
-import pandas as pd           # to reshape el readings
+# import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 from meter import *         # db connection and npyscreen features
@@ -203,39 +203,39 @@ def getReadingPeriods(_householdID, _condition, _duration):
         return "no meta entry"
 
 
-def upload_1min_readings(metaIDe):
-    """ use panas to resample readings """
-    # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
-    # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
-    dbConnection = getConnection()
-    sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % metaIDe
-    df_elec = pd.read_sql(sqlq, con=dbConnection)
-    df_elec.index = pd.to_datetime(df_elec.dt)        # index by time
-    # downsample, label left such that time refers to the next minute
-    df_elec_resampled = df_elec.resample('1min', label='left').median()
-    # remove index, so that a new one is auto-incremented
-    del df_elec_resampled['idElectricity']
-    # pandas is brutal, if not append it rewrites the table!!
-    engine = connectPandasDatabase()
-    df_elec_resampled.to_sql(con=engine, name='Electricity_1min', if_exists='append', index=True)
-    #df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
-    # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
+# def upload_1min_readings(metaIDe):
+#     """ use panas to resample readings """
+#     # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
+#     # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
+#     dbConnection = getConnection()
+#     sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % metaIDe
+#     df_elec = pd.read_sql(sqlq, con=dbConnection)
+#     df_elec.index = pd.to_datetime(df_elec.dt)        # index by time
+#     # downsample, label left such that time refers to the next minute
+#     df_elec_resampled = df_elec.resample('1min', label='left').median()
+#     # remove index, so that a new one is auto-incremented
+#     del df_elec_resampled['idElectricity']
+#     # pandas is brutal, if not append it rewrites the table!!
+#     engine = connectPandasDatabase()
+#     df_elec_resampled.to_sql(con=engine, name='Electricity_1min', if_exists='append', index=True)
+#     #df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
+#     # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
 
 
-def upload_10min_readings(metaIDe):
-    """ use panas to resample readings """
-    dbConnection = getConnection()
-    sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
-    df_elec = pd.read_sql(sqlq, con=dbConnection)
-    # index by time
-    df_elec.index = pd.to_datetime(df_elec.dt)
-    # downsample, label left such that time refers to the next minute
-    df_elec_resampled = df_elec.resample('10min', label='left').median()
-    # remove index, so that a new one is auto-incremented
-    del df_elec_resampled['idElectricity']
-    # pandas is brutal, if not append it rewrites the table!!
-    engine = connectPandasDatabase()
-    df_elec_resampled.to_sql(con=engine, name='Electricity_10min', if_exists='append', index=True)
+# def upload_10min_readings(metaIDe):
+#     """ use panas to resample readings """
+#     dbConnection = getConnection()
+#     sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
+#     df_elec = pd.read_sql(sqlq, con=dbConnection)
+#     # index by time
+#     df_elec.index = pd.to_datetime(df_elec.dt)
+#     # downsample, label left such that time refers to the next minute
+#     df_elec_resampled = df_elec.resample('10min', label='left').median()
+#     # remove index, so that a new one is auto-incremented
+#     del df_elec_resampled['idElectricity']
+#     # pandas is brutal, if not append it rewrites the table!!
+#     engine = connectPandasDatabase()
+#     df_elec_resampled.to_sql(con=engine, name='Electricity_10min', if_exists='append', index=True)
 
 
 def uploadDataFile(fileName, dataType, _metaID, collectionDate):
@@ -261,8 +261,8 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
         updateHouseholdStatus(householdID, 6)
-        upload_1min_readings(metaID)
-        upload_10min_readings(metaID)
+        # upload_1min_readings(metaID)
+        # upload_10min_readings(metaID)
     elif (dataType == 'A'):
         # handle the xxxx_act.json file
         with open("%s.json" % fileName) as json_data:
@@ -2100,7 +2100,7 @@ class MeterForms(nps.NPSAppManaged):
     def onStart(self):
         # nps.setTheme(nps.Themes.ColorfulTheme)
         nps.setTheme(MeterTheme)
-        self.addForm('MAIN', MeterMain, lines=36)
+        self.addForm('MAIN', MeterMain, lines=29)
         self.addForm('NewContact', newContactForm, name='New Contact')
         self.addForm('EditContact', editContactForm, name='Edit Contact')
         self.addForm('EditHousehold', editHouseholdForm, name='Edit Household')

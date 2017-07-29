@@ -11,7 +11,7 @@ from subprocess import call
 import subprocess
 from sys import stdin
 import glob                 # for reading files in directory
-from xml.etree import ElementTree as et  # to modify sting xml file for android
+# from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen as nps
 
 from sqlalchemy import create_engine    # fix for pandas sql connections
