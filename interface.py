@@ -218,8 +218,6 @@ def upload_1min_readings(metaIDe):
     # pandas is brutal, if not append it rewrites the table!!
     engine = connectPandasDatabase()
     df_elec_resampled.to_sql(con=engine, name='Electricity_1min', if_exists='append', index=True)
-    #df_elec_resampled.to_sql(con=dbConnection, name='Electricity_1min', if_exists='append', flavor='mysql')
-    # df_elec_resampled.to_csv("%s/el_%s_%s.csv" % (filePath,idMeta[0])) # create a csv copy
 
 
 def upload_10min_readings(metaIDe):
@@ -261,8 +259,10 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
         updateHouseholdStatus(householdID, 6)
-        upload_1min_readings(metaID)
-        upload_10min_readings(metaID)
+
+        os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
+        # upload_1min_readings(metaID)
+        # upload_10min_readings(metaID)
     elif (dataType == 'A'):
         # handle the xxxx_act.json file
         with open("%s.json" % fileName) as json_data:

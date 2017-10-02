@@ -61,13 +61,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#meter-mailer">Meter mailer</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#utils">Utils</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#json2sql">json2sql</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cockpit">cockpit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#app-tree">app_tree</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sql">sql</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="#the-meter-database">The Meter Database</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#what-data-are-collected">What data are collected?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#database-structure">Database structure</a></li>
@@ -238,6 +231,12 @@ The forms support Mutt-style navigation and key bindings, based on the <a class=
 </dd></dl>
 
 <dl class="function">
+<dt id="interface.dummy_aMeter">
+<code class="descclassname">interface.</code><code class="descname">dummy_aMeter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#dummy_aMeter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.dummy_aMeter" title="Permalink to this definition">¶</a></dt>
+<dd><p>assign meta id and copy config / id files to device</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="interface.eMeter_setup">
 <code class="descclassname">interface.</code><code class="descname">eMeter_setup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#eMeter_setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.eMeter_setup" title="Permalink to this definition">¶</a></dt>
 <dd><p>superseeded by flash_phone()</p>
@@ -381,6 +380,12 @@ The forms support Mutt-style navigation and key bindings, based on the <a class=
 <dd><p>convert into one of 144 10minute periods of the day</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="interface.hasPV">
+<code class="descclassname">interface.</code><code class="descname">hasPV</code><span class="sig-paren">(</span><em>householdID</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#hasPV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.hasPV" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if HH has PV</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="interface.metaFileInformation">
 <em class="property">class </em><code class="descclassname">interface.</code><code class="descname">metaFileInformation</code><span class="sig-paren">(</span><em>name=None</em>, <em>parentApp=None</em>, <em>framed=None</em>, <em>help=None</em>, <em>color='FORMDEFAULT'</em>, <em>widget_list=None</em>, <em>cycle_widgets=False</em>, <em>*args</em>, <em>**keywords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/interface.html#metaFileInformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#interface.metaFileInformation" title="Permalink to this definition">¶</a></dt>
@@ -502,99 +507,6 @@ The forms support Mutt-style navigation and key bindings, based on the <a class=
 <p>See full <a class="reference external" href="https://rawgit.com/PhilGrunewald/MeterInterface/master/docs/html/_">Documentation</a> for more detail.</p>
 </div>
 </div>
-<div class="section" id="utils">
-<h2>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h2>
-<p>This folder contains an number of useful utilities for common tasks.</p>
-<div class="section" id="json2sql">
-<h3>json2sql<a class="headerlink" href="#json2sql" title="Permalink to this headline">¶</a></h3>
-<p>Used to transfer json data to the database. Originally these files were created in json.</p>
-<p>The <a class="reference external" href="../json/activities.json">activities</a> json file was developed for and is principally used by <a href="#id6"><span class="problematic" id="id7">`Meter App`__</span></a>. This python script makes the <cite>title</cite> in json available in the database as the <cite>meaning</cite> for each <cite>tuc</cite> (<cite>ID</cite> in json).</p>
-<dl class="function">
-<dt>
-<code class="descclassname">json2sql.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/json2sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Populates an sql table <cite>Legend</cite> based on json data 
-Fields are</p>
-<ul class="simple">
-<li><cite>table</cite> - the name of the sql table for which these values and meanings apply</li>
-<li><cite>column</cite> - the column in that table - for activities.json this takes on the definition of the tuc range (see insertActivitiesJSON)</li>
-<li><cite>value</cite> - the entry in this column</li>
-<li><cite>meaning</cite> - a plain text description of that this value means (e.g. 0:= Female)</li>
-</ul>
-</dd></dl>
-
-</div>
-<div class="section" id="cockpit">
-<h3>cockpit<a class="headerlink" href="#cockpit" title="Permalink to this headline">¶</a></h3>
-<p>Creates a table summary in markdown table format.</p>
-<dl class="function">
-<dt>
-<code class="descclassname">cockpit.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cockpit.html#main"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>cockpit.py</p>
-<blockquote>
-<div>options:</div></blockquote>
-<p>[-h,&#8211;help]</p>
-<blockquote>
-<div>this help</div></blockquote>
-<p>[-l,&#8211;localhost]</p>
-<blockquote>
-<div><p>override default host to use localhost</p>
-<p>Default: energy-use.org</p>
-<p>Example: python cockpit.py -l</p>
-</div></blockquote>
-<p>[-c,&#8211;condition]</p>
-<blockquote>
-<div><p>add sql criteria</p>
-<p>Default: None</p>
-<p>Example: python cockpit.py -c &#8216;quality = 1 AND people &gt; 3&#8217;</p>
-</div></blockquote>
-<p>[-t,&#8211;table]</p>
-<blockquote>
-<div><p>specify table.</p>
-<p>Default: <cite>Household</cite></p>
-<p>Example: <cite>python cockpit.py -t &#8216;Individual&#8217;</cite></p>
-</div></blockquote>
-</dd></dl>
-
-</div>
-<div class="section" id="app-tree">
-<h3>app_tree<a class="headerlink" href="#app-tree" title="Permalink to this headline">¶</a></h3>
-<p>Interactive command line interface to step through the screen options of the <a href="#id6"><span class="problematic" id="id8">`Meter App`__</span></a></p>
-<dl class="function">
-<dt>
-<code class="descclassname">app_tree.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/app_tree.html#main"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Interactive command line tool.Explore activity choices of screens in the MeterApp.</p>
-<p>Use:
-python appSreens.py [-c]</p>
-<p>Option &#8216;c&#8217; displays the number of times a sequence of two buttons was used by study participants</p>
-</dd></dl>
-
-</div>
-<div class="section" id="sql">
-<h3>sql<a class="headerlink" href="#sql" title="Permalink to this headline">¶</a></h3>
-<dl class="function">
-<dt>
-<code class="descclassname">sql.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql.html#main"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>A tool to develop and test SQL statements.</p>
-<p>Example:
-python sql.py -q &#8216;SELECT * FROM table&#8217;</p>
-<dl class="docutils">
-<dt>[-h,&#8211;help]</dt>
-<dd>this help</dd>
-<dt>[-l,&#8211;localhost]</dt>
-<dd>use localhost [default: 109.74.196.205]</dd>
-<dt>[-s,&#8211;seperator]</dt>
-<dd>specify column seperator [default: tab]</dd>
-<dt>[-w,&#8211;width]</dt>
-<dd>column width [default: 10]</dd>
-<dt>[-q,&#8211;query | -f,&#8211;file]</dt>
-<dd>SQL query as argument or read from a file</dd>
-<dt>[-o,&#8211;output]</dt>
-<dd>sepcify output file name [default: sql_result.txt]</dd>
-</dl>
-</dd></dl>
-
-</div>
-</div>
 <div class="section" id="the-meter-database">
 <h2>The Meter Database<a class="headerlink" href="#the-meter-database" title="Permalink to this headline">¶</a></h2>
 <p>This section explains</p>
@@ -614,7 +526,7 @@ python sql.py -q &#8216;SELECT * FROM table&#8217;</p>
 <li>Electricity readings at household level</li>
 </ol>
 <p>Each of these data are explained in more detail here.</p>
-<div class="figure" id="id5">
+<div class="figure" id="id4">
 <img alt="Database schema for Meter Data" src="res/MeterSchema.png" />
 <p class="caption"><span class="caption-text">Database schema for Meter Data</span></p>
 </div>
@@ -911,7 +823,7 @@ Each screen key has six such &#8216;activity&#8217; keys</p>
 <div class="section" id="activity-recorder">
 <h3>Activity recorder<a class="headerlink" href="#activity-recorder" title="Permalink to this headline">¶</a></h3>
 <a class="reference internal image-reference" href="_images/handheld.png"><img alt="_images/handheld.png" src="_images/handheld.png" style="height: 200px;" /></a>
-<p>The app to record activities is kept in the <a href="#id6"><span class="problematic" id="id9">`Meter App`__</span></a> repository (see <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/tree/master/docs">MeterApp documentation</a>).</p>
+<p>The app to record activities is kept in the <a href="#id5"><span class="problematic" id="id6">`Meter App`__</span></a> repository (see <a class="reference external" href="https://github.com/PhilGrunewald/MeterApp/tree/master/docs">MeterApp documentation</a>).</p>
 </div>
 <div class="section" id="user-data-visualisation">
 <h3>User data visualisation<a class="headerlink" href="#user-data-visualisation" title="Permalink to this headline">¶</a></h3>
@@ -942,13 +854,6 @@ Each screen key has six such &#8216;activity&#8217; keys</p>
 <li><a class="reference internal" href="#meter">Meter</a></li>
 <li><a class="reference internal" href="#meter-interface">Meter interface</a></li>
 <li><a class="reference internal" href="#meter-mailer">Meter mailer</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#utils">Utils</a><ul>
-<li><a class="reference internal" href="#json2sql">json2sql</a></li>
-<li><a class="reference internal" href="#cockpit">cockpit</a></li>
-<li><a class="reference internal" href="#app-tree">app_tree</a></li>
-<li><a class="reference internal" href="#sql">sql</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#the-meter-database">The Meter Database</a><ul>
