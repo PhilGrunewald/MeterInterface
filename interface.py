@@ -640,7 +640,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
     config_file.close()
     callShell('adb shell "mkdir /sdcard/METER/"')
     callShell('adb push ' + configFilePath + ' /sdcard/METER/')
-    callShell('adb uninstall org.energy_use.meter')
+    # callShell('adb uninstall org.energy_use.meter')
     callShell('adb shell am force-stop org.energy_use.meter')
     callShell('adb install -r ./apk/aMeter.apk')
 
@@ -1457,7 +1457,17 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 'Name':      'Home',
                 'Criterium': 'status >=0',
                 'Household': '0',
+                'Criterium': 'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
                 'Actions': {
+                    'I': {
+                        'Action': self.showHouseholds,
+                        'Label': "Issue Kit"
+                    },
+                    'P': {
+                        'Action': self.showHouseholds,
+                        'Label': "Process returned kit"
+                    },
+
                 }
             },
             '1': {
