@@ -28,7 +28,7 @@ import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 from meter import *         # db connection and npyscreen features
-import meter_ini     # reads the database and file path information
+import interface_ini     # reads the database and file path information
 
 Criteria = {'Home':         'status >= 0',
             'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY ORDER BY date_choice ASC',
@@ -534,7 +534,7 @@ def device_config(meterType):
             # callShell('adb shell reboot -p')
             showCharge()
             call('adb shell reboot -p', shell=True)
-    if (meterType == 'P'):
+    elif (meterType == 'P'):
         updateIDfile(metaID)  # XXX currently douplicated with config file - eMeter could use json file, too...
         showCharge()
         call('adb shell reboot -p', shell=True)
@@ -631,7 +631,8 @@ def updateConfigFile(_id, _dateChoice, meterType):
         message("adb shell \"date %s\"" % startDateAdb)
         message(bob)
     else:
-        jstring.update({"times": dts})
+        # jstring.update({"times": dts})        # removed 6 Nov 2017 - we no longer prompt to avoid biasing the distribution of reported events
+        jstring.update({"times": []})
         callShell("adb root")
         timeSet =callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
         message(timeSet)
@@ -1553,7 +1554,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     },
                     'E': {
                         'Action': self.email,
-                        'arguments': 'sent',
+                        'arguments': 'parcel',
                         'Label': "Email parcel sent"
                     },
                     'S': {

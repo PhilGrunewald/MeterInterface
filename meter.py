@@ -16,7 +16,7 @@ import npyscreen as nps
 
 from sqlalchemy import create_engine    # fix for pandas sql connections
 
-from meter_ini import *     # reads the database and file path information from meter_ini.py
+from interface_ini import *     # reads the database and file path information from meter_ini.py
 
 def connectDatabase(_dbHost):
     """ try to connect to server - else to local database """
@@ -104,7 +104,7 @@ def backup_database():
          ' > ' + './Data/database/' + thisDate + '_' + dbName + '.sql', shell=True)
     message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
 
-def getNameEmail(table,criterium):
+def getNameEmail(table,criterion):
     """ returns name and email for matched """
     email='\'%@%\''
     if (table == "Contact"):
@@ -117,7 +117,7 @@ def getNameEmail(table,criterium):
                     AND %s\
                  )\
                  as x\
-                 group by idContact having count(*) = 1;" % (email,criterium)
+                 group by idContact having count(*) = 1;" % (email,criterion)
 
                     # AND Contact.status IS NULL\
 
@@ -125,16 +125,16 @@ def getNameEmail(table,criterium):
         #         From Contact\
         #         Join Household\
         #         ON Household.Contact_idContact = Contact.idContact\
-        #         WHERE email like %s AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL) AND %s" % (email,criterium)
+        #         WHERE email like %s AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL) AND %s" % (email,criterion)
     else:
         sqlq = "Select *\
                 FROM %s\
-                WHERE email like %s AND (status <> 'unsubscribed' OR status IS NULL) AND %s" % (table,email,criterium)
+                WHERE email like %s AND (status <> 'unsubscribed' OR status IS NULL) AND %s" % (table,email,criterion)
     result = getSQL(sqlq)
     return result
 
-def getRecipientCount(table,criterium):
-    return len(getNameEmail(table,criterium))
+def getRecipientCount(table,criterion):
+    return len(getNameEmail(table,criterion))
 
 def getHouseholdCount(condition):
     """ count household in database matching the modus criteria """

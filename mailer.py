@@ -17,11 +17,11 @@ from xml.etree import ElementTree as et  # to modify sting xml file for android
 import npyscreen as nps
 
 from meter import *         # db connection and npyscreen features
-from meter_ini import *     # reads the database and file path information from meter_ini.py
+from interface_ini import *     # reads the database and file path information from meter_ini.py
 
 tables = ['Contact', 'Mailinglist', 'OE_mail']
 
-subsections = {'Contact': ['TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['renters', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
                'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
@@ -37,6 +37,7 @@ Criteria = {
         'Test':      'status = \'test\'',
         '1st round': 'status = \'2e\'',
         '2nd round': 'status = \'2\'',
+        'renters'  : 'own > 1 and Household.status < 4 and date_choice < CURDATE()',
         'reminder': 'confirmed = "yes" or confirmed = "panel"',
         'early':     'Contact.status = \'early\''
         # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
@@ -46,7 +47,8 @@ table = tables[0]
 subsection = subsections[table][0]
 emailFilePath = emailPath + "email_many.html"
 # attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/InvitesR4/Invitation_University_of_Oxford_201732[id].pdf'
-attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/Details_of_Transport_meeting.pdf'
+# attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/Details_of_Transport_meeting.pdf'
+attachment = ''
 
 dateTimeToday = datetime.datetime.now()
 str_date = dateTimeToday.strftime("%Y-%m-%d")
