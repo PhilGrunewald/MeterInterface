@@ -258,6 +258,8 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
+        commit()
+        updateDataQuality(metaID, 1)
         updateHouseholdStatus(householdID, 6)
 
         os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
@@ -287,17 +289,9 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
                 except:
                     message("Funny entry {}".format(idButton))
         if (len(activities) > 6):
-           quality = 1
+            updateDataQuality(metaID, 1)
         else:
-           quality = 0
-        sqlq = "UPDATE Meta SET \
-                `Quality` = '%s' \
-                WHERE `idMeta` = '%s';" % (quality, metaID)
-        commit()
-        executeSQL(sqlq)
-
-
-
+            updateDataQuality(metaID, 0)
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
@@ -856,7 +850,6 @@ def compose_email(type, edit=True):
     elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
-        updateDataQuality(metaID, 1)
     elif (type == 'fail'):
         updateHouseholdStatus(householdID, 10)
         updateDataQuality(metaID, 0)
@@ -1464,7 +1457,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                         'Action': self.showHouseholds,
                         'Label': "Issue Kit"
                     },
-                    'P': {
+                    'H': {
                         'Action': self.showHouseholds,
                         'Label': "Process returned kit"
                     },
