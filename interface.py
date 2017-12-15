@@ -683,6 +683,16 @@ def showCharge():
         result = callShell('adb shell dumpsys batterystats | grep -m2 discharged')
     message("Charge is\n {}".format(result))
 
+
+def setTime():
+    # Android 4:
+    callShell('adb root')
+    result = callShell('adb shell date -s `date "+%Y%m%d.%H%M%S"`')
+    if "usage" in result:
+        # Android 6
+        result = callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
+    message("Date is\n {}".format(result))
+
 def root_phone():
     """ push root and flash packages """
     callShell('adb install -r ./apk/root.apk')
@@ -1298,6 +1308,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         self.m4 = self.add_menu(name="Devices", shortcut="D")
         self.m4.addItem(text='Show charge', onSelect=showCharge, shortcut='c', arguments=None)
+        self.m4.addItem(text='Set time', onSelect=setTime, shortcut='t', arguments=None)
         self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
         self.m4.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
         self.m4.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
