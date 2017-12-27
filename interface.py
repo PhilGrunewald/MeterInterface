@@ -1155,6 +1155,7 @@ class ActionControllerData(nps.MultiLineAction):
     def aMeter_id_setup(self, *args, **keywords):
         device_config('A')
 
+
     def showHouseholds(self, *args, **keywords):
         self.parent.display_selected_data('Households')
 
@@ -1368,6 +1369,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         MenuText.append("\n")
 
+
         if (householdID != "0"):
             # Show Household information
             MenuText.append("\t\t\t _Household information  (%3s/%3s) _______________________________" % (Screen[ScreenKey]['Index'], getHouseholdCount(Screen[ScreenKey]['Criterium'])))
@@ -1394,6 +1396,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     def email(self, key):
         """ compose_email(Screen[ScreenKey][chr(key)['EmailType']) """
         compose_email(Screen[ScreenKey]['Actions'][chr(key)]['arguments'])
+
+
+    def showHouseholdsConfirmed(self,key):
+        global ScreenKey
+        # set screen key to confirmed (4)
+        ScreenKey = '5'
+        # display list of all households in this criterion
+        self.display_selected_data('Households')
 
     def showHouseholds(self, key):
         self.display_selected_data('Households')
@@ -1462,14 +1472,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 'Name':      'Home',
                 'Criterium': 'status >=0',
                 'Household': '0',
-                'Criterium': 'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
+                'Criterium': 'TRUE',
                 'Actions': {
                     'I': {
-                        'Action': self.showHouseholds,
+                        'Action': self.showHouseholdsConfirmed,
                         'Label': "Issue Kit"
                     },
-                    'H': {
-                        'Action': self.showHouseholds,
+                    'P': {
+                        'Action': data_download,
                         'Label': "Process returned kit"
                     },
 
