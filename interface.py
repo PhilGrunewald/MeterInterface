@@ -12,10 +12,6 @@
 # ADB comands worth integrating
 # Check AUTOSTART setting
 # adb shell dumpsys | grep -A 2 "power off alarms dump"
-# Check Battery level
-# Android 4
-# adb shell dumpsys battery | grep level
-# Android 6
 
 # adb shell am force-stop org.energy_use.meter
 # What apps are running
@@ -23,7 +19,6 @@
 
 # For plotting
 import json                   # used for reading activities.json
-# import numpy as np          # used for mean
 import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
@@ -87,16 +82,6 @@ def callShell(command):
 def getDateTimeNow():
     """ current date and time in format "YYYY-MM-DD hh:mm:ss" """
     return str(datetime.datetime.now())[0:19]
-
-# def showScreen(key):
-#     """ populate screen based ScreenKey dict """
-#     global ScreenKey
-#     global householdID
-#     Screen[ScreenKey]['Household'] = householdID
-#     ScreenKey = str(key)
-#     householdID = Screen["%s" % key]['Household']
-#     MeterApp._Forms['MAIN'].setMainMenu()
-
 
 def getDateOfFirstEntry(thisFile, col):
     """ Find the date string in a data file """
@@ -200,39 +185,6 @@ def getReadingPeriods(_householdID, _condition, _duration):
         return "no meta entry"
 
 
-def upload_1min_readings(metaIDe):
-    """ use panas to resample readings """
-    # sqlq = "SELECT Meta.idMeta \ From Meta \ Join Household \ On Household.idHOusehold = Meta.Household_idHousehold \ where Household.status >5 AND Household.status < 10 \ AND DataType = 'E' AND Household.Contact_idContact < 5001;"
-    # sqlq = "SELECT distinct(Meta_idMeta) FROM Electricity;" # used for initial catchup on all that is in Electricity table
-    dbConnection = getConnection()
-    sqlq = "select * from Meter.Electricity where Meta_idMeta=%s" % metaIDe
-    df_elec = pd.read_sql(sqlq, con=dbConnection)
-    df_elec.index = pd.to_datetime(df_elec.dt)        # index by time
-    # downsample, label left such that time refers to the next minute
-    df_elec_resampled = df_elec.resample('1min', label='left').median()
-    # remove index, so that a new one is auto-incremented
-    del df_elec_resampled['idElectricity']
-    # pandas is brutal, if not append it rewrites the table!!
-    engine = connectPandasDatabase()
-    df_elec_resampled.to_sql(con=engine, name='Electricity_1min', if_exists='append', index=True)
-
-
-def upload_10min_readings(metaIDe):
-    """ use panas to resample readings """
-    dbConnection = getConnection()
-    sqlq = "select * from Meter.Electricity_1min where Meta_idMeta=%s" % metaIDe
-    df_elec = pd.read_sql(sqlq, con=dbConnection)
-    # index by time
-    df_elec.index = pd.to_datetime(df_elec.dt)
-    # downsample, label left such that time refers to the next minute
-    df_elec_resampled = df_elec.resample('10min', label='left').median()
-    # remove index, so that a new one is auto-incremented
-    del df_elec_resampled['idElectricity']
-    # pandas is brutal, if not append it rewrites the table!!
-    engine = connectPandasDatabase()
-    df_elec_resampled.to_sql(con=engine, name='Electricity_10min', if_exists='append', index=True)
-
-
 def uploadDataFile(fileName, dataType, _metaID, collectionDate):
     global metaID
     global householdID
@@ -258,8 +210,6 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         updateHouseholdStatus(householdID, 6)
 
         os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
-        # upload_1min_readings(metaID)
-        # upload_10min_readings(metaID)
     elif (dataType == 'A'):
         # handle the xxxx_act.json file
         with open("%s.json" % fileName) as json_data:
@@ -303,8 +253,6 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
                 sqlq = "INSERT INTO Activities(Meta_idMeta,dt_activity,dt_recorded,tuc,category,activity,location,people,enjoyment,path) \
                         VALUES('" + row[0] + "', '" + row[1] + "', '" + row[2] + "', '" + row[3] + "', '" + row[4] + "', '" + row[5] + "', '" + row[6] + "', '" + row[7] + "', '" + row[8] + "', '" + row[9] + "')"
                 idAct = executeSQL(sqlq)
-
-
 
     # update meta entry - this MUST already exist!
     # we don't want 'I' in the Meta table - only E or A
@@ -391,25 +339,6 @@ def getDeviceRequirements(householdID):
     # check if a PV device is required
     if hasPV(householdID):
         clist = clist + ("{:<6}".format("PV"))
-    return clist
-
-
-def xgetDeviceMetaIDs(householdID, deviceType):
-    """ check if eMeter has been configured """
-    sqlq = "SELECT idMeta FROM Meta WHERE DataType = '%s' AND Household_idHousehold = '%s';" % (deviceType, householdID)
-    results = getSQL(sqlq)
-    metaIDs = ''
-    if (results):
-        for result in results:
-            metaIDs = metaIDs + ("{:<6}".format("%s" % result['idMeta']))
-    return metaIDs
-
-
-def xgetParticipantCounters(householdID):
-    counters = getParticipantCount(householdID)
-    clist = ''
-    for counter in range(counters):
-        clist = clist + ("{:<6}".format("%s:" % (counter + 1)))
     return clist
 
 
@@ -1098,32 +1027,11 @@ class ActionControllerData(nps.MultiLineAction):
         """ does nothing """
         pass
 
-#    def updateActionKeys(self, ScreenKey):
-#        """ redefine what keys do """
-#        global ActionKeys
-#        for key in ActionKeys:
-#            # make all 'old' Action keys 'mute'
-#            ActionKeys[key] = self.mute
-#        for ScreenNumber in Screen:
-#            # Screen keys (0-n) always work
-#            ActionKeys[ScreenNumber] = self.SwitchScreen
-#        for ActionKey in Screen[ScreenKey]['Actions']:
-#            # Actions specific to this screen
-#            ActionKeys[ActionKey] = Screen[ScreenKey]['Actions'][ActionKey]['Action']
-#        self.add_handlers(ActionKeys)
-
-#    def SwitchScreen(self, *args, **keywords):
-#        """ convert key number to character (48 -> '0') """
-#        Key = chr(args[0])
-#        self.updateActionKeys("%s" % Key)
-#        showScreen(Key)
-
     def show_MainMenu(self, *args, **keywords):
         self.parent.setMainMenu()
 
     def aMeter_id_setup(self, *args, **keywords):
         device_config('A')
-
 
     def showHouseholds(self, *args, **keywords):
         self.parent.display_selected_data('Households')
@@ -1289,17 +1197,10 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         """ get content based on current ScreenKey """
         # #menu_text
 
-        # if (householdID != '0'):
-        #     # a hh is assigned
-        #     Screen[ScreenKey]['Index'] = int(self.getHHindex(householdID))
-        # else:
-        #     # get the 1st in the list
-        #     Screen[ScreenKey]['Index'] = 1
-        # self.getHH()
-
         contactID   = getContact(householdID)
-
         MenuText = []
+        top      = "\t\t\t _______________________________________"
+        blank    = "\t\t\t|                                       |"
         line     = "\t\t\t|_______________________________________|"
         longline = "\t\t\t|_________________________________________________________________|"
 
@@ -1310,45 +1211,25 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 MenuText.append("\t" + logoLine)
             MenuText.append("\n")
 
-            #  # Show screen options
-            #  MenuText.append("\t\t\t _Screen options________________________")
-            #  for key in sorted(Screen):
-            #      # display all screens
-            #      MenuText.append(formatBox("[%s] %s:" % (key, Screen[key]['Name']), "(%s)" % (getHouseholdCount(Screen[key]['Criterium']))))
-            #  MenuText.append(line)
-            #  MenuText.append("\n")
-
         # basic command info for every screen
 
-        MenuText.append("\t\t\t _______________________________________")
+        MenuText.append("\n")
+        MenuText.append(top)
+        MenuText.append(blank)
 
         count = getHouseholdCount(Criteria['Issued'])
-        MenuText.append(formatBox("[P]rocess"," ({})".format(count)))
+        MenuText.append(formatBox("[P]rocess","{}".format(count)))
 
         count = getHouseholdCount(Criteria['Confirmed'])
-        MenuText.append(formatBox("[I]ssue"," ({})".format(count)))
+        MenuText.append(formatBox("[I]ssue","{}".format(count)))
 
         count = getHouseholdCount(Criteria[Criterion])
-        MenuText.append(formatBox("[V]iew {}".format(Criterion)," ({})".format(count)))
+        MenuText.append(formatBox("[V]iew {}".format(Criterion),"{}".format(count)))
 
         MenuText.append(formatBox("[E]mail","HH {}".format(householdID)))
 
-        MenuText.append("\t\t\t _______________________________________")
-        
-        # if (Screen[ScreenKey]['Actions']):
-        #     # Show keys available
-        #     MenuText.append("\n")
-        #     MenuText.append("\t\t\t _Commands______________________________")
-        #     # MenuText.append (formatBox("",""))
-        #     for ActionKey in sorted(Screen[ScreenKey]['Actions']):
-
-        #         # show avalable commands
-        #         MenuText.append(formatBox("[%s] %s" % (ActionKey, Screen[ScreenKey]['Actions'][ActionKey]['Label']), ''))
-        #     MenuText.append(line)
-        #     MenuText.append("\n")
-
+        MenuText.append(line)
         MenuText.append("\n")
-
 
         if (householdID != "0"):
             # Show Household information
@@ -1414,25 +1295,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             message("All devices are configured (or should be :-)")
         # recount after new device configured
         deviceCount = getDeviceCount(householdID)
-        # if (deviceCount < participantCount):
-        #     Screen['4']['Actions']['D']['Label'] = "Configure A%s" % (deviceCount + 1)
-        # else:
-        #     Screen['4']['Actions']['D']['Label'] = "Configure eMeter"
 
-    # def getHHindex(self, HouseholdID):
-    #     """ find at what position in the list the current hh is """
-    #     sqlq = "SELECT rank \
-    #             FROM ( \
-    #                 SELECT idHousehold, date_choice,\
-    #                 @rownum := @rownum + 1 AS rank\
-    #                     FROM Household, (SELECT @rownum := 0) r\
-    #                     WHERE %s \
-    #                 ) `selection` WHERE idHousehold = %s" % (Screen[ScreenKey]['Criterium'], HouseholdID)
-    #     if (getSQL(sqlq)):
-    #         result = getSQL(sqlq)[0]
-    #         return ("%d" % int(result['rank']))
-    #     else:
-    #         return 0
 
     def nextHH(self, key):
         # get the next hh in order of date choice
@@ -1484,215 +1347,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         except:
             Criterion = Criteria_list[0]
         self.setMainMenu()
-
-    # def getHH(self):
-    #     # set householdID to indexed household and show
-    #     global householdID
-    #     sqlq = "SELECT idHousehold FROM Household WHERE {} LIMIT 1;".format(Screen[ScreenKey]['Criterium'])
-    #     try:
-    #         result = getSQL(sqlq)[0]
-    #         householdID = ("%s" % result['idHousehold'])
-    #     except:
-    #         householdID = '0'
-
-    def getScreens(self):
-        Screen = {
-            '0': {
-                'Name':      'Home',
-                'Criterium': 'status >=0',
-                'Household': '0',
-                'Criterium': 'TRUE',
-                'Actions': {
-                    'I': {
-                        'Action': self.showHouseholdsConfirmed,
-                        'Label': "Issue Kit"
-                    },
-                    'P': {
-                        'Action': data_download,
-                        'Label': "Process returned kit"
-                    },
-
-                }
-            },
-            '1': {
-                'Name':     'No date yet',
-                'Criterium': 'status = 1',
-                'Household': '0',
-                'Actions': {
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'date',
-                        'Label': "Email dates"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '2':   {
-                'Name':      'Future',
-                'Criterium': 'date_choice > CURDATE()',
-                'Household': '0',
-                'Actions': {
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'date',
-                        'Label': "Email alternative dates"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '3': {
-                'Name':      'Upcoming',
-                'Criterium': 'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
-                'Household': '0',
-                'Actions': {
-                    'E': {
-                        'Action':    self.email,
-                        'arguments': 'confirm',
-                        'Label':     "Email to confirm"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '4': {
-                'Name': 'Confirmed',
-                'Criterium':    'status = 4 ORDER BY date_choice,idHousehold ASC',
-                'Household': '0',
-                'Actions': {
-                    'D': {
-                        'Action': self.deviceConfig,
-                        'Label': "Device config"
-                    },
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'parcel',
-                        'Label': "Email parcel sent"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select Household"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '5': {
-                'Name': 'Issued',
-                'Criterium': 'status = 5 ORDER BY date_choice ASC',
-                'Household': '0',
-                'Actions': {
-                    'D': {
-                        'Action': self.email,
-                        'arguments': 'date',
-                        'Label': "Email new dates"
-                    },
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'request_return',
-                        'Label': "Email return reminder"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '6': {
-                'Name': 'Overdue',
-                'Criterium': 'status = 5 AND date_choice < CURDATE() - INTERVAL "21" DAY ORDER BY date_choice ASC',
-                'Household': '0',
-                'Actions': {
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'request_return',
-                        'Label': "Email dates"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            },
-            '7': {
-                'Name': 'Processed',
-                'Criterium': 'status > 5 ORDER BY date_choice DESC',
-                'Household': '0',
-                'Actions': {
-                    'E': {
-                        'Action': self.email,
-                        'arguments': 'graph',
-                        'Label': "Email graph"
-                    },
-                    'S': {
-                        'Action': self.showHouseholds,
-                        'Label': "Select"
-                    },
-                    '<': {
-                        'Action': self.prevHH,
-                        'Label': "Prev"
-                    },
-                    '>': {
-                        'Action': self.nextHH,
-                        'Label': "Next"
-                    },
-                }
-            }
-        }
-        return Screen
 
     def setMainMenu(self):
         # Show main text
