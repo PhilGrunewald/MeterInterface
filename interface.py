@@ -32,13 +32,14 @@ Criteria = {'All':          'True',
             'Issued':       'status = 5',
             'Processed':    'status > 5',
             'Future':       'date_choice > CURDATE()',
-            'No date yet':  'date_choice < "2010-01-01"',
+            'No date':  'date_choice < "2010-01-02"',
             'no reading':   'Watt < 10',
             'high reading': 'Watt > 500'
             }
-Criteria_list = ['All','Upcoming','Confirmed','Issued','Processed','No date yet']
+Criteria_list = ['All','Upcoming','Confirmed','Issued','Processed','No date']
 Criterion = 'Issued'
 householdID = '0'
+init = True
 
     
 def dummy_aMeter():
@@ -59,6 +60,7 @@ def dummy_aMeter():
 
     if (sn == '-1'):
         # pass current metaID to for to make the update
+        MeterApp.addForm('snEntry', snEntry, name='New Serial Number')
         MeterApp._Forms['snEntry'].meta = metaID
         MeterApp.switchForm('snEntry')
 
@@ -116,12 +118,14 @@ def data_download(*self):
         call('adb shell rm -rf /sdcard/Meter/*.json', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
         updateIDfile('0')  # set to 0 to ignore if phone comes on again
+        MeterApp.addForm('MetaForm', metaFileInformation, name='Meta Data')
         MeterApp.switchForm('MetaForm')
     except:
         message("No device detected")
 
 
 def data_review():
+    MeterApp.addForm('MetaForm', metaFileInformation, name='Meta Data')
     MeterApp.switchForm('MetaForm')
 
 
@@ -438,6 +442,7 @@ def device_config(meterType):
 
     if (sn == '-1'):
         # pass current metaID to for to make the update
+        MeterApp.addForm('snEntry', snEntry, name='New Serial Number')
         MeterApp._Forms['snEntry'].meta = metaID
         MeterApp.switchForm('snEntry')
 
@@ -700,10 +705,10 @@ def getHHdtChoice(hhID):
 
 
 def getDateChoice(hhID):
-    """ return collection date as a string: "Sun, 31 Dec" """
+    """ return collection date as a string: "Sun, 31 Dec 18" """
     this_dt = getHHdtChoice(hhID)
     if (this_dt != 'None'):
-        return this_dt.strftime("%a, %-d %b")
+        return this_dt.strftime("%a, %-d %b %y")
     else:
         return "None"
 
@@ -933,7 +938,8 @@ class ActionControllerData(nps.MultiLineAction):
                     'E': self.parent.email,
                     'I': self.parent.showHouseholdsConfirmed,
                     'P': data_download,
-                    'q': self.show_MainMenu,
+                    'q': self.parent.setMainMenu,
+                    'h': self.parent.setMainMenu,
                     'Q': self.parent.exit_application,
                     'V': self.parent.showHouseholds,
                     '?': self.parent.showHelp
@@ -948,6 +954,7 @@ class ActionControllerData(nps.MultiLineAction):
                     'V': 'View Households',
                     'P': 'Process kit',
                     'I': 'Issue kit',
+                    'h': 'Home',
                     'q': 'Home',
                     'Q': 'Quit',
                     '?': 'Help'
@@ -1023,55 +1030,6 @@ class ActionControllerData(nps.MultiLineAction):
             except:
                 message("No action for %s defined" % Key[0])
 
-    def mute(self, *args):
-        """ does nothing """
-        pass
-
-    def show_MainMenu(self, *args, **keywords):
-        self.parent.setMainMenu()
-
-    def aMeter_id_setup(self, *args, **keywords):
-        device_config('A')
-
-    def showHouseholds(self, *args, **keywords):
-        self.parent.display_selected_data('Households')
-
-    def data_download(self, *args, **keywords):
-        data_download()
-
-    def show_Contact(self, *args, **keywords):
-        self.parent.myStatus = 'Contact'
-        self.parent.display_selected_data("Contact")
-
-    def show_Individual(self, *args, **keywords):
-        self.parent.myStatus = 'Individual'
-        self.parent.display_selected_data("Individual")
-
-    def show_MetaForm(self, *args, **keywords):
-        self.parent.parentApp.switchForm('MetaForm')
-
-    def show_EditContact(self, *args, **keywords):
-        self.parent.parentApp.switchForm('EditContact')
-
-    def show_EditHousehold(self, *args, **keywords):
-        self.parent.parentApp.switchForm('EditHousehold')
-
-    def show_NewContact(self, *args, **keywords):
-        self.parent.parentApp.switchForm('NewContact')
-
-    def show_snEntry(self, *args, **keywords):
-        device_config("A")
-
-    def test(self, *args, **keywords):
-        # print_address()
-        dummy_aMeter()
-
-    def formated_data_type(self, vl):
-        return "%s (%s)" % (vl[1], str(vl[0]))
-
-    def formated_word(self, vl):
-        return "%s" % (vl[0])
-
 
 class ActionControllerSearch(nps.ActionControllerSimple):
     """ search and command settings """
@@ -1131,17 +1089,18 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     global cursor
     cursor = connectDatabaseOLD(dbHost)
 
+
     def beforeEditing(self):
         """ connect/reconnect """
         global cursor
         cursor = connectDatabase(dbHost)
-        self.initialise()
+
         self.setMainMenu()
         self.wStatus1.value = "METER " + self.myStatus
         self.wMain.values = self.value.get()
         self.wMain.display()
 
-    def initialise(self):
+    def addMenu(self):
         """ menu and sub-menues """
         # #menu_bar
 
@@ -1159,7 +1118,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Edit   contact', onSelect=self.show_EditContact, shortcut='C')
         self.m2.addItem(text='Select households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['Households'])
         self.m2.addItem(text='Edit   household', onSelect=self.show_EditHousehold, shortcut='H')
-        self.m2.addItem(text='New    contact', onSelect=self.add_contact, shortcut='n')
+        self.m2.addItem(text='New    contact', onSelect=self.show_NewContact, shortcut='n')
 
         self.m3 = self.add_menu(name="Emails", shortcut="e")
         self.m3.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
@@ -1203,6 +1162,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         blank    = "\t\t\t|                                       |"
         line     = "\t\t\t|_______________________________________|"
         longline = "\t\t\t|_________________________________________________________________|"
+        longblank = "\t\t\t|                                                                 |"
 
         if (Criterion == 'Home'):
             # HOME Screen
@@ -1212,21 +1172,32 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\n")
 
         # basic command info for every screen
+        vLine = "  [*]  "
+        for C in Criteria_list:
+            count = getHouseholdCount(Criteria[C])
+            if C == Criterion:
+                C = "*{}*".format(C.upper())
+            vLine += "{} ({})  ".format(C,count)
+        MenuText.append(vLine)
 
         MenuText.append("\n")
-        MenuText.append(top)
+        MenuText.append("\t\t\t _ Participants ________________________")
         MenuText.append(blank)
-
-        count = getHouseholdCount(Criteria['Issued'])
-        MenuText.append(formatBox("[P]rocess","{}".format(count)))
-
-        count = getHouseholdCount(Criteria['Confirmed'])
-        MenuText.append(formatBox("[I]ssue","{}".format(count)))
-
         count = getHouseholdCount(Criteria[Criterion])
         MenuText.append(formatBox("[V]iew {}".format(Criterion),"{}".format(count)))
+        MenuText.append(line)
 
-        MenuText.append(formatBox("[E]mail","HH {}".format(householdID)))
+        MenuText.append("\n")
+        MenuText.append("\t\t\t _ Devices _____________________________")
+        MenuText.append(blank)
+
+        count = getHouseholdCount(Criteria['Confirmed'])
+        MenuText.append(formatBox("[I]ssue parcel","{} due".format(count)))
+
+
+        count = getHouseholdCount(Criteria['Issued'])
+        MenuText.append(formatBox("[P]rocess returns","{} in field".format(count)))
+
 
         MenuText.append(line)
         MenuText.append("\n")
@@ -1234,8 +1205,10 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         if (householdID != "0"):
             # Show Household information
             MenuText.append("\t\t\t _ Household {:<5} _______________________________________________".format(householdID))
-            MenuText.append(formatBigBox("Contact:",  getNameOfContact(contactID) + ' (' + contactID + ')'))
-            line
+            MenuText.append(longblank)
+
+            MenuText.append(formatBigBox("[E]mail:",  getNameOfContact(contactID) + ' (' + contactID + ')'))
+
             status  = getStatus(householdID)
             date    = getDateChoice(householdID)
             dt_date = getHHdateChoice(householdID)
@@ -1250,6 +1223,10 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 MenuText.append(formatBigBox("High:", getReadingPeriods(householdID, Criteria['high reading'], 60)))  # last parameter is min duration to report
             MenuText.extend(formatBoxList(getComment(householdID)))
             MenuText.append(longline)
+        else:
+            # show general stats
+            MenuText.append("\nHere be stats")
+
         MenuText.append("\n")
         return MenuText
 
@@ -1348,7 +1325,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             Criterion = Criteria_list[0]
         self.setMainMenu()
 
-    def setMainMenu(self):
+    def setMainMenu(self,void=False):
         # Show main text
         mainScreenText = self.getMenuText()
         self.value.set_values(mainScreenText)
@@ -1386,10 +1363,16 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         MeterApp._Forms['MAIN'].display_selected_data("Contact")
 
     def show_EditContact(self, *args, **keywords):
-        self.parentApp.switchForm('EditContact')
+        MeterApp.addForm('EditContact', editContactForm, name='Edit Contact')
+        MeterApp.switchForm('EditContact')
 
     def show_EditHousehold(self, *args, **keywords):
-        self.parentApp.switchForm('EditHousehold')
+        MeterApp.addForm('EditHousehold', editHouseholdForm, name='Edit Household')
+        MeterApp.switchForm('EditHousehold')
+
+    def show_NewContact(self, *args, **keywords):
+        MeterApp.addForm('NewContact', newContactForm, name='New Contact')
+        MeterApp.switchForm('NewContact')
 
     def IgnoreForNow(self):
         pass
@@ -1812,13 +1795,8 @@ class MeterForms(nps.NPSAppManaged):
     def onStart(self):
         # nps.setTheme(nps.Themes.ColorfulTheme)
         nps.setTheme(MeterTheme)
-        self.addForm('MAIN', MeterMain, lines=36)
-        self.addForm('NewContact', newContactForm, name='New Contact')
-        self.addForm('EditContact', editContactForm, name='Edit Contact')
-        self.addForm('EditHousehold', editHouseholdForm, name='Edit Household')
-        self.addForm('MetaForm', metaFileInformation, name='Meta Data')
-        self.snForm = self.addForm('snEntry', snEntry, name='New Serial Number')
-
+        main = self.addForm('MAIN', MeterMain, lines=36)
+        main.addMenu()
 
 if __name__ == "__main__":
     """ start the app """
