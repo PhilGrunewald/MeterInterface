@@ -9,6 +9,12 @@
 #   #action_highlighted action based on line selected (enter) depending on displayModus
 #   #statusUpdate       list of and setting of household status
 
+# TODO
+# ------
+# - Upcoming 'by day': Tue 3, Wed 2, Thu 1...
+# - delete contact (with all HH)
+# - delete HH
+# 
 # ADB comands worth integrating
 # Check AUTOSTART setting
 # adb shell dumpsys | grep -A 2 "power off alarms dump"
@@ -934,7 +940,9 @@ class ActionControllerData(nps.MultiLineAction):
         ActionKeys = {
                     '<': self.parent.prevHH,
                     '>': self.parent.nextHH,
-                    '*': self.parent.cycleCriteria,
+                    '+': self.parent.cycleCriteria,
+                    '=': self.parent.cycleCriteria,
+                    '-': self.parent.cycleCriteria,
                     'A': self.parent.show_EditFilter,
                     'B': self.parent.show_EditFilter,
                     'D': self.parent.deviceConfig,
@@ -951,7 +959,8 @@ class ActionControllerData(nps.MultiLineAction):
         ActionKeysLabels = {
                     '<': 'Previous Household',
                     '>': 'Next Household',
-                    '*': 'Cycle through criteria',
+                    '+': 'Next criterion',
+                    '-': 'Prev criterion',
                     'E': 'Email Household',
                     'D': 'Device configuration',
                     'V': 'View Households',
@@ -1176,7 +1185,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             MenuText.append("\n")
 
         # basic command info for every screen
-        vLine = "  [*]  "
+        vLine = "  [+-]  "
         for C in Criteria_list:
             count = getHouseholdCount(Criteria[C])
             if C == Criterion:
@@ -1239,6 +1248,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         result = getSQL(sqlq)[0]
         status = ("%s" % result['status'])
 
+        emailType = 'blank'
         if status == '1':
             emailType = 'date'
         elif status == '3':
@@ -1321,12 +1331,16 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def cycleCriteria(self,key):
         global Criterion
-        index = Criteria_list.index(Criterion)+1
+        shift = 1
+        if (chr(key) == '-'):
+            shift = -1
+        index = Criteria_list.index(Criterion)+shift
         try: 
             Criterion = Criteria_list[index]
         except:
             Criterion = Criteria_list[0]
         self.setMainMenu()
+
 
     def setMainMenu(self,void=False):
         # Show main text
@@ -1413,12 +1427,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 "{:<8}".format('HH ID') +
                 "{:<7}".format('Status') +
                 "{:<20}".format('Name') +
-                "{:<13}".format('Date') +
+                "{:<16}".format('Date') +
                 "{:<3}".format('#') +
                 "{:<25}".format('Comment')]
 
             fields = 'idHousehold, timestamp, Contact_idContact, date_choice, CONVERT(comment USING utf8), status'
-            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[Criterion] + ";"
+            sqlq = "SELECT " + fields + " FROM Household WHERE " + Criteria[Criterion] + " ORDER BY date_choice;"
             # executeSQL(sqlq)
             hh_result = getSQL(sqlq)
             for hh in hh_result:
@@ -1431,7 +1445,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     "{:<7}".format(thisHHid) + '\t'
                     "{:<7}".format(thisStatus) +
                     "{:<20}".format(getNameOfContact(thisContact)) +
-                    "{:<13}".format(thisDate) +
+                    "{:<16}".format(thisDate) +
                     "{:<3}".format(str(getParticipantCount(thisHHid))) +
                     "{:<25}".format(thisComment)]
 
