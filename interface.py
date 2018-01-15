@@ -33,13 +33,14 @@ Criteria = {'All':          'True',
             'Processed':    'status > 5',
             'Future':       'date_choice > CURDATE()',
             'No date':  'date_choice < "2010-01-02"',
+            'A': 'True',
+            'B': 'True',
             'no reading':   'Watt < 10',
             'high reading': 'Watt > 500'
             }
 Criteria_list = ['All','Upcoming','Confirmed','Issued','Processed','No date']
 Criterion = 'Issued'
 householdID = '0'
-init = True
 
     
 def dummy_aMeter():
@@ -934,6 +935,8 @@ class ActionControllerData(nps.MultiLineAction):
                     '<': self.parent.prevHH,
                     '>': self.parent.nextHH,
                     '*': self.parent.cycleCriteria,
+                    'A': self.parent.show_EditFilter,
+                    'B': self.parent.show_EditFilter,
                     'D': self.parent.deviceConfig,
                     'E': self.parent.email,
                     'I': self.parent.showHouseholdsConfirmed,
@@ -1119,6 +1122,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Select households', onSelect=MeterApp._Forms['MAIN'].display_selected_data, shortcut='h', arguments=['Households'])
         self.m2.addItem(text='Edit   household', onSelect=self.show_EditHousehold, shortcut='H')
         self.m2.addItem(text='New    contact', onSelect=self.show_NewContact, shortcut='n')
+        self.m2.addItem(text='Edit Filter', onSelect=self.show_EditFilter, shortcut='f')
 
         self.m3 = self.add_menu(name="Emails", shortcut="e")
         self.m3.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
@@ -1193,7 +1197,6 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         count = getHouseholdCount(Criteria['Confirmed'])
         MenuText.append(formatBox("[I]ssue parcel","{} due".format(count)))
-
 
         count = getHouseholdCount(Criteria['Issued'])
         MenuText.append(formatBox("[P]rocess returns","{} in field".format(count)))
@@ -1366,6 +1369,14 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         MeterApp.addForm('EditContact', editContactForm, name='Edit Contact')
         MeterApp.switchForm('EditContact')
 
+    def show_EditFilter(self, *args, **keywords):
+        key = chr(args[0])
+        formName = 'Filter_{}'.format(key)
+        MeterApp.addForm(formName, editFilterForm, name='Edit Filter')
+        MeterApp._Forms[formName].getFilter(key)
+        # message("{}".format(MeterApp._Forms['EditFilter'].TitleText))
+        MeterApp.switchForm(formName)
+
     def show_EditHousehold(self, *args, **keywords):
         MeterApp.addForm('EditHousehold', editHouseholdForm, name='Edit Household')
         MeterApp.switchForm('EditHousehold')
@@ -1515,6 +1526,144 @@ class editContactForm(nps.Form):
             executeSQL(sqlq)
         commit()
         self.parentApp.setNextFormPrevious()
+    
+class editFilterForm(nps.Form):
+    """ List all Household columns and allow choice of criteria """
+    def getFilter(self,filterName):
+        self.filterName = filterName
+        self.filters = json.load(open('./json/{}.filter'.format(filterName)))
+    
+    def setFilter(self):
+        global Criteria
+
+        for i in range(len(self.filterData)):
+            self.filters[self.filterData[i].name] = self.filterData[i].value
+
+        Condition = "TRUE"
+        for key in self.filters:
+            Condition = "{} AND {} {}".format(Condition, key, self.filters[key])
+
+        # sqlq = "SELECT idHousehold from Household WHERE {};".format(Condition)
+        # results = getSQL(sqlq)
+        # hh_A = []
+        # for IDs in results:
+        #     hh_A.append(IDs['idHousehold'])
+
+        # hhList = ",".join(map(str, hh_A))
+
+        # Criteria[self.filterName] = "idHousehold IN ({});".format(hhList)
+        Criteria[self.filterName] = Condition
+
+    def beforeEditing(self):
+        # sqlq = "SHOW columns from Household;"
+        # tabledata = getSQL(sqlq)
+        # sqlq = "SELECT * from Household WHERE idHousehold = %s;" % householdID
+        # result = getSQL(sqlq)[0]
+        self.filterData = []
+        for key in self.filters:
+            self.filterData.append(self.add(nps.TitleText,
+                                             name=key,
+                                             value="{}".format(self.filters[key])))
+
+    def afterEditing(self):
+        """ apply and save filters """
+        self.setFilter()
+        with open('./json/{}.filter'.format(self.filterName), 'w') as outfile:
+            json.dump(self.filters, outfile)
+
+        MeterApp.addForm('stats', viewStatsForm, name='Statistics for selected Households')
+        MeterApp._Forms['stats'].getStats()
+        MeterApp.switchForm('stats')
+        # self.parentApp.setNextFormPrevious()
+
+class ActionControllerStats(nps.MultiLineAction):
+    """ action key shortcuts for stats screen"""
+    # #action_keys
+    def __init__(self, *args, **keywords):
+        """ set keys for all screens """
+        super(ActionControllerStats, self).__init__(*args, **keywords)
+        global ActionKeys
+        ActionKeys = {
+            'a': self.parent.addFilter,
+            'q': self.off,
+            'h': self.off
+        }
+        global ActionKeysLabels
+        ActionKeysLabels = {
+                    'h': 'Home',
+                    'q': 'Home',
+        }
+        self.add_handlers(ActionKeys)
+
+    def actionHighlighted(self, selectedLine, keypress):
+        self.parent.loadFilter(selectedLine)
+        # filters = json.load(open('./json/{}.filter'.format(filterName)))
+        
+
+    def off(self, key):
+        MeterApp.switchForm('MAIN')
+
+class viewStatsForm(nps.FormMutt):
+    MAIN_WIDGET_CLASS = ActionControllerStats
+
+    def addFilter(self,key):
+        message(chr(key))
+        self.key = chr(key)
+        availableFilters = glob.glob("./json/*.filter")
+        self.wMain.values = []
+        for filterFile in availableFilters:
+            self.wMain.values.append(filterFile) 
+        self.wMain.display()
+
+    def loadFilter(self,filePath):
+        global Criteria
+        filters = json.load(open(filePath))
+        Condition = "TRUE"
+        for key in filters:
+            Condition = "{} AND {} {}".format(Condition, key, filters[key])
+        Criteria[self.key] = Condition
+
+        
+    def getStats(self):
+        hh_A = self.getHHs(Criteria['A'])
+        hh_B = self.getHHs(Criteria['B'])
+
+        sqlq = "SHOW columns from Household;"
+        tableCols = getSQL(sqlq)
+        self.wMain.values = ['{:<22}{:<15}{:<15}'.format("Column","Filter 1",'Filter 2')]
+
+        sqlq = "SELECT COUNT(idHousehold) AS count from Household WHERE idHousehold IN ({});".format(hh_A)
+        count1 = getSQL(sqlq)[0]['count']
+        sqlq = "SELECT COUNT(idHousehold) AS count from Household WHERE idHousehold IN ({});".format(hh_B)
+        count2 = getSQL(sqlq)[0]['count']
+
+        line = "{:<22}{:<15}{:<15}".format("Count",count1,count2)
+        self.wMain.values.append('\n') 
+        self.wMain.values.append(line) 
+        self.wMain.values.append('\n') 
+
+        for col in tableCols:
+            colName = col['Field']
+            sqlq = "SELECT AVG({}) AS avg1 from Household WHERE idHousehold IN ({});".format(colName,hh_A)
+            avg1 = getSQL(sqlq)[0]['avg1']
+            sqlq = "SELECT AVG({}) AS avg2 from Household WHERE idHousehold IN ({});".format(colName,hh_B)
+            avg2 = getSQL(sqlq)[0]['avg2']
+            line = "{:<22}{:<15}{:<15}".format(colName,avg1,avg2)
+            self.wMain.values.append(line) 
+
+    def getHHs(self,condition):
+        sqlq = "SELECT idHousehold from Household WHERE {};".format(condition)
+        results = getSQL(sqlq)
+        hhIDs = []
+        for IDs in results:
+            hhIDs.append(IDs['idHousehold'])
+        return ",".join(map(str, hhIDs))
+
+    # def beforeEditing(self):
+    #     self.wMain.values = ['Selection: ', 'nothing']
+        
+    def afterEditing(self):
+        MeterApp.switchForm('MAIN')
 
 
 class editHouseholdForm(nps.Form):
