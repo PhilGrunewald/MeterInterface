@@ -6,14 +6,11 @@ from subprocess import call
 import meter_db as mdb      # for sql queries
 import meter_tools as mt    # for generic function
 
-debug = True
-
 def sendEmail(householdID):
     """
     use mutt to send and email to a given HH
     """
     contactID = mdb.getContact(householdID)
-    print contactID
     sqlq = """
             SELECT Name, Surname, Address1, Address2, Town, Postcode, email
             FROM Contact
@@ -52,22 +49,21 @@ def sendEmail(householdID):
     subjectLine = templateText.splitlines()[0]
     templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
 
-    if debug:
-        call('mutt -e "set content_type=text/html" -s "[TESTING]' + subjectLine + '" philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
-    else:
-        call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b meter@energy.ox.ac.uk < ' + emailFilePath, shell=True)
+    # call('mutt -e "set content_type=text/html" -s "[TESTING]' + subjectLine + '" philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+    call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b meter@energy.ox.ac.uk < ' + emailFilePath, shell=True)
     
-    # Status
-    # XXX updateHouseholdStatus(householdID, 3)
 
 def getUpcoming():
     """
     find participant due in the next two weeks and send them the confirmation email
     this is called every day at 10am
     """
-    idHHs = mdb.getUpcomingHH()
+    idHHs = mdb.getHH_to_confirm()
     for idHH in idHHs:
-        sendEmail("{}".format(idHH['idHousehold']))
+        HH = idHH['idHousehold']
+        mdb.setStatus(HH,3) # 3 = awaiting confirmation
+        sendEmail("{}".format(HH))
+        print "emailed HH {}".format(HH)
 
 getUpcoming()
 # sendEmail(str(2))
