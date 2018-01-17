@@ -11,7 +11,6 @@ def sendEmail(householdID):
     use mutt to send and email to a given HH
     """
     contactID = mdb.getContact(householdID)
-    print contactID
     sqlq = """
             SELECT Name, Surname, Address1, Address2, Town, Postcode, email
             FROM Contact
@@ -64,7 +63,7 @@ def getUpcoming():
         HH = idHH['idHousehold']
         mdb.setStatus(HH,3) # 3 = awaiting confirmation
         sendEmail("{}".format(HH))
-        print "{}".format(HH)
+        print "emailed HH {}".format(HH)
 
 getUpcoming()
 # sendEmail(str(2))
