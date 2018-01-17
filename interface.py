@@ -28,7 +28,7 @@ import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 from meter import *         # db connection and npyscreen features
-import meter_ini     # reads the database and file path information
+import interface_ini     # reads the database and file path information
 
 Criteria = {'Home':         'status >= 0',
             'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY ORDER BY date_choice ASC',
@@ -258,6 +258,8 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
         sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
+        commit()
+        updateDataQuality(metaID, 1)
         updateHouseholdStatus(householdID, 6)
 
         os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
@@ -287,17 +289,9 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
                 except:
                     message("Funny entry {}".format(idButton))
         if (len(activities) > 6):
-           quality = 1
+            updateDataQuality(metaID, 1)
         else:
-           quality = 0
-        sqlq = "UPDATE Meta SET \
-                `Quality` = '%s' \
-                WHERE `idMeta` = '%s';" % (quality, metaID)
-        commit()
-        executeSQL(sqlq)
-
-
-
+            updateDataQuality(metaID, 0)
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
@@ -534,7 +528,7 @@ def device_config(meterType):
             # callShell('adb shell reboot -p')
             showCharge()
             call('adb shell reboot -p', shell=True)
-    if (meterType == 'P'):
+    elif (meterType == 'P'):
         updateIDfile(metaID)  # XXX currently douplicated with config file - eMeter could use json file, too...
         showCharge()
         call('adb shell reboot -p', shell=True)
@@ -631,7 +625,8 @@ def updateConfigFile(_id, _dateChoice, meterType):
         message("adb shell \"date %s\"" % startDateAdb)
         message(bob)
     else:
-        jstring.update({"times": dts})
+        # jstring.update({"times": dts})        # removed 6 Nov 2017 - we no longer prompt to avoid biasing the distribution of reported events
+        jstring.update({"times": []})
         callShell("adb root")
         timeSet =callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
         message(timeSet)
@@ -640,7 +635,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
     config_file.close()
     callShell('adb shell "mkdir /sdcard/METER/"')
     callShell('adb push ' + configFilePath + ' /sdcard/METER/')
-    callShell('adb uninstall org.energy_use.meter')
+    # callShell('adb uninstall org.energy_use.meter')
     callShell('adb shell am force-stop org.energy_use.meter')
     callShell('adb install -r ./apk/aMeter.apk')
 
@@ -687,6 +682,16 @@ def showCharge():
         # Android 6
         result = callShell('adb shell dumpsys batterystats | grep -m2 discharged')
     message("Charge is\n {}".format(result))
+
+
+def setTime():
+    # Android 4:
+    callShell('adb root')
+    result = callShell('adb shell date -s `date "+%Y%m%d.%H%M%S"`')
+    if "usage" in result:
+        # Android 6
+        result = callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
+    message("Date is\n {}".format(result))
 
 def root_phone():
     """ push root and flash packages """
@@ -855,7 +860,6 @@ def compose_email(type, edit=True):
     elif (type == 'graph'):
         # households that had been 'processed' and now 'processed and contacted'
         updateHouseholdStatus(householdID, 7)
-        updateDataQuality(metaID, 1)
     elif (type == 'fail'):
         updateHouseholdStatus(householdID, 10)
         updateDataQuality(metaID, 0)
@@ -1304,6 +1308,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
         self.m4 = self.add_menu(name="Devices", shortcut="D")
         self.m4.addItem(text='Show charge', onSelect=showCharge, shortcut='c', arguments=None)
+        self.m4.addItem(text='Set time', onSelect=setTime, shortcut='t', arguments=None)
         self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
         self.m4.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
         self.m4.addItem(text='aMeter ID', onSelect=device_config, shortcut='a', arguments='A')
@@ -1457,7 +1462,17 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                 'Name':      'Home',
                 'Criterium': 'status >=0',
                 'Household': '0',
+                'Criterium': 'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "21" DAY ORDER BY date_choice ASC',
                 'Actions': {
+                    'I': {
+                        'Action': self.showHouseholds,
+                        'Label': "Issue Kit"
+                    },
+                    'H': {
+                        'Action': self.showHouseholds,
+                        'Label': "Process returned kit"
+                    },
+
                 }
             },
             '1': {
@@ -1543,7 +1558,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
                     },
                     'E': {
                         'Action': self.email,
-                        'arguments': 'sent',
+                        'arguments': 'parcel',
                         'Label': "Email parcel sent"
                     },
                     'S': {

@@ -11,4 +11,3 @@ dbHost = '109.74.196.205'
 dbUser = 'master'
 dbName = 'Meter'
 dbPass = 'SSartori12;;'
-
