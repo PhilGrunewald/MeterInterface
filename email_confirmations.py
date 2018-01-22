@@ -44,7 +44,7 @@ def sendEmail(householdID):
     templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
     
     # email file
-    emailFilePath = "./emails/tempEmail.htmail"
+    emailFilePath = "{}/emails/tempEmail.htmail".format(thisPath), "r"
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
