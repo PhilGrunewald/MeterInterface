@@ -1,11 +1,9 @@
 #!/usr/bin/python
 
-# import sys
-# sys.path.append('../Analysis/res/')
+import os,sys               # to get path
 from subprocess import call
 import datetime             # format date into string
 import meter_db as mdb      # for sql queries
-# import meter_tools as mt    # for generic function
 
 def sendEmail(householdID):
     """
@@ -29,7 +27,8 @@ def sendEmail(householdID):
     participantCount = ("%s" % mdb.getParticipantCount(str(householdID)))
     # prepare the custom email
 
-    templateFile = open("./emails/email_confirm.html", "r")
+    thisPath = os.path.dirname(os.path.abspath(__file__))
+    templateFile = open("{}/emails/email_confirm.html".format(thisPath), "r")
     templateText = templateFile.read()
     templateFile.close()
     templateText = templateText.replace("[householdID]", householdID)
