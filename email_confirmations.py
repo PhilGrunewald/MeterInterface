@@ -40,15 +40,15 @@ def sendEmail(householdID):
     templateText = templateText.replace("[securityCode]", mdb.getSecurityCode(householdID))
     templateText = templateText.replace("[participantCount]", participantCount)
 
+    # Subject
+    subjectLine = templateText.splitlines()[0]
+    templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
+    
     # email file
     emailFilePath = "./emails/tempEmail.htmail"
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
-
-    # Subject
-    subjectLine = templateText.splitlines()[0]
-    templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
 
     # call('mutt -e "set content_type=text/html" -s "[TESTING]' + subjectLine + '" philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
     call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" ' + thisEmail + ' -b meter@energy.ox.ac.uk < ' + emailFilePath, shell=True)
