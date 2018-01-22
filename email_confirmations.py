@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
-import sys
-sys.path.append('../Analysis/res/')
+# import sys
+# sys.path.append('../Analysis/res/')
 from subprocess import call
+import datetime             # format date into string
 import meter_db as mdb      # for sql queries
-import meter_tools as mt    # for generic function
+# import meter_tools as mt    # for generic function
 
 def sendEmail(householdID):
     """
@@ -22,7 +23,7 @@ def sendEmail(householdID):
     thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None </br>", "")
     dtChoice    = mdb.getHHdtChoice(householdID)
-    thisDate    = mt.getDateTimeFormatedText(dtChoice)
+    thisDate    = dtChoice.strftime("%a, %-d %b")
     thisEmail   = ("%s" % (result['email']))
     thisAddress = thisAddress.replace("None</br>", "")
     participantCount = ("%s" % mdb.getParticipantCount(str(householdID)))
@@ -62,8 +63,7 @@ def getUpcoming():
     for idHH in idHHs:
         HH = idHH['idHousehold']
         mdb.setStatus(HH,3) # 3 = awaiting confirmation
-        sendEmail("{}".format(HH))
+        # sendEmail("{}".format(HH))
         print "emailed HH {}".format(HH)
 
 getUpcoming()
-# sendEmail(str(2))
