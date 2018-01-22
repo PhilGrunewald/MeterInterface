@@ -28,7 +28,7 @@ def sendEmail(householdID):
     # prepare the custom email
 
     thisPath = os.path.dirname(os.path.abspath(__file__))
-    emailPath = os.path.join(thisPath, "/emails/email_confirm.html")
+    emailPath = os.path.join(thisPath, "emails/email_confirm.html")
     templateFile = open(emailPath, "r")
     templateText = templateFile.read()
     templateFile.close()
@@ -45,7 +45,7 @@ def sendEmail(householdID):
     templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
     
     # email file
-    emailFilePath = os.path.join(thisPath, "/tempEmail.htmail")
+    emailFilePath = os.path.join(thisPath, "tempEmail.htmail")
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
@@ -64,6 +64,6 @@ def getUpcoming():
         HH = idHH['idHousehold']
         mdb.setStatus(HH,3) # 3 = awaiting confirmation
         sendEmail("{}".format(HH))
-        print "emailed HH {}".format(HH)
+        print "sent confirmation request to HH {}".format(HH)
 
 getUpcoming()
