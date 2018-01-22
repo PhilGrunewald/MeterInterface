@@ -16,7 +16,7 @@ import npyscreen as nps
 
 from sqlalchemy import create_engine    # fix for pandas sql connections
 
-from interface_ini import *     # reads the database and file path information from meter_ini.py
+import interface_ini as db     # reads the database and file path information from meter_ini.py
 
 def connectDatabase(_dbHost):
     """ try to connect to server - else to local database """
@@ -25,11 +25,11 @@ def connectDatabase(_dbHost):
     global dbHost
     dbHost = _dbHost
     try:
-        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName, cursorclass = MySQLdb.cursors.DictCursor)
+        dbConnection = MySQLdb.connect(host=db.Host, user=db.User, passwd= db.Pass, db=db.Name, cursorclass = MySQLdb.cursors.DictCursor)
         cursor = dbConnection.cursor()
     except:
         dbHost='localhost'
-        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName, cursorclass = MySQLdb.cursors.DictCursor)
+        dbConnection = MySQLdb.connect(host=db.Host, user=db.User, passwd= db.Pass, db=db.Name, cursorclass = MySQLdb.cursors.DictCursor)
         cursor = dbConnection.cursor()
     return cursor
 
@@ -51,11 +51,11 @@ def connectDatabaseOLD(_dbHost):
     global dbHost
     dbHost = _dbHost
     try:
-        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
+        dbConnection = MySQLdb.connect(host=db.Host, user=db.User, passwd= db.Pass, db=db.Name)
         cursor = dbConnection.cursor()
     except:
         dbHost='localhost'
-        dbConnection = MySQLdb.connect(host=dbHost, user=dbUser, passwd= dbPass, db=dbName)
+        dbConnection = MySQLdb.connect(host=db.Host, user=db.User, passwd= db.Pass, db=db.Name)
         cursor = dbConnection.cursor()
     return cursor
 

@@ -2,10 +2,10 @@
 
 \ 
 
-\textsf{\LARGE{[Name]}}
+\textsf{\large{[Name]}}
 
-\textsf{\LARGE{[Address1]}}
+\textsf{\large{[Address1]}}
 
-\textsf{\LARGE{[Address2]}}
+\textsf{\large{[Address2]}}
 
-\textsf{\LARGE{[Town] \textbf{[Postcode]}}}
+\textsf{\large{[Town] \textbf{[Postcode]}}}

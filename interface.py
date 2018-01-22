@@ -29,7 +29,7 @@ import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 from meter import *         # db connection and npyscreen features
-import interface_ini     # reads the database and file path information
+# import interface_ini as db    # reads the database and file path information
 
 Criteria = {'All':          'True',
             'Home':         'status >= 0',
@@ -559,13 +559,11 @@ def updateConfigFile(_id, _dateChoice, meterType):
         callShell("adb root")
         bob = callShell("adb shell \"date %s\"" % startDateAdb)
         message("adb shell \"date %s\"" % startDateAdb)
-        message(bob)
     else:
         # jstring.update({"times": dts})        # removed 6 Nov 2017 - we no longer prompt to avoid biasing the distribution of reported events
         jstring.update({"times": []})
         callShell("adb root")
         timeSet =callShell('adb shell "date `date +%m%d%H%M%Y.%S`"')
-        message(timeSet)
     config_file = open(configFilePath, "w")
     config_file.write(json.dumps(jstring, indent=4, separators=(',', ': ')))
     config_file.close()
@@ -574,6 +572,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
     # callShell('adb uninstall org.energy_use.meter')
     callShell('adb shell am force-stop org.energy_use.meter')
     callShell('adb install -r ./apk/aMeter.apk')
+    showCharge()
 
 
 def updateIDfile(_id):
@@ -1099,14 +1098,11 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
     myStatus = "Welcome to the Meter Interface"
 
     global cursor
-    cursor = connectDatabaseOLD(dbHost)
+    cursor = connectDatabaseOLD("energy-use.org")
 
 
     def beforeEditing(self):
         """ connect/reconnect """
-        global cursor
-        cursor = connectDatabase(dbHost)
-
         self.setMainMenu()
         self.wStatus1.value = "METER " + self.myStatus
         self.wMain.values = self.value.get()
@@ -1251,11 +1247,13 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         emailType = 'blank'
         if status == '1':
             emailType = 'date'
+        elif status == '2':
+            emailType = 'confirm'
         elif status == '3':
             emailType = 'confirm'
-        elif status == '4':
-            emailType = 'parcel'
         elif status == '5':
+            emailType = 'parcel'
+        elif status == 'x':
             emailType = 'request_return'
         elif status == '6':
             emailType = 'graph'
@@ -1920,7 +1918,6 @@ class snEntry(nps.ActionPopup):
         # call('adb shell reboot -p', shell=True)
 
         sqlq = "UPDATE Meta SET SerialNumber = '%s' WHERE idMeta = '%s'" % (self.sn.value, self.meta)
-        message(sqlq)
         executeSQL(sqlq)
         commit()
 
@@ -1958,7 +1955,7 @@ class MeterForms(nps.NPSAppManaged):
     def onStart(self):
         # nps.setTheme(nps.Themes.ColorfulTheme)
         nps.setTheme(MeterTheme)
-        main = self.addForm('MAIN', MeterMain, lines=36)
+        main = self.addForm('MAIN', MeterMain, lines=60)
         main.addMenu()
 
 if __name__ == "__main__":
