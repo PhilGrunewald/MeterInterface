@@ -28,7 +28,8 @@ def sendEmail(householdID):
     # prepare the custom email
 
     thisPath = os.path.dirname(os.path.abspath(__file__))
-    templateFile = open("{}/emails/email_confirm.html".format(thisPath), "r")
+    emailPath = os.path.join(thisPath, "/emails/email_confirm.html")
+    templateFile = open(emailPath, "r")
     templateText = templateFile.read()
     templateFile.close()
     templateText = templateText.replace("[householdID]", householdID)
@@ -44,7 +45,7 @@ def sendEmail(householdID):
     templateText = templateText[templateText.find('\n') + 1:]     # find line break and return all from there - i.e. remove first line
     
     # email file
-    emailFilePath = "{}/emails/tempEmail.htmail".format(thisPath), "r"
+    emailFilePath = os.path.join(thisPath, "/tempEmail.htmail")
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
