@@ -63,7 +63,7 @@ def getUpcoming():
     for idHH in idHHs:
         HH = idHH['idHousehold']
         mdb.setStatus(HH,3) # 3 = awaiting confirmation
-        # sendEmail("{}".format(HH))
+        sendEmail("{}".format(HH))
         print "emailed HH {}".format(HH)
 
 getUpcoming()
