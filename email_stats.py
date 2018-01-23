@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
-import sys
-sys.path.append('../Analysis/res/')
 from subprocess import call
 import meter_db as mdb      # for sql queries
-import meter_tools as mt    # for generic function
 
 def getCount(status, condition):
     sqlq = """
