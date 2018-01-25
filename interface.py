@@ -29,7 +29,7 @@ import pandas as pd           # to reshape el readings
 import textwrap               # to wrap long comments
 
 from meter import *         # db connection and npyscreen features
-# import interface_ini as db    # reads the database and file path information
+from interface_ini import *       # reads the database and file path information
 
 Criteria = {'All':          'True',
             'Home':         'status >= 0',
@@ -1688,7 +1688,8 @@ class editHouseholdForm(nps.Form):
         result = getSQL(sqlq)[0]
         self.contactData = []
         for field in tabledata:
-            self.contactData.append(self.add(nps.TitleText,
+            if not field['Field'].startswith(('appliance', 'pet')):
+                self.contactData.append(self.add(nps.TitleText,
                                              name=field['Field'],
                                              value="%s" % result[field['Field']]))
 
