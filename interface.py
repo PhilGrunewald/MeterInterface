@@ -35,6 +35,7 @@ Criteria = {'All':          'True',
             'Home':         'status >= 0',
             'Upcoming':     'status < 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "31" DAY',
             'Confirmed':    'status = 4',
+            'Due':          'status = 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "7" DAY',
             'Issued':       'status = 5',
             'Processed':    'status > 5',
             'Future':       'date_choice > CURDATE()',
@@ -120,7 +121,6 @@ def data_download(*self):
         call('adb pull /sdcard/METER/ ' + filePath, shell=True)
         cmd = 'adb shell ls /sdcard/Meter/'
         s = subprocess.check_output(cmd.split())
-        # message("%s"%s)
         call('adb shell rm -rf /sdcard/Meter/*.csv', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.json', shell=True)
         call('adb shell rm -rf /sdcard/Meter/*.meta', shell=True)
@@ -483,6 +483,7 @@ def device_config(meterType):
         templateText = templateText.replace("[id]", metaID)
 
         printSticker(templateText, letterPath + "aMeter")
+        showCharge()
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
         "Phone was assigned ID " + metaID
@@ -572,7 +573,6 @@ def updateConfigFile(_id, _dateChoice, meterType):
     # callShell('adb uninstall org.energy_use.meter')
     callShell('adb shell am force-stop org.energy_use.meter')
     callShell('adb install -r ./apk/aMeter.apk')
-    showCharge()
 
 
 def updateIDfile(_id):
@@ -1052,6 +1052,8 @@ class ActionControllerSearch(nps.ActionControllerSimple):
         self.add_action('^:h\d', self.setHousehold, False)
         self.add_action('^:m\d', self.setMetaID, False)
         self.add_action('^:d\d$', self.paperDiaryNumber, False)
+        self.add_action('^:rm .\d\d\d\d', self.deleteEntry, False)
+        self.add_action('^:clean', self.removeSpam, False)
 
     def set_search(self, command_line, widget_proxy, live):
         self.parent.value.set_filter(command_line[1:])
@@ -1074,6 +1076,17 @@ class ActionControllerSearch(nps.ActionControllerSimple):
     def setMetaID(self, command_line, widget_proxy, live):  # entered as 4 digit
         global householdID
         householdID = getHouseholdForMeta(command_line[2:])
+        self.parent.setMainMenu()
+
+    def removeSpam(self, command_line, widget_proxy, live):
+        x = getSpamContacts()
+        message("{}".format(x))
+
+    def deleteEntry(self, command_line, widget_proxy, live):  # entered as 4 digit
+
+        dataType = command_line[8]
+        metaID = command_line[9:]
+        deleteEntryID(dataType, metaID)
         self.parent.setMainMenu()
 
     def paperDiary(self, command_line, widget_proxy, live):  # entered as 4 digit
@@ -1200,8 +1213,9 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         MenuText.append("\t\t\t _ Devices _____________________________")
         MenuText.append(blank)
 
+        due = getHouseholdCount(Criteria['Due'])
         count = getHouseholdCount(Criteria['Confirmed'])
-        MenuText.append(formatBox("[I]ssue parcel","{} due".format(count)))
+        MenuText.append(formatBox("[I]ssue parcel","{} due ({} conf)".format(due, count)))
 
         count = getHouseholdCount(Criteria['Issued'])
         MenuText.append(formatBox("[P]rocess returns","{} in field".format(count)))
@@ -1210,7 +1224,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         MenuText.append(line)
         MenuText.append("\n")
 
-        if (householdID != "0"):
+        if (contactID != "0"):
             # Show Household information
             MenuText.append("\t\t\t _ Household {:<5} _______________________________________________".format(householdID))
             MenuText.append(longblank)
@@ -1924,6 +1938,7 @@ class snEntry(nps.ActionPopup):
 
     def afterEditing(self):
         self.parentApp.setNextFormPrevious()
+
 
 
 class MeterTheme(nps.ThemeManager):

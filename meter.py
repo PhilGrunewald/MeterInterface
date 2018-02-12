@@ -185,6 +185,16 @@ def getHouseholdForContact(contactID):
         return '0'
         
 
+def getHouseholdsForContact(contactID):
+    """ returns a list of HH IDs """
+    sqlq = "SELECT idHousehold FROM Household WHERE Contact_idContact = %s;" % contactID
+    hhIDs = []
+    results = getSQL(sqlq)
+    for result in results:
+        hhIDs.append("{}".format(result['idHousehold']))
+    return hhIDs
+        
+
 def getHouseholdForMeta(_metaID):
     """ find the one match of HH for this metaID """
     sqlq = "SELECT Household_idHousehold FROM Meta WHERE idMeta = %s;" % _metaID
@@ -194,6 +204,7 @@ def getHouseholdForMeta(_metaID):
     else:
         message("Meta ID %s not found"%_metaID)
         return '0'
+
 
 def getStatus(householdID):
     """ get the status for this household """
@@ -215,6 +226,66 @@ def getDateTimeFormated(dts):
         return this_dt.strftime("%-d %b %y")
     else:
         return "None"
+
+
+def getSpamContacts():
+    sqlq = """
+        SELECT idContact FROM Household 
+             JOIN Contact
+             ON idContact = Contact_idContact
+             WHERE page_number = 0
+             AND Contact.status = 'eu';
+        """
+    results = getSQL(sqlq)
+    contactIDs = []
+    for contact in results:
+       contactIDs.append(contact['idContact'])
+    return contactIDs
+
+def deleteEntryID(dataType,idEntry):
+    """ delete entry and associated data 
+        when deleting a Contact ALL associted Households will also be removed
+        if the entry was last in, the indexing is reset to allow it to be re-entered with the same ID
+    """
+    if (dataType == 'm'):
+        table = "Meta"
+    elif (dataType == 'c'):
+        table = "Contact"
+        hhIDs = getHouseholdsForContact(idEntry)
+        for hhID in hhIDs:
+            deleteEntryID('h',hhID)
+    elif (dataType == 'h'):
+        table = "Household"
+    else:
+        message("Identify table with _h_ousehold,_c_ontact,_m_eta")
+        return
+
+
+    # get value of last entry (so that if we delete the last one, we can reset the auto increment)
+    sqlq = "SELECT MAX(id{table}) AS maxEntry FROM {table};".format(table=table)
+    result = getSQL(sqlq)[0]
+    maxEntry = str(result['maxEntry'])
+
+    sqlq = "SELECT * FROM {table} Where id{table} = {id}".format(table=table, id=idEntry)
+    result = getSQL(sqlq)[0]
+    text = ""
+    keys = result.keys()
+    for key in keys:
+        text = "{}{}: {}\n".format(text,key,result[key])
+    confirmed = nps.notify_ok_cancel(text,"Delete this entry?",editw=2)
+    if not confirmed:
+        return
+
+    sqlq = "DELETE FROM {table} Where id{table} = {id}".format(table=table, id=idEntry)
+    executeSQL(sqlq)
+    commit()
+
+    if (idEntry == maxEntry):
+        # reset indexing
+        sqlq = "ALTER TABLE Entry AUTO_INCREMENT = {};".format(idEntry)
+        executeSQL(sqlq)
+        commit()
+
 
 
 def formatBox(col1, col2):
