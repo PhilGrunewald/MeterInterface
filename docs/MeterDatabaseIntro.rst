@@ -21,7 +21,7 @@ Meter collects three types of data:
 
 Each of these data are explained in more detail here.
 
-.. figure:: res/MeterSchema.png
+.. figure:: MeterSchema.png
    :alt: Database schema for Meter Data
 
    Database schema for Meter Data

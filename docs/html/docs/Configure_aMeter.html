@@ -34,9 +34,6 @@
         <li class="right" style="margin-right: 10px">
           <a href="../genindex.html" title="General Index"
              accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
       </ul>
     </div>  
@@ -154,10 +151,20 @@
 <div class="section" id="ameter-setup">
 <h2>aMeter setup<a class="headerlink" href="#ameter-setup" title="Permalink to this headline">¶</a></h2>
 <p>Requires: Pixi 4 - Android 6</p>
-<p>Start device &gt; Settings
-&#8211;&gt; developer options
-&#8211;&gt; OEM unlocking (allow bootloader unlock)</p>
-<p>From shell with USB connected (you may need to reconnect the USB cable between each step):</p>
+<p>Start device (Skip or ignore of offered options)</p>
+<p>&gt; Settings &gt; About Phone</p>
+<ul class="simple">
+<li>tap <cite>Build Number</cite> 5 times to enable Developer options</li>
+</ul>
+<p>&gt; Settings &gt; Developer Options</p>
+<ul class="simple">
+<li>enable <cite>OEM unlocking</cite> (allow bootloader unlock)</li>
+<li>enable <cite>USB debugging</cite> (allow to connect via USB)</li>
+<li>Connect device via USB</li>
+<li>Tick <cite>trust this device</cite> on device</li>
+<li>on computer, open terminal in the folder where recoverypixi4.img resides (this file can be found in this repository under <cite>flash_aMeter/</cite>)</li>
+</ul>
+<p><em>NOTE</em> you may need to reconnect the USB cable between each step</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">adb</span> <span class="n">reboot</span> <span class="n">bootloader</span>
 <span class="n">fastboot</span> <span class="n">oem</span> <span class="n">unlock</span>
 </pre></div>
@@ -165,11 +172,32 @@
 <p>Confirm with &lt;VOL UP&gt;</p>
 <div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">fastboot</span> <span class="n">flash</span> <span class="n">recovery</span> <span class="n">recoverypixi4</span><span class="o">.</span><span class="n">img</span>
 <span class="n">fastboot</span> <span class="nb">format</span> <span class="n">userdata</span>
-<span class="n">fastboot</span> <span class="n">reboot</span>
 </pre></div>
 </div>
-<p>Select &lt;Restore&gt;</p>
-<p>Select &gt; SD card &gt; img file</p>
+<ul class="simple">
+<li>remove the battery (tough but quick way to switch off)</li>
+<li>insert the SD card with the backup (see <cite>flash_aMeter/TWRP/</cite>)</li>
+<li>insert battery</li>
+<li>start phone with <cite>Power</cite> + <cite>VOL UK</cite> (this is equivalent to <cite>fastboot reboot</cite>)</li>
+<li>select &lt;Restore&gt;</li>
+<li>select &lt;Storage location&gt;</li>
+<li>select &lt;SD card&gt;</li>
+<li>pick directory and swipe to restore</li>
+<li>when done, remove battery and SD card</li>
+<li>insert battery and start with <cite>Power</cite> button</li>
+</ul>
+<div class="section" id="set-time">
+<h3>Set Time<a class="headerlink" href="#set-time" title="Permalink to this headline">¶</a></h3>
+<p>Use this command to set the time (also available in Meter Interface &gt; Menu &gt; Device &gt; Set time)</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="s1">&#39;adb shell date -s `date &quot;+%Y%m</span><span class="si">%d</span><span class="s1">.%H%M%S&quot;`&#39;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>on device, go to &gt; Settings &gt; Time and Date</li>
+</ul>
+<p>It may be necessary to set the time manually to the right time zone first.</p>
+<p>To make the time &#8216;stick&#8217; it is necessary to manually confirm it. For this open either <cite>time</cite> or <cite>date</cite> and tap <cite>OK</cite>.</p>
+</div>
 </div>
 </div>
 
@@ -185,7 +213,10 @@
 <li><a class="reference internal" href="#prepare-root-flash">Prepare root/flash</a></li>
 <li><a class="reference internal" href="#create-backup">Create Backup</a></li>
 <li><a class="reference internal" href="#emeter-setup">eMeter setup</a></li>
-<li><a class="reference internal" href="#ameter-setup">aMeter setup</a></li>
+<li><a class="reference internal" href="#ameter-setup">aMeter setup</a><ul>
+<li><a class="reference internal" href="#set-time">Set Time</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -217,9 +248,6 @@
         <li class="right" style="margin-right: 10px">
           <a href="../genindex.html" title="General Index"
              >index</a></li>
-        <li class="right" >
-          <a href="../py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../README.html">MeterInterface beta documentation</a> &#187;</li> 
       </ul>
     </div>

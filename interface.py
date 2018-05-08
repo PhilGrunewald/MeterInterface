@@ -658,10 +658,9 @@ def root_phone():
 
 
 def flash_phone(meterType):
-    """ restore phone from Master copy """
-        """
-            /Users/phil/Documents/Oxford/Meter/Interface/docs/html/docs/Configure_aMeter.html
-        """
+    """ restore phone from Master copy 
+        see Documentation in docs/html/docs/Configure_aMeter.html
+    """
 
     if (meterType == 'E'):
         callShell('adb push ./flash_eMeter/TWRP/ /sdcard/')

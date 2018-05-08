@@ -51,9 +51,6 @@ A utility to send emails to mailing lists and contacts in the Meter Database. Bu
 
 See full Documentation_ for more detail.
 
-.. include:: utils/README.rst
-
-
 .. include:: docs/MeterDatabaseIntro.rst
 
 .. include:: docs/Configure_aMeter.rst
