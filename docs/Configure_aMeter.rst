@@ -119,11 +119,22 @@ aMeter setup
 
 Requires: Pixi 4 - Android 6
 
-Start device > Settings 
---> developer options 
---> OEM unlocking (allow bootloader unlock)
+Start device (Skip or ignore of offered options)
 
-From shell with USB connected (you may need to reconnect the USB cable between each step):
+> Settings > About Phone
+
+- tap `Build Number` 5 times to enable Developer options
+
+> Settings > Developer Options
+
+- enable `OEM unlocking` (allow bootloader unlock)
+- enable `USB debugging` (allow to connect via USB)
+
+- Connect device via USB
+- Tick `trust this device` on device
+- on computer, open terminal in the folder where recoverypixi4.img resides (this file can be found in this repository under `flash_aMeter/`)
+
+*NOTE* you may need to reconnect the USB cable between each step
 
 .. code:: bash
 
@@ -136,8 +147,30 @@ Confirm with <VOL UP>
 
     fastboot flash recovery recoverypixi4.img
     fastboot format userdata
-    fastboot reboot
 
-Select <Restore>
+- remove the battery (tough but quick way to switch off)
+- insert the SD card with the backup (see `flash_aMeter/TWRP/`)
+- insert battery
+- start phone with `Power` + `VOL UK` (this is equivalent to `fastboot reboot`)
+- select <Restore>
+- select <Storage location>
+- select <SD card>
+- pick directory and swipe to restore
+- when done, remove battery and SD card
+- insert battery and start with `Power` button
 
-Select > SD card > img file
+Set Time
+^^^^^^^^
+
+Use this command to set the time (also available in Meter Interface > Menu > Device > Set time)
+
+.. code:: bash
+
+    'adb shell date -s `date "+%Y%m%d.%H%M%S"`'
+
+- on device, go to > Settings > Time and Date
+
+It may be necessary to set the time manually to the right time zone first.
+
+To make the time 'stick' it is necessary to manually confirm it. For this open either `time` or `date` and tap `OK`.
+
