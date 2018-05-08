@@ -260,7 +260,6 @@ def deleteEntryID(dataType,idEntry):
         message("Identify table with _h_ousehold,_c_ontact,_m_eta")
         return
 
-
     # get value of last entry (so that if we delete the last one, we can reset the auto increment)
     sqlq = "SELECT MAX(id{table}) AS maxEntry FROM {table};".format(table=table)
     result = getSQL(sqlq)[0]
@@ -282,7 +281,7 @@ def deleteEntryID(dataType,idEntry):
 
     if (idEntry == maxEntry):
         # reset indexing
-        sqlq = "ALTER TABLE Entry AUTO_INCREMENT = {};".format(idEntry)
+        sqlq = "ALTER TABLE {table} AUTO_INCREMENT = {id};".format(table=table, id=idEntry)
         executeSQL(sqlq)
         commit()
 

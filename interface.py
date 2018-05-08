@@ -406,7 +406,8 @@ def updateHouseholdStatus(householdID, status):
 
 def getDeviceSerialNumber(meterType):
     """ download the sn from device - if none present, set one up """
-    callShell("rm %s" % snFilePath)
+    if (os.path.isfile(snFilePath)):
+        callShell("rm %s" % snFilePath)
     callShell("adb pull /sdcard/METER/sn.txt %s" % snFilePath)
     if (os.path.isfile(snFilePath)):
         with open(snFilePath, 'r') as f:
@@ -618,6 +619,19 @@ def showCharge():
         result = callShell('adb shell dumpsys batterystats | grep -m2 discharged')
     message("Charge is\n {}".format(result))
 
+def showChargeAlert():
+    # Android 4:
+    result = callShell('adb shell dumpsys battery | grep -m1 level')
+    if result:
+        # XXX NOT WORKING YET!!
+        if not result.endswith(("100**","99**","98**","97**")):
+            message("WARNING: Charge is\n {}".format(result))
+    else:
+        # Android 6
+        result = callShell('adb shell dumpsys batterystats | grep -m2 discharged')
+        if (" 0" not in result):
+            message("WARNING: Charge is\n {}".format(result))
+
 
 def setTime():
     # Android 4:
@@ -645,6 +659,10 @@ def root_phone():
 
 def flash_phone(meterType):
     """ restore phone from Master copy """
+        """
+            /Users/phil/Documents/Oxford/Meter/Interface/docs/html/docs/Configure_aMeter.html
+        """
+
     if (meterType == 'E'):
         callShell('adb push ./flash_eMeter/TWRP/ /sdcard/')
     elif (meterType == 'A'):
@@ -1052,7 +1070,7 @@ class ActionControllerSearch(nps.ActionControllerSimple):
         self.add_action('^:h\d', self.setHousehold, False)
         self.add_action('^:m\d', self.setMetaID, False)
         self.add_action('^:d\d$', self.paperDiaryNumber, False)
-        self.add_action('^:rm .\d\d\d\d', self.deleteEntry, False)
+        self.add_action('^:delete .\d\d\d\d', self.deleteEntry, False)
         self.add_action('^:clean', self.removeSpam, False)
 
     def set_search(self, command_line, widget_proxy, live):
@@ -1159,7 +1177,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m3.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
 
         self.m4 = self.add_menu(name="Devices", shortcut="D")
-        self.m4.addItem(text='Show charge', onSelect=showCharge, shortcut='c', arguments=None)
+        self.m4.addItem(text='Show charge', onSelect=showChargeAlert, shortcut='c', arguments=None)
         self.m4.addItem(text='Set time', onSelect=setTime, shortcut='t', arguments=None)
         self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
         self.m4.addItem(text='eMeter ID', onSelect=device_config, shortcut='e', arguments='E')
@@ -1254,9 +1272,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
 
     def email(self, key):
         """ compose_email as function of HH status """
-        sqlq = "SELECT status FROM Household WHERE idHousehold = {};".format(householdID)
+        sqlq = "SELECT status,date_choice FROM Household WHERE idHousehold = {};".format(householdID)
         result = getSQL(sqlq)[0]
         status = ("%s" % result['status'])
+        date = result['date_choice']
+        now = datetime.date.today()
+        due = now-date
 
         emailType = 'blank'
         if status == '1':
@@ -1266,12 +1287,12 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         elif status == '3':
             emailType = 'confirm'
         elif status == '5':
-            emailType = 'parcel'
-        elif status == 'x':
-            emailType = 'request_return'
+            if (due.days > 0):
+                emailType = 'request_return'
+            else:
+                emailType = 'parcel'
         elif status == '6':
             emailType = 'graph'
-
         compose_email(emailType)
 
 
@@ -1702,7 +1723,7 @@ class editHouseholdForm(nps.Form):
         result = getSQL(sqlq)[0]
         self.contactData = []
         for field in tabledata:
-            if not field['Field'].startswith(('appliance', 'pet')):
+            if not field['Field'].startswith(('appliance', 'pet', 'comment')):
                 self.contactData.append(self.add(nps.TitleText,
                                              name=field['Field'],
                                              value="%s" % result[field['Field']]))
