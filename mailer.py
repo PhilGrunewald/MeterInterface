@@ -21,7 +21,7 @@ from interface_ini import *     # reads the database and file path information f
 
 tables = ['Contact', 'Mailinglist', 'OE_mail']
 
-subsections = {'Contact': ['18Mar28','renters', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['bgdo','renters', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
                'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
@@ -37,6 +37,7 @@ Criteria = {
         'Test':      'status = \'test\'',
         '1st round': 'status = \'2e\'',
         '2nd round': 'status = \'2\'',
+        'bgdo': 'Contact.status = \'bgdo3\'',
         'renters'  : 'own > 1 and Household.status < 4 and date_choice < CURDATE()',
         'reminder': 'confirmed = "yes" or confirmed = "panel"',
         'early':     'Contact.status = \'early\'',
@@ -57,7 +58,7 @@ Criteria = {
         # 'xxx':     'Contact.status = \'test1\''
         }
 table = tables[0]
-subsection = subsections[table][2]
+subsection = subsections[table][0]
 emailFilePath = emailPath + "email_many.html"
 # attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/InvitesR4/Invitation_University_of_Oxford_201732[id].pdf'
 # attachment = '/Users/phil/Documents/Oxford/OxfordEnergy/17_06_ChatthamHouse_Transport/Details_of_Transport_meeting.pdf'

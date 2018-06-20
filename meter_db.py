@@ -719,6 +719,7 @@ def getCount(table, condition=True):
     results = getSQL(sqlq)
     return results[0]['result']
 
+
 # ----------------------------------------------
 #
 #                   _energy
