@@ -21,7 +21,7 @@ from interface_ini import *     # reads the database and file path information f
 
 tables = ['Contact', 'Mailinglist', 'OE_mail']
 
-subsections = {'Contact': ['bgdo','renters', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['wosc','renters', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
                'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
@@ -38,6 +38,7 @@ Criteria = {
         '1st round': 'status = \'2e\'',
         '2nd round': 'status = \'2\'',
         'bgdo': 'Contact.status = \'bgdo3\'',
+        'wosc': 'Contact.status = \'woscm\'',
         'renters'  : 'own > 1 and Household.status < 4 and date_choice < CURDATE()',
         'reminder': 'confirmed = "yes" or confirmed = "panel"',
         'early':     'Contact.status = \'early\'',

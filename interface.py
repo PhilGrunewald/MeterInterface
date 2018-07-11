@@ -1176,6 +1176,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m3.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
 
         self.m4 = self.add_menu(name="Devices", shortcut="D")
+        self.m4.addItem(text='eMeter app upload', onSelect=eMeter_setup, arguments=None)
         self.m4.addItem(text='Show charge', onSelect=showChargeAlert, shortcut='c', arguments=None)
         self.m4.addItem(text='Set time', onSelect=setTime, shortcut='t', arguments=None)
         self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
