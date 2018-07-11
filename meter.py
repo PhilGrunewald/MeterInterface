@@ -100,9 +100,9 @@ def backup_database():
     """ dump sql in local dated file """
     dateTimeToday = datetime.datetime.now()
     thisDate = dateTimeToday.strftime("%Y_%m_%d")
-    call('mysqldump -u ' + dbUser + ' -h ' + dbHost + ' -p --databases ' + dbName +
-         ' > ' + './Data/database/' + thisDate + '_' + dbName + '.sql', shell=True)
-    message('Database backed up as ' + thisDate + '_' + dbName + '.sql')
+    call('mysqldump -u ' + db.User + ' -h ' + db.Host + ' -p --databases ' + db.Name +
+         ' > ' + './Data/database/' + thisDate + '_' + db.Name + '.sql', shell=True)
+    message('Database backed up as ' + thisDate + '_' + db.Name + '.sql')
 
 def getNameEmail(table,criterion):
     """ returns name and email for matched """

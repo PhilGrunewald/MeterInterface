@@ -37,7 +37,8 @@ Criteria = {'All':          'True',
             'Confirmed':    'status = 4',
             'Due':          'status = 4 AND date_choice >= CURDATE() AND date_choice < CURDATE() + INTERVAL "7" DAY',
             'Issued':       'status = 5',
-            'Processed':    'status > 5',
+            'xProcessed':    'status > 5',
+            'Processed':    'study = 12',
             'Future':       'date_choice > CURDATE()',
             'No date':  'date_choice < "2010-01-02"',
             'A': 'True',
@@ -64,7 +65,7 @@ def dummy_aMeter():
                VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID, dateChoice)
     metaID = ("%s" % executeSQL(sqlq))
     commit()
-    updateConfigFile(metaID, dateChoice, meterType)
+    updateConfigFile(metaID, householdID, dateChoice, meterType)
 
     if (sn == '-1'):
         # pass current metaID to for to make the update
@@ -446,7 +447,7 @@ def device_config(meterType):
                VALUES ('%s', '%s', '%s', '%s')" % (meterType, sn, householdID, dateChoice)
     metaID = ("%s" % executeSQL(sqlq))
     commit()
-    updateConfigFile(metaID, dateChoice, meterType)
+    updateConfigFile(metaID, householdID, dateChoice, meterType)
 
     if (sn == '-1'):
         # pass current metaID to for to make the update
@@ -483,7 +484,7 @@ def device_config(meterType):
         templateText = templateText.replace("[date]", date)
         templateText = templateText.replace("[id]", metaID)
 
-        printSticker(templateText, letterPath + "aMeter")
+        # printSticker(templateText, letterPath + "aMeter")
         showCharge()
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
@@ -520,11 +521,11 @@ def phone_for_paper_diary(metaID):
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'" % householdID
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
-    updateConfigFile(metaID, dateChoice, "P")
+    updateConfigFile(metaID, householdID, dateChoice, "P")
     callShell("adb shell am force-stop org.energy_use.meter")
 
 
-def updateConfigFile(_id, _dateChoice, meterType):
+def updateConfigFile(_id, _hh, _dateChoice, meterType):
     """ write id information and created dates and times for follow up queries """
     dateFormat = '%Y-%m-%d'
     dateChoice_dt = datetime.datetime.strptime(_dateChoice, dateFormat)
@@ -533,6 +534,7 @@ def updateConfigFile(_id, _dateChoice, meterType):
     dateChoice_plus += datetime.timedelta(days=1)
     endDate = dateChoice_plus.strftime("%Y-%m-%d")
     jstring = {"id": _id}
+    jstring.update({"hh": "%s" % _hh})
     jstring.update({"start": "%s" % startDate})
     jstring.update({"end": "%s" % endDate})  # XXX needs date + 1 Day
     times1 = [
@@ -1176,6 +1178,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m3.addItem(text='Email on failure', onSelect=compose_email, shortcut='F', arguments=['fail', False])
 
         self.m4 = self.add_menu(name="Devices", shortcut="D")
+        self.m4.addItem(text='eMeter app upload', onSelect=eMeter_setup, arguments=None)
         self.m4.addItem(text='Show charge', onSelect=showChargeAlert, shortcut='c', arguments=None)
         self.m4.addItem(text='Set time', onSelect=setTime, shortcut='t', arguments=None)
         self.m4.addItem(text='Switch off', onSelect=switchOff, shortcut='O', arguments=None)
