@@ -107,7 +107,7 @@ def backup_database():
 def getNameEmail(table,criterion):
     """ returns name and email for matched """
     email='\'%@%\''
-    if (table == "Contact"):
+    if (table == "XXXContact"):
         sqlq = "SELECT * FROM (\
                     SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
                     From Contact\

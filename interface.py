@@ -11,6 +11,22 @@
 
 # TODO
 # ------
+
+# Aven
+
+# ACTION_1  # search for ACTION_1 to find the place where the change needs to be done
+# currently we insert date_choice as the collection date into the Meta table
+# INSTEAD: get lowest date value from e/a readings and insert that instead
+
+# ACTION_2  
+# this server side script turns our 1s readings into 1min/1min
+# os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
+# as part of this process it should
+# 1) trim < 20 Watt from start and end of recording
+# 2) count number of hours of data remaining - INSERT that as Quality in Meta table (i.e. 0-28)
+
+
+
 # - Upcoming 'by day': Tue 3, Wed 2, Thu 1...
 # - delete contact (with all HH)
 # - delete HH
@@ -221,6 +237,7 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         updateDataQuality(metaID, 1)
         updateHouseholdStatus(householdID, 6)
 
+        # ACTION_2
         os.system('ssh -t meter@energy-use.org "cd Analysis/scripts/ && python el_downsample.py"')
     elif (dataType == 'A'):
         # handle the xxxx_act.json file
@@ -245,10 +262,9 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
                     executeSQL(sqlq)
                 except:
                     message("Funny entry {}".format(idButton))
-        if (len(activities) > 6):
-            updateDataQuality(metaID, 1)
-        else:
-            updateDataQuality(metaID, 0)
+        # number of activities is our quality measure. More than 6 activities is generally good enough
+        # changed 8 Oct 2018 by PG
+        updateDataQuality(metaID, len(activities))
     else:
         csv_data = csv.reader(file(dataFile))
         if (dataType == 'I'):
@@ -438,7 +454,7 @@ def device_config(meterType):
     sn = getDeviceSerialNumber(meterType)
 
     # 2) create a meta id entry for an 'eMeter'
-
+    # ACTION_1
     sqlq = "SELECT date_choice FROM Household WHERE idHousehold = '%s'" % householdID
     result = getSQL(sqlq)[0]
     dateChoice = ("%s" % result['date_choice'])
