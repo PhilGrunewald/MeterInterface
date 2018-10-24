@@ -781,7 +781,7 @@ def compose_email(type, edit=True):
     thisAddress = thisAddress.replace("None </br>", "")
     thisDate    = getDateChoice(householdID)
     thisEmail   = ("%s" % (result['email']))
-    CcEmail     = 'meter@energy.ox.ac.uk'
+    # CcEmail     = 'meter@energy.ox.ac.uk'
     thisAddress = thisAddress.replace("None</br>", "")
     participantCount = ("%s" % getParticipantCount(str(householdID)))
     # prepare the custom email
@@ -811,7 +811,7 @@ def compose_email(type, edit=True):
     if (edit):
         # needs email in line 1, Cc in line 2 and Subject in line 3
         # template has subject as line one -> insert emails
-        templateText = thisEmail + '\n' + CcEmail + '\n' + templateText
+        templateText = thisEmail + '\n' + templateText
     else:
         # only keep the body of the text -> remove line 1 (Subject)
         subjectLine = templateText.splitlines()[0]
