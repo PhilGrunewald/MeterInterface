@@ -25,7 +25,8 @@
 # 1) trim < 20 Watt from start and end of recording
 # 2) count number of hours of data remaining - INSERT that as Quality in Meta table (i.e. 0-28)
 
-
+# ACTION XXX: activity quality test
+# if UNIQUE activity count much lower than activity count - flag concern
 
 # - Upcoming 'by day': Tue 3, Wed 2, Thu 1...
 # - delete contact (with all HH)
