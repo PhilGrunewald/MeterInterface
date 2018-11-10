@@ -17,7 +17,8 @@ def sendEmail(householdID):
             """.format(contactID)
     result = mdb.getSQL(sqlq)[0]
 
-    thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    # thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    thisName    = ("%s" % (result['Name']))
     thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None </br>", "")
     dtChoice    = mdb.getHHdtChoice(householdID)
