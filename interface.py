@@ -508,6 +508,21 @@ def device_config(meterType):
     MeterApp._Forms['MAIN'].wStatus2.display()
     MeterApp._Forms['MAIN'].setMainMenu()
 
+def printDaySticker():
+    dt   = getHHdtChoice(householdID)
+    day = dt.strftime("%A")
+    fileName = "attachBefore"
+
+    templateText = getTemplate(letterPath + "_" + fileName +".md")
+    templateText = templateText.replace("[day]", day)
+
+    myFile = open(letterPath + fileName + ".md", "w")
+    myFile.write(templateText)
+    myFile.close()
+
+    callShell("pandoc -V geometry:paperwidth=8.8cm -V geometry:paperheight=5cm -s "+ letterPath + fileName + ".md -o "+ letterPath + fileName + ".pdf")
+    callShell('lp -d MeterLabel -o landscape ' + letterPath + fileName +'.pdf')
+
 
 def printSticker(text, fileName):
     """ pandoc file into printabe format and send to printer """
@@ -1176,6 +1191,7 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
         self.m2.addItem(text='Edit   household', onSelect=self.show_EditHousehold, shortcut='H')
         self.m2.addItem(text='New    contact', onSelect=self.show_NewContact, shortcut='n')
         self.m2.addItem(text='Edit Filter', onSelect=self.show_EditFilter, shortcut='f')
+        self.m2.addItem(text='Print eMeter sticker', onSelect=printDaySticker, shortcut='d')
 
         self.m3 = self.add_menu(name="Emails", shortcut="e")
         self.m3.addItem(text='Email many', onSelect=email_many, shortcut='m', arguments=None)
