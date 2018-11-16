@@ -500,7 +500,7 @@ def device_config(meterType):
         templateText = templateText.replace("[date]", date)
         templateText = templateText.replace("[id]", metaID)
 
-        # printSticker(templateText, letterPath + "aMeter")
+        printSticker(templateText, letterPath + "aMeter")
         showCharge()
 
     MeterApp._Forms['MAIN'].wStatus2.value =\
