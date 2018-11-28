@@ -787,11 +787,11 @@ def compose_email(type, edit=True):
     # get contact details
     contactID = getContact(householdID)
     metaID    = getMetaIDs(householdID, 'E')
-    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode,email \
+    sqlq = "SELECT Name, Address1,Address2,Town,Postcode,email \
             FROM Contact \
             WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    thisName    = ("%s" % (result['Name']))
     thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None </br>", "")
     thisDate    = getDateChoice(householdID)
@@ -896,9 +896,9 @@ def print_address():
     global householdID
     contactID = getContact(householdID)
 
-    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
+    sqlq = "SELECT Name, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    thisName    = ("%s" % (result['Name']))
 
     address = getTemplate(letterPath + "_address.md")
     address = address.replace("[Name]",      thisName)
@@ -921,9 +921,9 @@ def print_letter(letterType):
     dateToday = datetime.datetime.now()
     todayDate = dateToday.strftime("%e %B %Y")
 
-    sqlq = "SELECT Name, Surname, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
+    sqlq = "SELECT Name, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
     result = getSQL(sqlq)[0]
-    thisName    = ("%s %s" % (result['Name'], result['Surname']))
+    thisName    = ("%s" % (result['Name']))
     thisAddress = ("%s\n\n%s\n\n%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None\n\n", "")
 
