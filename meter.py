@@ -98,28 +98,47 @@ def toggleDatabase():
 
 def backup_database():
     """ dump sql in local dated file """
+    message('The password is: {}'.format(db.Pass))
     dateTimeToday = datetime.datetime.now()
     thisDate = dateTimeToday.strftime("%Y_%m_%d")
-    call('mysqldump -u ' + db.User + ' -h ' + db.Host + ' -p --databases ' + db.Name +
-         ' > ' + './Data/database/' + thisDate + '_' + db.Name + '.sql', shell=True)
+    call('mysqldump --column-statistics=0 -u ' + db.User + ' -h ' + db.Host + ' -p --databases ' + db.Name + ' > ' + './Data/database/' + thisDate + '_' + db.Name + '.sql', shell=True)
     message('Database backed up as ' + thisDate + '_' + db.Name + '.sql')
 
 def getNameEmail(table,criterion):
     """ returns name and email for matched """
     email='\'%@%\''
-    if (table == "XXXContact"):
-        sqlq = "SELECT * FROM (\
-                    SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
-                    From Contact\
-                    Join Household\
-                    ON Household.Contact_idContact = Contact.idContact\
-                    WHERE email like %s\
-                    AND %s\
-                 )\
-                 as x\
-                 group by idContact having count(*) = 1;" % (email,criterion)
+    if (table == "Household"):
+        sqlq = """
+                    SELECT Contact.idContact,
+                           Contact.Name,
+                           Contact.email, 
+                           Household.idHousehold AS idHH,
+                           Household.security_code AS sc
+                    From Contact
+                    JOIN Household
+                        ON Household.Contact_idContact = Contact.idContact
+                    WHERE email LIKE %s
+                        AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL)
+                        AND %s
+                    GROUP BY Contact.idContact;
+                 """ % (email,criterion);
+                 # GROUP BY ensures each contact only gets one email (even if they have many HH records)
 
-                    # AND Contact.status IS NULL\
+        # THIS is for contacts who only appear once in the HH table - bit pointless?
+        # sqlq = """SELECT * FROM (
+        #             SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc
+        #             From Contact
+        #             JOIN Household
+        #             ON Household.Contact_idContact = Contact.idContact
+        #             WHERE email LIKE %s
+        #             AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL)
+        #             AND %s
+        #          )
+        #          AS x
+        #          GROUP BY idContact HAVING COUNT(*) = 1;""" % (email,criterion);
+            
+
+                    # AND Contact.status IS NULL
 
         # sqlq = "SELECT Contact.idContact,Contact.Name,Contact.email, Household.idHousehold AS idHH,Household.security_code AS sc\
         #         From Contact\
@@ -127,9 +146,12 @@ def getNameEmail(table,criterion):
         #         ON Household.Contact_idContact = Contact.idContact\
         #         WHERE email like %s AND (Contact.status <> 'unsubscribed' OR Contact.status IS NULL) AND %s" % (email,criterion)
     else:
-        sqlq = "Select *\
-                FROM %s\
-                WHERE email like %s AND (status <> 'unsubscribed' OR status IS NULL) AND %s" % (table,email,criterion)
+        sqlq = """Select *
+                FROM %s
+                WHERE email like %s 
+                AND (status <> 'unsubscribed' OR status IS NULL) 
+                AND %s""" % (table,email,criterion)
+
     result = getSQL(sqlq)
     return result
 

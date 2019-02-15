@@ -560,6 +560,17 @@ def getHH_notSingle():
     return getDataframeSQL(sqlq)
 
 
+def getElectricityIDs():
+    """
+    Returns all IDs with good electricity readings
+    """
+    sqlq = """
+        SELECT idMeta
+        FROM Meta
+            WHERE DataType = 'E';
+    """
+    return getDataframeSQL(sqlq)
+
 def getElectricityQuality():
     """
     Returns all IDs with good electricity readings
