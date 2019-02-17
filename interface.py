@@ -397,10 +397,10 @@ def updateDataQuality(idMeta, Quality):
     executeSQL(sqlq)
     commit()
 
-def addHHtoRun(householdID):
+def addHHtoRun(householdID,metaID):
     """ create a copy from HH for this Run """
-    fields = []
-    values = []
+    fields = ['idMetaE']
+    values = [metaID]
     sqlq = "SELECT * FROM Household WHERE idHousehold = {}".format(householdID)
     HHdata = getSQL(sqlq)[0]
     for field in HHdata:
@@ -502,7 +502,7 @@ def device_config(meterType):
         # only need this once per household
         # print_letter('parcel')
         print_address()
-        addHHtoRun(householdID)
+        addHHtoRun(householdID,metaID)
         updateHouseholdStatus(householdID, 5)
         if ((metaID != '0') & (sn != '-1')):
             # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?
