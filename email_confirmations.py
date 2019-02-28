@@ -11,7 +11,7 @@ def sendEmail(householdID):
     """
     contactID = mdb.getContact(householdID)
     sqlq = """
-            SELECT Name, Surname, Address1, Address2, Town, Postcode, email
+            SELECT Name, Surname, Address1, Address2, Town, Postcode, email, status
             FROM Contact
             WHERE idContact = '{}';
             """.format(contactID)
@@ -24,12 +24,16 @@ def sendEmail(householdID):
     dtChoice    = mdb.getHHdtChoice(householdID)
     thisDate    = dtChoice.strftime("%a, %-d %b")
     thisEmail   = ("%s" % (result['email']))
+    thisStatus   = ("%s" % (result['status']))
     thisAddress = thisAddress.replace("None</br>", "")
     participantCount = ("%s" % mdb.getParticipantCount(str(householdID)))
     # prepare the custom email
 
     thisPath = os.path.dirname(os.path.abspath(__file__))
-    emailPath = os.path.join(thisPath, "emails/email_confirm.html")
+    if (thisStatus == 'de'):
+        emailPath = os.path.join(thisPath, "emails/email_confirm_de.html")
+    else
+        emailPath = os.path.join(thisPath, "emails/email_confirm.html")
     templateFile = open(emailPath, "r")
     templateText = templateFile.read()
     templateFile.close()
@@ -47,6 +51,7 @@ def sendEmail(householdID):
     
     # email file
     emailFilePath = os.path.join(thisPath, "tempEmail.htmail")
+
     emailFile = open(emailFilePath, "w+")
     emailFile.write(templateText)
     emailFile.close()
