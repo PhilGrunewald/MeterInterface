@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 from subprocess import call
 import meter_db as mdb      # for sql queries
 
@@ -12,6 +13,30 @@ def getCount(status, condition):
             ;
             """.format(status, condition)
     return mdb.getSQL(sqlq)[0]['c']
+
+def getGermans():
+    sqlq = """
+           SELECT idHousehold, date_choice, Name, Address1, Address2, Town, Postcode, email, phone, age_group2, age_group3, age_group4, age_group5, age_group6
+             FROM Contact
+             JOIN Household
+             ON idContact = Contact_idContact
+             WHERE Contact.status = 'de'
+             AND Household.status = '1';
+            """
+    germans = mdb.getSQL(sqlq)
+    # email file
+    thisPath = os.path.dirname(os.path.abspath(__file__))
+    emailFilePath = os.path.join(thisPath, "germansConfirmed.txt")
+    f= open(emailFilePath,"w")
+    for g in germans:
+        people = int(g['age_group2']) +int(g['age_group3']) +int(g['age_group4']) +int(g['age_group5']) +int(g['age_group6'])
+        f.write("HH: {} ({} recorders)\n{}\n{}\n{}\n{}\n{} {}\n{}\n---------------------\n\n".format(g['idHousehold'],people,g['date_choice'],g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email']))
+        # print "HH: {} ({} recorders)\n{}\n{}\n{}\n{}\n{} {}\n{}\n---------------------\n".format(g['idHousehold'],people,g['date_choice'],g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email'])
+    f.close
+
+    # call('mutt -s "[Meter] 5 German pipeline" philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath, shell=True)
+    print 'mutt -s "[Meter] 5 German pipeline" philipp.grunewald@ouce.ox.ac.uk < ' + emailFilePath
+    # call('mutt -s "[Meter] 5 German pipeline" meter@energy.ox.ac.uk < ' + emailFilePath, shell=True)
 
 def sendEmail():
     """
@@ -28,4 +53,5 @@ def sendEmail():
     call('mutt -e "set content_type=text/html" -s "' + subjectLine + '" meter@energy.ox.ac.uk < "./"', shell=True)
 
 if __name__ == "__main__":
-    sendEmail()
+    # sendEmail()
+    getGermans()
