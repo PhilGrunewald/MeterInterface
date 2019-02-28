@@ -63,7 +63,7 @@ def getConfirmed():
 
     subjectLine = "[Meter] due {}, today {}, confirmed {}, await {}, pipeline {}".format(due_urgent, due_today, due_future, await_confirm, pipeline)
 
-    cmd = 'mutt -e "set content_type=text/plain" -s "'+subjectline+'" meter@energy.ox.ac.uk < ' + emailFilePath
+    cmd = 'mutt -e "set content_type=text/plain" -s "'+subjectLine+'" meter@energy.ox.ac.uk < ' + emailFilePath
     print cmd
     call(cmd, shell=True)
 

@@ -4,6 +4,7 @@ import os,sys               # to get path
 from subprocess import call
 import datetime             # format date into string
 import meter_db as mdb      # for sql queries
+import locale
 
 def sendEmail(householdID):
     """
@@ -21,8 +22,6 @@ def sendEmail(householdID):
     thisName    = ("%s" % (result['Name']))
     thisAddress = ("%s</br>%s</br>%s %s" % (result['Address1'], result['Address2'], result['Town'], result['Postcode']))
     thisAddress = thisAddress.replace("None </br>", "")
-    dtChoice    = mdb.getHHdtChoice(householdID)
-    thisDate    = dtChoice.strftime("%a, %-d %b")
     thisEmail   = ("%s" % (result['email']))
     thisStatus   = ("%s" % (result['status']))
     thisAddress = thisAddress.replace("None</br>", "")
@@ -32,8 +31,12 @@ def sendEmail(householdID):
     thisPath = os.path.dirname(os.path.abspath(__file__))
     if (thisStatus == 'de'):
         emailPath = os.path.join(thisPath, "emails/email_confirm_de.html")
-    else
+        locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
+    else:
         emailPath = os.path.join(thisPath, "emails/email_confirm.html")
+    dtChoice    = mdb.getHHdtChoice(householdID)
+    thisDate    = dtChoice.strftime("%A, %-d %B")
+
     templateFile = open(emailPath, "r")
     templateText = templateFile.read()
     templateFile.close()
