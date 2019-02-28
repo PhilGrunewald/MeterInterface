@@ -14,6 +14,14 @@ def getCount(status, condition):
             """.format(status, condition)
     return mdb.getSQL(sqlq)[0]['c']
 
+def eMeterID(householdID,dateChoice):
+    """ returns metaID for new eMeter entry for this hh """
+    sqlq = "INSERT INTO Meta(DataType, SerialNumber, Household_idHousehold, CollectionDate) \
+               VALUES ('E', 'german', '%s', '%s')" % (householdID, dateChoice)
+    metaID = mdb.executeSQL(sqlq)
+    mdb.commit()
+    return metaID
+
 def getGermans():
     sqlq = """
            SELECT idHousehold, date_choice, Name, Address1, Address2, Town, Postcode, email, phone, age_group2, age_group3, age_group4, age_group5, age_group6
@@ -24,17 +32,18 @@ def getGermans():
              AND Household.status = '4';
             """
     germans = mdb.getSQL(sqlq)
+
     # email file
     thisPath = os.path.dirname(os.path.abspath(__file__))
     emailFilePath = os.path.join(thisPath, "germanHHConfirmed.txt")
     f= open(emailFilePath,"w")
     for g in germans:
+        metaID = eMeterID(g['idHousehold'],g['date_choice'])
         people = int(g['age_group2']) +int(g['age_group3']) +int(g['age_group4']) +int(g['age_group5']) +int(g['age_group6'])
-        f.write("HH: {} ({} recorders)\n{}\n{}\n{}\n{}\n{} {}\n{}\n---------------------\n\n".format(g['idHousehold'],people,g['date_choice'],g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email']))
+        f.write("HH: {}\nActivity recorders: {}\nElectricity recorder ID: {}\nDate: {}\n{}\n{}\n{}\n{} {}\n{}\n---------------------\n\n".format(g['idHousehold'],people,metaID,g['date_choice'],g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email']))
     f.close()
 
     cmd = 'mutt -e "set content_type=text/plain" -s "[Meter] pipeline (German)" Marvin.Gleue@wiwi.uni-muenster.de -c meter@energy.ox.ac.uk < ' + emailFilePath
-    print cmd
     call(cmd, shell=True)
 
 def getConfirmed():
