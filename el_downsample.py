@@ -66,9 +66,9 @@ def processMissing(time_inc):
     for recording in missing['Meta_idMeta']:
         try:
             downsample(recording,time_inc)
-            print "Processed {}".format(recording)
+            print "<p>Processed {} for {}</p>".format(recording,time_inc)
         except:
-            print "failed for {} {}".format(recording,time_inc)
+            print "<p>failed for {} {}</p>".format(recording,time_inc)
 
 #-----------------------------------------------------------------------------#
 #                   _execution                                                #
