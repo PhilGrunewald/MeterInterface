@@ -231,7 +231,7 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         # sqlq = "LOAD DATA INFILE '" + dataFile + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
 
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
-        sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+       sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
         commit()
         updateDataQuality(metaID, 1)
@@ -397,6 +397,32 @@ def updateDataQuality(idMeta, Quality):
     executeSQL(sqlq)
     commit()
 
+def addHHtoRun(householdID,metaID):
+    """ create a copy from HH for this Run """
+    fields = ['idMetaE']
+    values = [metaID]
+    sqlq = "SELECT * FROM Household WHERE idHousehold = {}".format(householdID)
+    HHdata = getSQL(sqlq)[0]
+    for field in HHdata:
+        value = HHdata[field]
+        if ((value) and (field != 'timestamp')):
+            fields.append(field)
+            if (type(value) is long):
+                values.append(int(value))
+            elif (isinstance(value, datetime.date)):
+                values.append(value.isoformat())
+            elif (isinstance(value, datetime.datetime)):
+                values.append(value.isoformat())
+            else:
+                values.append(value)
+    fieldsStr = "{}".format(fields)
+    fieldsStr = fieldsStr.replace("'","`")
+    RunSQL = """INSERT INTO Run ({}) VALUES ({});""".format(fieldsStr,values)
+    RunSQL = RunSQL.replace("[","")
+    RunSQL = RunSQL.replace("]","")
+    executeSQL(RunSQL)
+    commit()
+
 
 def updateHouseholdStatus(householdID, status):
     """ update status of household """
@@ -476,6 +502,7 @@ def device_config(meterType):
         # only need this once per household
         # print_letter('parcel')
         print_address()
+        addHHtoRun(householdID,metaID)
         updateHouseholdStatus(householdID, 5)
         if ((metaID != '0') & (sn != '-1')):
             # XXX EXPERIMENTAL - could it have been this change that makes phones not wake up after 7 days?

@@ -19,9 +19,10 @@ import npyscreen as nps
 from meter import *         # db connection and npyscreen features
 from interface_ini import *     # reads the database and file path information from meter_ini.py
 
-tables = ['Contact', 'Mailinglist', 'OE_mail']
+tables = ['Household', 'Contact'] # , 'Mailinglist', 'OE_mail']
 
-subsections = {'Contact': ['18Nov02','Test', 'TestC', 'All', 'No date', 'Pre trial', 'Post trial'],
+subsections = {'Contact': ['Test', 'Post trial'],
+               'Household': ['Test', 'Post trial'],
                'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
@@ -40,6 +41,7 @@ Criteria = {
         '2nd round': 'status = \'2\'',
         'bgdo':      'Contact.status = \'bgdo3\'',
         'renters'  : 'own > 1 and Household.status < 4 and date_choice < CURDATE()',
+        'lowIncome'  : 'Household.status > 0 AND Household.status < 7 AND income > 0 and income < 4',
         'reminder': 'confirmed = "yes" or confirmed = "panel"',
         'early':     'Contact.status = \'early\'',
         '17Nov24':  'idContact IN (\'5133\', \'5148\', \'5152\', \'5162\', \'5173\', \'5179\', \'5191\', \'5218\', \'5255\', \'5261\', \'5263\', \'5266\', \'5273\', \'5288\', \'5299\', \'5325\', \'5354\', \'5365\', \'5366\', \'5369\', \'5377\', \'5379\', \'5381\', \'5396\', \'5401\', \'5428\', \'5571\', \'5588\', \'5589\', \'5615\', \'5616\', \'5623\', \'5656\', \'5711\')',
@@ -56,7 +58,9 @@ Criteria = {
             # Household ID for Contacts where max status is 3 (i.e. never got beyond confirm)
                     '18Mar28': 'idHousehold IN (\'8041\',\'8049\',\'8074\',\'8107\',\'8183\',\'8332\',\'8541\',\'8839\',\'8066\',\'8086\',\'8148\',\'8203\',\'8865\',\'9205\',\'8186\',\'8845\',\'8927\',\'8011\',\'8028\',\'8044\',\'8060\',\'8068\',\'8078\',\'8101\',\'8120\',\'8187\',\'8205\',\'9380\',\'8102\',\'8121\',\'8132\',\'8141\',\'8271\',\'8557\',\'8030\',\'8103\',\'8178\',\'8409\',\'8855\',\'8930\',\'9578\',\'7985\',\'8063\',\'8145\',\'8170\',\'8499\',\'8577\',\'8781\',\'9183\',\'9383\',\'8116\',\'8578\',\'8858\')',
         # 'xMas':   'Household.status > 1 AND Contact.status <> "unsubscribed" page_number > 0 AND email <> \'%@%\'',
-        # 'xxx':     'Contact.status = \'test1\''
+        '18Nov16': 'idContact IN (\'301\',\'2122\',\'2124\',\'2125\',\'2127\',\'2129\',\'2132\',\'2133\',\'2134\',\'2135\',\'2136\',\'2140\',\'2142\',\'5206\',\'5214\',\'5225\',\'5252\',\'5293\',\'5307\',\'5391\',\'5577\',\'5591\',\'5660\',\'5662\',\'5813\')',
+
+# 'xxx':     'Contact.status = \'test1\''
       '18Nov02': 'idContact IN (\'301\',\'2122\',\'2124\',\'2125\',\'2126\',\'2127\',\'2129\',\'2130\',\'2131\',\'2132\',\'2133\',\'2134\',\'2135\',\'2136\',\'2140\',\'2142\',\'5206\',\'5214\',\'5225\',\'5252\',\'5293\',\'5307\',\'5391\',\'5430\',\'5453\',\'5554\',\'5557\',\'5577\',\'5590\',\'5591\',\'5660\',\'5662\',\'5753\',\'5813\')'
         }
 table = tables[0]
@@ -115,12 +119,14 @@ def sendTo(condition,attach):
     idField = "id%s" % table
     for result in results:
         emailText = templateText.replace("[name]", "%s" % result["Name"])
+        message("checking: {}".format(result["idHH"]))
         if ("idHH" in result):
             emailText = emailText.replace("[householdID]", "%s" % result["idHH"])
         if ("sc" in result):
             emailText = emailText.replace("[securityCode]", "%s" % result["sc"])
-        emailText = emailText.replace("[id]", "%s" % result[idField])
-        thisAttach = attach.replace("[id]", "%s" % result[idField])
+        # emailText = emailText.replace("[id]", "%s" % result[idField])
+        # thisAttach = attach.replace("[id]", "%s" % result[idField])
+        thisAttach = ""
 
         emailAddress = "%s" % result["email"]
         emailFile = open(emailPathPersonal, "w+")
