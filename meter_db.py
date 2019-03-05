@@ -508,17 +508,48 @@ def getUpcomingHH():
     """
     return getSQL(sqlq)
 
+def getHH_with_no_date():
+    """
+    find HH that haven't had a date yet
+    ignore those contacts who have had a date in the last 90 days (with another HH ID)
+    This list will be checked and emailed to on the 15th of every month
+
+    :returns: dict - list of HHid
+    """
+    sqlq = """ 
+        SELECT idHousehold
+         FROM Household
+        	JOIN Contact 
+        	ON Contact_idContact = idContact
+         WHERE Household.status = 1
+         AND Household.timestamp > '2010-02-15'
+         AND Contact.status <> 'de'
+         AND Contact.status <> 'unsubscribed'
+         AND idContact NOT IN (
+        	SELECT Contact_idContact 
+            FROM Household 
+            WHERE Household.status > 3
+        	AND Household.timestamp > CURDATE() - INTERVAL "90" DAY
+         );
+    """
+    return getSQL(sqlq)
+
 def getHH_to_confirm():
     """
-    find HH that selected a date in the next two weeks
-    but at least 9 days away (so we have time to send a parcel)
+    find HH that selected a date in either 10 days or 8 days
+    if they do not act in 2 days they get the second one
+    (so we have time to send a parcel)
     :returns: dict - list of HHid
     """
     sqlq = """ 
     SELECT idHousehold
     FROM Household
     WHERE status < 3 
-    AND date_choice = CURDATE() + INTERVAL "8" DAY
+    AND (
+        date_choice = CURDATE() + INTERVAL "7" DAY
+        OR
+        date_choice = CURDATE() + INTERVAL "9" DAY
+        ) 
     ORDER BY date_choice ASC
     """
     return getSQL(sqlq)

@@ -231,7 +231,7 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
         # sqlq = "LOAD DATA INFILE '" + dataFile + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
 
         os.system("scp " + dataFile + " phil@109.74.196.205:/home/phil/meter")
-       sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+        sqlq = "LOAD DATA INFILE '/home/phil/meter/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         executeSQL(sqlq)
         commit()
         updateDataQuality(metaID, 1)
