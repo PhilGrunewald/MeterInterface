@@ -512,6 +512,7 @@ def getHH_with_no_date():
     """
     find HH that haven't had a date yet
     ignore those contacts who have had a date in the last 90 days (with another HH ID)
+    must have signed up at least 10 days ago
     This list will be checked and emailed to on the 15th of every month
 
     :returns: dict - list of HHid
@@ -522,14 +523,15 @@ def getHH_with_no_date():
         	JOIN Contact 
         	ON Contact_idContact = idContact
          WHERE Household.status = 1
-         AND Household.timestamp > '2010-02-15'
+         AND Household.quality > 6
          AND Contact.status <> 'de'
          AND Contact.status <> 'unsubscribed'
+         AND Household.timestamp < CURDATE() - INTERVAL "10" DAY
          AND idContact NOT IN (
         	SELECT Contact_idContact 
             FROM Household 
             WHERE Household.status > 3
-        	AND Household.timestamp > CURDATE() - INTERVAL "90" DAY
+            AND Household.timestamp > CURDATE() - INTERVAL "90" DAY
          );
     """
     return getSQL(sqlq)

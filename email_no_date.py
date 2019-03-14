@@ -2,7 +2,7 @@
 
 import os,sys               # to get path
 from subprocess import call
-import datetime             # format date into string
+import datetime as dt       # format date into string
 import meter_db as mdb      # for sql queries
 import locale
 
@@ -35,8 +35,6 @@ def sendEmail(householdID):
         locale.setlocale(locale.LC_ALL, 'de_DE.utf8')
     else:
         emailPath = os.path.join(thisPath, "emails/email_automated_date.html")
-    dtChoice    = mdb.getHHdtChoice(householdID)
-    thisDate    = dtChoice.strftime("%A, %-d %B")
 
     templateFile = open(emailPath, "r")
     templateText = templateFile.read()
@@ -45,7 +43,6 @@ def sendEmail(householdID):
     templateText = templateText.replace("[contactID]", contactID)
     templateText = templateText.replace("[name]", thisName)
     templateText = templateText.replace("[address]", thisAddress)
-    templateText = templateText.replace("[date]", thisDate)
     templateText = templateText.replace("[securityCode]", mdb.getSecurityCode(householdID))
     templateText = templateText.replace("[participantCount]", participantCount)
 
@@ -69,7 +66,7 @@ def getNoDaters():
     find households with no date yet
     this is called every month on the 15th
     """
-    idHHs = mdb.getHH_to_confirm()
+    idHHs = mdb.getHH_with_no_date()
     for idHH in idHHs:
         HH = idHH['idHousehold']
         sendEmail("{}".format(HH))
