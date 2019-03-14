@@ -384,10 +384,7 @@ def getParticipantCount(householdID):
             FROM Household \
             WHERE idHousehold = '" + householdID + "';"
     result = getSQL(sqlq)[0]
-    try:
-        return int(result['age_group2']) + int(result['age_group3']) + int(result['age_group4']) + int(result['age_group5']) + int(result['age_group6'])
-    except TypeError:
-        return int(0)
+    return int(result['age_group2']) + int(result['age_group3']) + int(result['age_group4']) + int(result['age_group5']) + int(result['age_group6'])
 
 
 def updateDataQuality(idMeta, Quality):
