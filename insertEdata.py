@@ -11,22 +11,28 @@ def uploadEdata(dataFileName):
     householdID = mdb.getHouseholdForMeta(metaID)
     print "<p>Household ID: {}</p>".format(householdID)
 
-    sqlq = "LOAD DATA INFILE '/home/meter/data/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
-    mdb.executeSQL(sqlq)
-    mdb.commit()
-    updateDataQuality(metaID, 1)
+    if (checkExistence(metaID)):
+        print "Data already exists - aborting"
+    else:
+        print "Data is new"
 
-    # update status
-    sqlq = """UPDATE Household
-            SET `status`= '6'
-            WHERE `idHousehold` ='{}';
-            """.format(householdID)
-    mdb.executeSQL(sqlq)
-    mdb.commit()
-    print "<p>Status for HH {} set to 6</p>".format(householdID)
+    if (1==2):
+        sqlq = "LOAD DATA INFILE '/home/meter/data/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
+        mdb.executeSQL(sqlq)
+        mdb.commit()
+        updateDataQuality(metaID, 1)
 
-    # produce 1min and 10min data
-    os.system('python /home/meter/Interface/el_downsample.py')
+        # update status
+        sqlq = """UPDATE Household
+                SET `status`= '6'
+                WHERE `idHousehold` ='{}';
+                """.format(householdID)
+        mdb.executeSQL(sqlq)
+        mdb.commit()
+        print "<p>Status for HH {} set to 6</p>".format(householdID)
+
+        # produce 1min and 10min data
+        os.system('python /home/meter/Interface/el_downsample.py')
 
 
 def updateDataQuality(idMeta, Quality):
@@ -37,6 +43,22 @@ def updateDataQuality(idMeta, Quality):
             WHERE `idMeta` = %s;" % (Quality, idMeta)
     mdb.executeSQL(sqlq)
     mdb.commit()
+
+def checkExistence(idMeta):
+    """ set Quality in Meta table """
+    # XXX add for diaries
+    sqlq = """
+            SELECT idElectricity
+                FROM Electricity_10min
+                WHERE `idMeta` = {}
+                LIMIT 1;
+            """.format(idMeta)
+    result = mdb.getSQL(sqlq)[0]
+    if (result):
+        return True
+    else:
+        return False
+
 
 uploadEdata(sys.argv[1]) 
 print "<p>Upload complete</p>"
