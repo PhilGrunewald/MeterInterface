@@ -51,14 +51,12 @@ def checkExistence(idMeta):
                 WHERE `Meta_idMeta` = {}
                 LIMIT 1;
             """.format(idMeta)
-    print sqlq
-    result = mdb.getSQL(sqlq)[0]
-    print "result : {}".format(result)
-    if (result):
-        return True
-    else:
+    try:
+        result = mdb.getSQL(sqlq)[0]
+        if (result):
+            return True
+    except:
         return False
-
 
 uploadEdata(sys.argv[1]) 
 print "<p>Upload complete</p>"
