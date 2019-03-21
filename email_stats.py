@@ -24,21 +24,20 @@ def getCount(status, condition):
              WHERE Household.status = '{}'
              AND {}
             ;
-            """.format(status, region)
+            """.format(status, condition)
     return mdb.getSQL(sqlq)[0]['c']
 
 
 def getSubjectline(locale):
-    if (locale = 'DE'):
+    region ="<> 'de'"
+    if (locale == 'DE'):
         region ="= 'de'"
-    else:
-        region ="<> 'de'"
 
-    due           = getCount(4,'date_choice <= CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.region)
-    confirmed     = getCount(4,'date_choice > CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.region)
-    await_confirm = getCount(3,'date_choice > CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.region)
-    pipeline      = getCount(2,'date_choice > CURDATE() + INTERVAL "7" DAY AND Contact.status {}'.region)
-    noDate        = getCount(1,'AND Contact.status {}'.region)
+    due          = getCount(4,'date_choice <= CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.format(region))
+    confirmed     = getCount(4,'date_choice > CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.format(region))
+    await_confirm = getCount(3,'date_choice > CURDATE() + INTERVAL "6" DAY AND Contact.status {}'.format(region))
+    pipeline      = getCount(2,'date_choice > CURDATE() + INTERVAL "7" DAY AND Contact.status {}'.format(region))
+    noDate        = getCount(1,'Contact.status {}'.format(region))
 
     subjectLine = "[Meter] due {}, confirmed {}/{}, date {}/{}".format(due, confirmed, int(confirmed)+int(await_confirm), pipeline, int(pipeline)+int(noDate))
     return subjectLine
@@ -68,7 +67,7 @@ def emailConfirmed():
         people = int(g['age_group2']) +int(g['age_group3']) +int(g['age_group4']) +int(g['age_group5']) +int(g['age_group6'])
         hhString+="{}\n{}\n{}\n{} {}\n{}\nHH: {}\nDate: {}\naMeters: {}\neMeter ".format(g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email'],g['idHousehold'],g['date_choice'],people)
         sqlq = """ SELECT idMeta, CollectionDate, Quality
-                    FROM META
+                    FROM Meta
                     WHERE DataType = 'E'
                     AND Household_idHousehold = {}
                 """.format(g['idHousehold'])
@@ -78,7 +77,7 @@ def emailConfirmed():
             hhString+="{} ({} quality: {})\n        ".format(e['idMeta'],e['CollectionDate'],e['Quality'])
         hhString+="\n---------------------\n\n"
 
-        if g['st' == 'de']:
+        if (g['st'] == 'de'):
             DE.write(hhString)
             anyDE = True
         else:
