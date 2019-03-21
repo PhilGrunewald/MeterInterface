@@ -26,11 +26,17 @@ for hh in hhTable:
     if (hh['tariff'] == 0): q -= 1
     if (hh['income'] == 0): q -= 1
     if (hh['bill_affordable'] == 0): q -= 1
-    sqlUpdate = """ 
-                UPDATE Household 
-                    SET quality = '{}' 
-                    WHERE idHousehold = '{}'
-                """.format(q,hhID)
-    mdb.executeSQL(sqlUpdate)
-    print "Set HH {} quality to {}".format(hhID,q)
+    sqlq = """
+            SELECT quality FROM Household WHERE idHousehold = {}
+           """.format(hhID)
+    r = mdb.getSQL(sqlq)[0]
+    if (int(r['quality']) != q):
+        sqlUpdate = """ 
+                    UPDATE Household 
+                        SET quality = '{}' 
+                        WHERE idHousehold = '{}'
+                    """.format(q,hhID)
+        mdb.executeSQL(sqlUpdate)
+        print "Set HH {} quality to {}".format(hhID,q)
+
 mdb.commit()

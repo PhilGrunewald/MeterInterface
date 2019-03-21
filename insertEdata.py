@@ -48,12 +48,14 @@ def checkExistence(idMeta):
     """ set Quality in Meta table """
     # XXX add for diaries
     sqlq = """
-            SELECT idElectricity
+            SELECT dt
                 FROM Electricity_10min
-                WHERE `idMeta` = {}
+                WHERE `Meta_idMeta` = {}
                 LIMIT 1;
             """.format(idMeta)
+    print sqlq
     result = mdb.getSQL(sqlq)[0]
+    print "result : {}".format(result)
     if (result):
         return True
     else:
