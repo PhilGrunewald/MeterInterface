@@ -14,9 +14,7 @@ def uploadEdata(dataFileName):
     if (checkExistence(metaID)):
         print "Data already exists - aborting"
     else:
-        print "Data is new"
-
-    if (1==2):
+        # data is new
         sqlq = "LOAD DATA INFILE '/home/meter/data/" + dataFileName + "' INTO TABLE Electricity FIELDS TERMINATED BY ',' (dt,Watt) SET Meta_idMeta = " + str(metaID) + ";"
         mdb.executeSQL(sqlq)
         mdb.commit()
