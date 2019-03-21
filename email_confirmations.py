@@ -1,4 +1,10 @@
 #!/usr/bin/python
+""" send emails to participants to confirm participation 
+
+
+WARNING: used daily as cron job on server!
+
+"""
 
 import os,sys               # to get path
 from subprocess import call
