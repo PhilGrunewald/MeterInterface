@@ -42,6 +42,34 @@ def getSubjectline(locale):
     subjectLine = "[Meter] due {}, confirmed {}/{}, date {}/{}".format(due, confirmed, int(confirmed)+int(await_confirm), pipeline, int(pipeline)+int(noDate))
     return subjectLine
 
+def emailGermanPipeline():
+    sqlq = """
+           SELECT idHousehold, date_choice, Name, Address1, Address2, Town, Postcode, email, phone, age_group2, age_group3, age_group4, age_group5, age_group6, Contact.status AS st
+             FROM Contact
+             JOIN Household
+             ON idContact = Contact_idContact
+             WHERE Household.status < 4
+             AND Contact.status = 'de'
+             ORDER BY date_choice;
+            """
+    HHs = mdb.getSQL(sqlq)
+    # email file
+    thisPath = os.path.dirname(os.path.abspath(__file__))
+    emailFilePathDE = os.path.join(thisPath, "DEpipeline.txt")
+    DE = open(emailFilePathDE,"w")
+    anyDE = False
+    for g in HHs:
+        hhString = ""
+        people = int(g['age_group2']) +int(g['age_group3']) +int(g['age_group4']) +int(g['age_group5']) +int(g['age_group6'])
+        hhString+="{}\n{}\n{}\n{} {}\n{}\nHH: {}\nDate: {}\naMeters: {}\n\n\n------------\n\n".format(g['Name'],g['Address1'],g['Address2'],g['Postcode'],g['Town'],g['email'],g['idHousehold'],g['date_choice'],people)
+        DE.write(hhString)
+        anyDE = True
+
+    DE.close()
+    if (anyDE):
+        subjectLine = "[Meter] Unconfirmed participants"
+        cmd = 'mutt -e "set content_type=text/plain" -s "'+subjectLine+'" Marvin.Gleue@wiwi.uni-muenster.de -c "meter@energy.ox.ac.uk,jhunterberg@googlemail.com" < ' + emailFilePathDE
+        call(cmd, shell=True)
 
 def emailConfirmed():
     sqlq = """
@@ -88,7 +116,7 @@ def emailConfirmed():
     UK.close()
     if (anyDE):
         subjectLine = getSubjectline("DE")
-        cmd = 'mutt -e "set content_type=text/plain" -s "'+subjectLine+'" Marvin.Gleue@wiwi.uni-muenster.de -c meter@energy.ox.ac.uk < ' + emailFilePathDE
+        cmd = 'mutt -e "set content_type=text/plain" -s "'+subjectLine+'" Marvin.Gleue@wiwi.uni-muenster.de -c "meter@energy.ox.ac.uk,jhunterberg@googlemail.com"  < ' + emailFilePathDE
         call(cmd, shell=True)
     if (anyUK):
         subjectLine = getSubjectline("UK")
@@ -97,3 +125,4 @@ def emailConfirmed():
 
 if __name__ == "__main__":
     emailConfirmed()
+    emailGermanPipeline()
