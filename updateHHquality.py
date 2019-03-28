@@ -16,21 +16,21 @@ for hh in hhTable:
     hhID = hh['idHousehold']
     q = 10
     ageGroupSum = hh['age_group1'] + hh['age_group2'] + hh['age_group3'] + hh['age_group4'] + hh['age_group5'] + hh['age_group6']
-    if (hh['people'] == 0): q -= 1
+    if (hh['people'] is None): q -= 1
     if (ageGroupSum == 0): q -= 1
-    if (hh['p6pm'] == -1): q -= 1
-    if (hh['house_type'] == 0): q -= 1
-    if (hh['rooms'] == 0): q -= 1
-    if (hh['own'] == 0): q -= 1
-    if (hh['provider'] == 'not given'): q -= 1
-    if (hh['tariff'] == 0): q -= 1
-    if (hh['income'] == 0): q -= 1
-    if (hh['bill_affordable'] == 0): q -= 1
+    if (hh['p6pm'] is None): q -= 1
+    if (hh['house_type'] is None): q -= 1
+    if (hh['rooms'] is None): q -= 1
+    if (hh['own'] is None): q -= 1
+    if (hh['provider'] is None): q -= 1
+    if (hh['tariff'] is None): q -= 1
+    if (hh['income'] is None): q -= 1
+    if (hh['bill_affordable'] is None): q -= 1
     sqlq = """
             SELECT quality FROM Household WHERE idHousehold = {}
            """.format(hhID)
     r = mdb.getSQL(sqlq)[0]
-    if (int(r['quality']) != q):
+    if (r['quality'] != q):
         sqlUpdate = """ 
                     UPDATE Household 
                         SET quality = '{}' 
