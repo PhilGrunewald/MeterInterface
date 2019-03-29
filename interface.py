@@ -272,9 +272,10 @@ def uploadDataFile(fileName, dataType, _metaID, collectionDate):
             individualID = executeSQL(sqlq)                             # create an entry
             commit()
             for row in csv_data:                             # populate columns
-                sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
-                        WHERE idIndividual = '" + str(individualID) + "';"
-                executeSQL(sqlq)
+                if (row[2] != '0'):
+                    sqlq = "UPDATE Individual SET " + row[1] + " = '" + row[2] + "'\
+                            WHERE idIndividual = '" + str(individualID) + "';"
+                    executeSQL(sqlq)
         if (dataType == 'A'):
             # XXX ??? WILL THIS EVER EXECUTE ??? XXX
             for row in csv_data:                                                       # insert each line into Activities
