@@ -5,6 +5,7 @@ db_ini.*
 .DS_store
 .temp
 Data/
+apk/
 letters/address*
 flash*/
 emails/tempEmail.htmail
