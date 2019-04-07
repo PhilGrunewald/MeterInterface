@@ -22,13 +22,14 @@ from interface_ini import *     # reads the database and file path information f
 tables = ['Household', 'Contact'] # , 'Mailinglist', 'OE_mail']
 
 subsections = {'Contact': ['Test', '19_03_noDate', '19_03_noConfirm'],
-               'Household': ['Test', '19_03_noDate', '19_03_noConfirm'],
+               'Household': ['Test', '19_04_intervention', '19_03_noDate', '19_03_noConfirm'],
                'OE_mail': ['Test',  '1st round', 'reminder'],
                'Mailinglist': ['Workshop','All', 'Panel', 'Updates', 'Test']} 
 
 Criteria = {
             'All':       'email <> \'%@%\'',
         'No date':   'Household.status = 1',
+        '19_04_intervention': 'Household.status > 6 AND Household.status < 10',
         'Pre trial': 'Household.status = 2',
         'Post trial':'Household.status >= 3',
         'Panel':     'status = \'panel\'',
