@@ -1320,9 +1320,10 @@ class MeterMain(nps.FormMuttActiveTraditionalWithMenus):
             # MenuText.append(formatBigBox("Devices:", getDeviceMetaIDs(householdID)))
             MenuText.append(formatBigBox("[D]evices:", getDevicesForDate(householdID, dt_date)))
             MenuText.append(formatBigBox("Readings:", getDevicesReadings(householdID, dt_date)))
-            if (status > 5):
-                MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID, Criteria['no reading'], 60)))  # last parameter is min duration to report
-                MenuText.append(formatBigBox("High:", getReadingPeriods(householdID, Criteria['high reading'], 60)))  # last parameter is min duration to report
+            if (int(status) > 5):
+                message("Phil, fix the display of e readings here (python3 issue)")
+                # MenuText.append(formatBigBox("Low:",  getReadingPeriods(householdID, Criteria['no reading'], 60)))  # last parameter is min duration to report
+                # MenuText.append(formatBigBox("High:", getReadingPeriods(householdID, Criteria['high reading'], 60)))  # last parameter is min duration to report
             MenuText.extend(formatBoxList(getComment(householdID)))
             MenuText.append(longline)
         else:
