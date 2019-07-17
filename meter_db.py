@@ -938,7 +938,6 @@ def getActIDs(condition = ""):
     # Returns activity IDs that have been used by participants
     sqlq = "SELECT DISTINCT idActivities FROM Activities {0};".format(condition)
     # return getDataframeSQL(sqlq)
-    print "testing"
     return getSQL(sqlq)
 
 def getTUCsAndCategories():

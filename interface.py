@@ -919,6 +919,26 @@ def getTemplate(fileName):
     return templateText
 
 
+def print_HHaddress(void1):
+    """ formated address label """
+    global householdID
+    contactID = getContact(householdID)
+
+    sqlq = "SELECT Name, Address1,Address2,Town,Postcode FROM Contact WHERE idContact = '%s';" % contactID
+    result = getSQL(sqlq)[0]
+    thisName    = ("%s" % (result['Name']))
+
+    address = getTemplate(letterPath + "_address.md")
+    address = address.replace("[Name]",  "{}  ({})".format(thisName,householdID))
+    address = address.replace("[Address1]", "%s" % result['Address1'])
+    address = address.replace("[Address2]", "%s" % result['Address2'])
+    address = address.replace("[Town]",     "%s" % result['Town'])
+    address = address.replace("[Postcode]", "%s" % result['Postcode'])
+    # address = address.replace("[Postcode]", "{}\n\n({})".format(result['Postcode'],householdID))
+    address = address.replace("None", "")
+
+    printSticker(address, letterPath + "address")
+
 def print_address():
     """ formated address label """
     global householdID
@@ -1020,7 +1040,7 @@ class ActionControllerData(nps.MultiLineAction):
                     '+': self.parent.cycleCriteria,
                     '=': self.parent.cycleCriteria,
                     '-': self.parent.cycleCriteria,
-                    'A': self.parent.show_EditFilter,
+                    'A': print_HHaddress,
                     'B': self.parent.show_EditFilter,
                     'D': self.parent.deviceConfig,
                     'E': self.parent.email,
