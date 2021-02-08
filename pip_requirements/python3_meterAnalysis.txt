@@ -19,7 +19,7 @@ functools32==3.2.3.post2
 futures==3.0.5
 gcalcli==3.3.2
 google-api-python-client==1.4.2
-httplib2==0.9.2
+httplib2==0.19.0
 imagesize==0.7.1
 ipaddress==1.0.22
 ipykernel==4.10.0
