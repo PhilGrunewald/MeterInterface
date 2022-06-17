@@ -1,5 +1,5 @@
 npyscreen==4.10.5
-numpy==1.16.2
+numpy==1.21.0
 pandas==0.24.2
 PyMySQL==0.9.3
 python-dateutil==2.8.0

@@ -45,7 +45,7 @@ networkx==1.11
 notebook==5.7.7
 notedown==1.5.1
 npyscreen==4.10.5
-numpy==1.12.1
+numpy==1.21.0
 oauth2client==1.4.12
 pandas==0.20.1
 pandoc-attributes==0.1.7
