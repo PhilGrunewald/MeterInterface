@@ -16,7 +16,7 @@ nbconvert==5.4.1
 nbformat==4.4.0
 notedown==1.5.1
 npyscreen==4.10.5
-numpy==1.16.2
+numpy==1.22.0
 pandas==0.24.2
 pandoc-attributes==0.1.7
 pandocfilters==1.4.2
